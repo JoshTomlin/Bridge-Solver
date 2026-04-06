@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bridge Solver</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">Bridge Solver</p>
+        <h1>Declarer-play analysis over constrained hidden hands.</h1>
+        <p class="lede">
+          Start by entering South and dummy. Then we can count legal East/West
+          deals, sample from them, and later evaluate candidate lines of play.
+        </p>
+      </section>
+
+      <section class="panel-grid">
+        <article class="panel">
+          <h2>Known Hands</h2>
+          <label for="south-hand">South hand</label>
+          <textarea id="south-hand" rows="4" placeholder="AKQ.J73.T62.A95"></textarea>
+
+          <label for="north-hand">Dummy hand</label>
+          <textarea id="north-hand" rows="4" placeholder="J94.AK4.AKQ.843"></textarea>
+        </article>
+
+        <article class="panel">
+          <h2>Restrictions</h2>
+          <label for="west-hcp">West HCP range</label>
+          <input id="west-hcp" type="text" placeholder="e.g. 8-11">
+
+          <label for="east-shape">East shape clue</label>
+          <input id="east-shape" type="text" placeholder="e.g. 5-3-3-2">
+
+          <label for="notes">Notes</label>
+          <textarea id="notes" rows="4" placeholder="Future spot for auction or play clues"></textarea>
+        </article>
+      </section>
+
+      <section class="panel results">
+        <h2>Engine Status</h2>
+        <p id="engine-status">C++ engine not connected yet. UI shell is ready.</p>
+        <button id="analyze-button" type="button">Preview Request</button>
+        <pre id="request-preview"></pre>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
