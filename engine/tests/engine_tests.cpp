@@ -81,6 +81,73 @@ std::uint64_t brute_force_count(
     return total;
 }
 
+bridge::Deal sample_dds_deal() {
+    return bridge::Deal {
+        .hands = {
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Ace),
+                bridge::make_card(Suit::Spades, Rank::King),
+                bridge::make_card(Suit::Spades, Rank::Nine),
+                bridge::make_card(Suit::Spades, Rank::Eight),
+                bridge::make_card(Suit::Spades, Rank::Seven),
+                bridge::make_card(Suit::Hearts, Rank::Two),
+                bridge::make_card(Suit::Hearts, Rank::Three),
+                bridge::make_card(Suit::Clubs, Rank::Queen),
+                bridge::make_card(Suit::Clubs, Rank::Jack),
+                bridge::make_card(Suit::Clubs, Rank::Four),
+                bridge::make_card(Suit::Clubs, Rank::Eight),
+                bridge::make_card(Suit::Clubs, Rank::Five),
+                bridge::make_card(Suit::Clubs, Rank::Two),
+            }),
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Queen),
+                bridge::make_card(Suit::Spades, Rank::Jack),
+                bridge::make_card(Suit::Spades, Rank::Six),
+                bridge::make_card(Suit::Hearts, Rank::Ace),
+                bridge::make_card(Suit::Hearts, Rank::King),
+                bridge::make_card(Suit::Hearts, Rank::Ten),
+                bridge::make_card(Suit::Hearts, Rank::Six),
+                bridge::make_card(Suit::Diamonds, Rank::Ace),
+                bridge::make_card(Suit::Diamonds, Rank::Queen),
+                bridge::make_card(Suit::Diamonds, Rank::Seven),
+                bridge::make_card(Suit::Clubs, Rank::Nine),
+                bridge::make_card(Suit::Clubs, Rank::Six),
+                bridge::make_card(Suit::Clubs, Rank::Three),
+            }),
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Ten),
+                bridge::make_card(Suit::Spades, Rank::Five),
+                bridge::make_card(Suit::Spades, Rank::Four),
+                bridge::make_card(Suit::Hearts, Rank::Queen),
+                bridge::make_card(Suit::Hearts, Rank::Jack),
+                bridge::make_card(Suit::Hearts, Rank::Nine),
+                bridge::make_card(Suit::Diamonds, Rank::King),
+                bridge::make_card(Suit::Diamonds, Rank::Jack),
+                bridge::make_card(Suit::Diamonds, Rank::Nine),
+                bridge::make_card(Suit::Diamonds, Rank::Four),
+                bridge::make_card(Suit::Diamonds, Rank::Three),
+                bridge::make_card(Suit::Clubs, Rank::Ace),
+                bridge::make_card(Suit::Clubs, Rank::Ten),
+            }),
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Three),
+                bridge::make_card(Suit::Spades, Rank::Two),
+                bridge::make_card(Suit::Hearts, Rank::Eight),
+                bridge::make_card(Suit::Hearts, Rank::Seven),
+                bridge::make_card(Suit::Hearts, Rank::Five),
+                bridge::make_card(Suit::Hearts, Rank::Four),
+                bridge::make_card(Suit::Diamonds, Rank::Ten),
+                bridge::make_card(Suit::Diamonds, Rank::Eight),
+                bridge::make_card(Suit::Diamonds, Rank::Six),
+                bridge::make_card(Suit::Diamonds, Rank::Five),
+                bridge::make_card(Suit::Diamonds, Rank::Two),
+                bridge::make_card(Suit::Clubs, Rank::King),
+                bridge::make_card(Suit::Clubs, Rank::Seven),
+            }),
+        },
+    };
+}
+
 void test_legal_plays_follow_suit() {
     Hand hand = bridge::make_hand({
         bridge::make_card(Suit::Hearts, Rank::Queen),
@@ -358,6 +425,84 @@ void test_real_world_small_hearts_count() {
             "real-world East singleton CQ and exactly two or three small hearts count should be 82,654");
 }
 
+void test_double_dummy_wrapper_smoke() {
+    const bridge::Deal deal = sample_dds_deal();
+
+    const auto table = bridge::solve_double_dummy_table(deal);
+    require(table.tricks[4][static_cast<std::uint8_t>(Seat::North)] >= 0 &&
+            table.tricks[4][static_cast<std::uint8_t>(Seat::North)] <= 13,
+            "DDS notrump result for North should be in the trick range 0..13");
+    require(table.tricks[0][static_cast<std::uint8_t>(Seat::South)] ==
+                bridge::double_dummy_tricks(deal, Seat::South, Suit::Spades),
+            "double_dummy_tricks should match the table wrapper for spades");
+    require(table.tricks[4][static_cast<std::uint8_t>(Seat::East)] ==
+                bridge::double_dummy_tricks(deal, Seat::East, std::nullopt),
+            "double_dummy_tricks should match the table wrapper for notrump");
+}
+
+void test_alpha_mu_leaf_front_uses_world_bits() {
+    const bridge::Position position {
+        .deal = sample_dds_deal(),
+        .current_trick = bridge::Trick {
+            .leader = Seat::West,
+            .trump_suit = Suit::Spades,
+        },
+    };
+
+    const std::vector<bridge::AlphaMuWorld> worlds {
+        bridge::AlphaMuWorld {.position = position},
+        bridge::AlphaMuWorld {.position = position},
+    };
+    const bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 9,
+        .max_declarer_plies = 0,
+    };
+
+    const auto result = bridge::alpha_mu_search(worlds, config);
+    require(result.best_move == bridge::kNoCard,
+            "depth-zero alpha-mu search should not suggest a move");
+    require(result.front.vectors.size() == 1,
+            "depth-zero alpha-mu search should return a single leaf vector");
+    require(result.front.vectors.front().wins == 0b11,
+            "identical winning worlds should both be marked in the alpha-mu leaf front");
+}
+
+void test_alpha_mu_one_ply_returns_legal_declarer_move() {
+    bridge::Position position {
+        .deal = sample_dds_deal(),
+        .current_trick = bridge::Trick {
+            .leader = Seat::West,
+            .trump_suit = Suit::Spades,
+        },
+    };
+
+    bridge::add_card_to_trick(
+        position.current_trick,
+        bridge::hand_of(position.deal, Seat::West),
+        bridge::make_card(Suit::Clubs, Rank::King));
+    position.played_cards = bridge::add_card(position.played_cards, bridge::make_card(Suit::Clubs, Rank::King));
+
+    const std::vector<bridge::AlphaMuWorld> worlds {
+        bridge::AlphaMuWorld {.position = position},
+    };
+    const bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 9,
+        .max_declarer_plies = 1,
+    };
+
+    const auto result = bridge::alpha_mu_search(worlds, config);
+    const Hand north_legal =
+        bridge::legal_plays(position.current_trick, bridge::hand_of(position.deal, Seat::North));
+    require(result.best_move != bridge::kNoCard,
+            "one-ply alpha-mu search should suggest a declarer-side move");
+    require(bridge::contains(north_legal, result.best_move),
+            "alpha-mu should return a legal move for the side to play");
+}
+
 }  // namespace
 
 int main() {
@@ -370,6 +515,9 @@ int main() {
         test_sampled_hand_satisfies_constraints();
         test_real_world_exact_shape_count();
         test_real_world_small_hearts_count();
+        test_double_dummy_wrapper_smoke();
+        test_alpha_mu_leaf_front_uses_world_bits();
+        test_alpha_mu_one_ply_returns_legal_declarer_move();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << "\n";
         return 1;

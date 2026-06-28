@@ -1,0 +1,1787 @@
+Case 7: Alpha-mu one-ply demo
+Declarer: South
+Contract target: 4 tricks in notrump
+Trick depth: 1 full trick
+Discovery-play ending: spades are Qxx opposite x in one world, and xxx opposite Q in the other
+World 0
+            AJT
+            A
+            -
+            -
+
+Q98                     7
+T                       KQJ
+-                       -
+-                       -
+
+            K32
+            2
+            -
+            -
+
+World 1
+            AJT
+            A
+            -
+            -
+
+987                     Q
+K                       QJT
+-                       -
+-                       -
+
+            K32
+            2
+            -
+            -
+
+South legal moves: SK S3 S2 H2
+Search tree
+active [11]  declarer_plies_left=1
+MAX turn=South active=[11]
+shared moves: SK S3 S2 H2
+move SK
+  active [11]  declarer_plies_left=1
+  MIN turn=West active=[11]
+  union moves: SQ S9 S8 S7
+  seed -> [11]
+  defender move SQ legal=[10]
+    active [10]  declarer_plies_left=1
+    MAX turn=North active=[10]
+    shared moves: SA SJ ST
+    move SA
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [00] -> [10]
+      mu combine [10] AND [10] -> [10]
+      pareto min -> [10]
+    child SA -> [10]
+    move SJ
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [00] -> [10]
+      mu combine [10] AND [10] -> [10]
+      pareto min -> [10]
+    child SJ -> [10]
+    move ST
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [00] -> [10]
+      mu combine [10] AND [10] -> [10]
+      pareto min -> [10]
+    child ST -> [10]
+    union raw -> [10] [10] [10]
+    pareto max -> [10]
+  child SQ -> [10]
+  adjusted SQ with neutral [01] -> [11]
+  mu combine [11] AND [11] -> [11]
+  defender move S9 legal=[11]
+    active [11]  declarer_plies_left=1
+    MAX turn=North active=[11]
+    shared moves: SA SJ ST
+    move SA
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+2=3  -> [00]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [01] -> [01]
+      mu combine [11] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [11] AND [11] -> [11]
+      pareto min -> [11]
+    child SJ -> [11]
+    move ST
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [11] AND [11] -> [11]
+      pareto min -> [11]
+    child ST -> [11]
+    union raw -> [01] [11] [11]
+    pareto max -> [11]
+  child S9 -> [11]
+  adjusted S9 with neutral [00] -> [11]
+  mu combine [11] AND [11] -> [11]
+  defender move S8 legal=[11]
+    active [11]  declarer_plies_left=1
+    MAX turn=North active=[11]
+    shared moves: SA SJ ST
+    move SA
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+2=3  -> [00]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [01] -> [01]
+      mu combine [11] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [11] AND [11] -> [11]
+      pareto min -> [11]
+    child SJ -> [11]
+    move ST
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [11] AND [11] -> [11]
+      pareto min -> [11]
+    child ST -> [11]
+    union raw -> [01] [11] [11]
+    pareto max -> [11]
+  child S8 -> [11]
+  adjusted S8 with neutral [00] -> [11]
+  mu combine [11] AND [11] -> [11]
+  defender move S7 legal=[01]
+    active [01]  declarer_plies_left=1
+    MAX turn=North active=[01]
+    shared moves: SA SJ ST
+    move SA
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [00] -> [01]
+      mu combine [01] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [00] -> [01]
+      mu combine [01] AND [01] -> [01]
+      pareto min -> [01]
+    child SJ -> [01]
+    move ST
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=South trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      32
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [00] -> [01]
+      mu combine [01] AND [01] -> [01]
+      pareto min -> [01]
+    child ST -> [01]
+    union raw -> [01] [01] [01]
+    pareto max -> [01]
+  child S7 -> [01]
+  adjusted S7 with neutral [10] -> [11]
+  mu combine [11] AND [11] -> [11]
+  pareto min -> [11]
+child SK -> [11]
+move S3
+  active [11]  declarer_plies_left=1
+  MIN turn=West active=[11]
+  union moves: SQ S9 S8 S7
+  seed -> [11]
+  defender move SQ legal=[10]
+    active [10]  declarer_plies_left=1
+    MAX turn=North active=[10]
+    shared moves: SA SJ ST
+    move SA
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [00] -> [10]
+      mu combine [10] AND [10] -> [10]
+      pareto min -> [10]
+    child SA -> [10]
+    move SJ
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=0+3=3  -> [00]
+        world 0 position
+          leader=West trick=No cards played yet. score=0-1 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [00] -> [00]
+      mu combine [10] AND [00] -> [00]
+      pareto min -> [00]
+    child SJ -> [00]
+    move ST
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=0+3=3  -> [00]
+        world 0 position
+          leader=West trick=No cards played yet. score=0-1 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [00] -> [00]
+      mu combine [10] AND [00] -> [00]
+      pareto min -> [00]
+    child ST -> [00]
+    union raw -> [10] [00] [00]
+    pareto max -> [10]
+  child SQ -> [10]
+  adjusted SQ with neutral [01] -> [11]
+  mu combine [11] AND [11] -> [11]
+  defender move S9 legal=[11]
+    active [11]  declarer_plies_left=1
+    MAX turn=North active=[11]
+    shared moves: SA SJ ST
+    move SA
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+2=3  -> [00]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [01] -> [01]
+      mu combine [11] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [10] -> [10]
+      mu combine [11] AND [10] -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [10] AND [11] -> [10]
+      pareto min -> [10]
+    child SJ -> [10]
+    move ST
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [10] -> [10]
+      mu combine [11] AND [10] -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [10] AND [11] -> [10]
+      pareto min -> [10]
+    child ST -> [10]
+    union raw -> [01] [10] [10]
+    pareto max -> [01] [10]
+  child S9 -> [01] [10]
+  adjusted S9 with neutral [00] -> [01] [10]
+  mu combine [11] AND [01] [10] -> [01] [10]
+  defender move S8 legal=[11]
+    active [11]  declarer_plies_left=1
+    MAX turn=North active=[11]
+    shared moves: SA SJ ST
+    move SA
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+2=3  -> [00]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [01] -> [01]
+      mu combine [11] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [10] -> [10]
+      mu combine [11] AND [10] -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [10] AND [11] -> [10]
+      pareto min -> [10]
+    child SJ -> [10]
+    move ST
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [10] -> [10]
+      mu combine [11] AND [10] -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [10] AND [11] -> [10]
+      pareto min -> [10]
+    child ST -> [10]
+    union raw -> [01] [10] [10]
+    pareto max -> [01] [10]
+  child S8 -> [01] [10]
+  adjusted S8 with neutral [00] -> [01] [10]
+  mu combine [01] [10] AND [01] [10] -> [01] [10]
+  defender move S7 legal=[01]
+    active [01]  declarer_plies_left=1
+    MAX turn=North active=[01]
+    shared moves: SA SJ ST
+    move SA
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [00] -> [01]
+      mu combine [01] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [00] -> [00]
+      mu combine [01] AND [00] -> [00]
+      pareto min -> [00]
+    child SJ -> [00]
+    move ST
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K2
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [00] -> [00]
+      mu combine [01] AND [00] -> [00]
+      pareto min -> [00]
+    child ST -> [00]
+    union raw -> [01] [00] [00]
+    pareto max -> [01]
+  child S7 -> [01]
+  adjusted S7 with neutral [10] -> [11]
+  mu combine [01] [10] AND [11] -> [01] [10]
+  pareto min -> [01] [10]
+child S3 -> [01] [10]
+move S2
+  active [11]  declarer_plies_left=1
+  MIN turn=West active=[11]
+  union moves: SQ S9 S8 S7
+  seed -> [11]
+  defender move SQ legal=[10]
+    active [10]  declarer_plies_left=1
+    MAX turn=North active=[10]
+    shared moves: SA SJ ST
+    move SA
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [00] -> [10]
+      mu combine [10] AND [10] -> [10]
+      pareto min -> [10]
+    child SA -> [10]
+    move SJ
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=0+3=3  -> [00]
+        world 0 position
+          leader=West trick=No cards played yet. score=0-1 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [00] -> [00]
+      mu combine [10] AND [00] -> [00]
+      pareto min -> [00]
+    child SJ -> [00]
+    move ST
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: S7
+      seed -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=0+3=3  -> [00]
+        world 0 position
+          leader=West trick=No cards played yet. score=0-1 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          98                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [00] -> [00]
+      mu combine [10] AND [00] -> [00]
+      pareto min -> [00]
+    child ST -> [00]
+    union raw -> [10] [00] [00]
+    pareto max -> [10]
+  child SQ -> [10]
+  adjusted SQ with neutral [01] -> [11]
+  mu combine [11] AND [11] -> [11]
+  defender move S9 legal=[11]
+    active [11]  declarer_plies_left=1
+    MAX turn=North active=[11]
+    shared moves: SA SJ ST
+    move SA
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+2=3  -> [00]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [01] -> [01]
+      mu combine [11] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [10] -> [10]
+      mu combine [11] AND [10] -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [10] AND [11] -> [10]
+      pareto min -> [10]
+    child SJ -> [10]
+    move ST
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          87                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [10] -> [10]
+      mu combine [11] AND [10] -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          Q8                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [10] AND [11] -> [10]
+      pareto min -> [10]
+    child ST -> [10]
+    union raw -> [01] [10] [10]
+    pareto max -> [01] [10]
+  child S9 -> [01] [10]
+  adjusted S9 with neutral [00] -> [01] [10]
+  mu combine [11] AND [01] [10] -> [01] [10]
+  defender move S8 legal=[11]
+    active [11]  declarer_plies_left=1
+    MAX turn=North active=[11]
+    shared moves: SA SJ ST
+    move SA
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [10] -> [11]
+      mu combine [11] AND [11] -> [11]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+2=3  -> [00]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [00]
+      adjusted S7 with neutral [01] -> [01]
+      mu combine [11] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [10] -> [10]
+      mu combine [11] AND [10] -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [10] AND [11] -> [10]
+      pareto min -> [10]
+    child SJ -> [10]
+    move ST
+      active [11]  declarer_plies_left=1
+      MIN turn=East active=[11]
+      union moves: SQ S7
+      seed -> [11]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          97                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [10] -> [10]
+      mu combine [11] AND [10] -> [10]
+      defender move S7 legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          Q9                      -
+          T                       KQJ
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child S7 -> [10]
+      adjusted S7 with neutral [01] -> [11]
+      mu combine [10] AND [11] -> [10]
+      pareto min -> [10]
+    child ST -> [10]
+    union raw -> [01] [10] [10]
+    pareto max -> [01] [10]
+  child S8 -> [01] [10]
+  adjusted S8 with neutral [00] -> [01] [10]
+  mu combine [01] [10] AND [01] [10] -> [01] [10]
+  defender move S7 legal=[01]
+    active [01]  declarer_plies_left=1
+    MAX turn=North active=[01]
+    shared moves: SA SJ ST
+    move SA
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      JT
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [01]
+      adjusted SQ with neutral [00] -> [01]
+      mu combine [01] AND [01] -> [01]
+      pareto min -> [01]
+    child SA -> [01]
+    move SJ
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AT
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [00] -> [00]
+      mu combine [01] AND [00] -> [00]
+      pareto min -> [00]
+    child SJ -> [00]
+    move ST
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: SQ
+      seed -> [01]
+      defender move SQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=0+3=3  -> [00]
+        world 1 position
+          leader=East trick=No cards played yet. score=0-1 completed=1
+                      AJ
+                      A
+                      -
+                      -
+          
+          98                      -
+          K                       QJT
+          -                       -
+          -                       -
+          
+                      K3
+                      2
+                      -
+                      -
+      child SQ -> [00]
+      adjusted SQ with neutral [00] -> [00]
+      mu combine [01] AND [00] -> [00]
+      pareto min -> [00]
+    child ST -> [00]
+    union raw -> [01] [00] [00]
+    pareto max -> [01]
+  child S7 -> [01]
+  adjusted S7 with neutral [10] -> [11]
+  mu combine [01] [10] AND [11] -> [01] [10]
+  pareto min -> [01] [10]
+child S2 -> [01] [10]
+move H2
+  active [11]  declarer_plies_left=1
+  MIN turn=West active=[11]
+  union moves: HK HT
+  seed -> [11]
+  defender move HK legal=[01]
+    active [01]  declarer_plies_left=1
+    MAX turn=North active=[01]
+    shared moves: HA
+    move HA
+      active [01]  declarer_plies_left=1
+      MIN turn=East active=[01]
+      union moves: HQ HJ HT
+      seed -> [01]
+      defender move HQ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJT
+                      -
+                      -
+                      -
+          
+          987                     Q
+          -                       JT
+          -                       -
+          -                       -
+          
+                      K32
+                      -
+                      -
+                      -
+      child HQ -> [01]
+      adjusted HQ with neutral [00] -> [01]
+      mu combine [01] AND [01] -> [01]
+      defender move HJ legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJT
+                      -
+                      -
+                      -
+          
+          987                     Q
+          -                       QT
+          -                       -
+          -                       -
+          
+                      K32
+                      -
+                      -
+                      -
+      child HJ -> [01]
+      adjusted HJ with neutral [00] -> [01]
+      mu combine [01] AND [01] -> [01]
+      defender move HT legal=[01]
+        active [01]  declarer_plies_left=0
+        leaf  w1=1+3=4  -> [01]
+        world 1 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJT
+                      -
+                      -
+                      -
+          
+          987                     Q
+          -                       QJ
+          -                       -
+          -                       -
+          
+                      K32
+                      -
+                      -
+                      -
+      child HT -> [01]
+      adjusted HT with neutral [00] -> [01]
+      mu combine [01] AND [01] -> [01]
+      pareto min -> [01]
+    child HA -> [01]
+    union raw -> [01]
+    pareto max -> [01]
+  child HK -> [01]
+  adjusted HK with neutral [10] -> [11]
+  mu combine [11] AND [11] -> [11]
+  defender move HT legal=[10]
+    active [10]  declarer_plies_left=1
+    MAX turn=North active=[10]
+    shared moves: HA
+    move HA
+      active [10]  declarer_plies_left=1
+      MIN turn=East active=[10]
+      union moves: HK HQ HJ
+      seed -> [10]
+      defender move HK legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJT
+                      -
+                      -
+                      -
+          
+          Q98                     7
+          -                       QJ
+          -                       -
+          -                       -
+          
+                      K32
+                      -
+                      -
+                      -
+      child HK -> [10]
+      adjusted HK with neutral [00] -> [10]
+      mu combine [10] AND [10] -> [10]
+      defender move HQ legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJT
+                      -
+                      -
+                      -
+          
+          Q98                     7
+          -                       KJ
+          -                       -
+          -                       -
+          
+                      K32
+                      -
+                      -
+                      -
+      child HQ -> [10]
+      adjusted HQ with neutral [00] -> [10]
+      mu combine [10] AND [10] -> [10]
+      defender move HJ legal=[10]
+        active [10]  declarer_plies_left=0
+        leaf  w0=1+3=4  -> [10]
+        world 0 position
+          leader=North trick=No cards played yet. score=1-0 completed=1
+                      AJT
+                      -
+                      -
+                      -
+          
+          Q98                     7
+          -                       KQ
+          -                       -
+          -                       -
+          
+                      K32
+                      -
+                      -
+                      -
+      child HJ -> [10]
+      adjusted HJ with neutral [00] -> [10]
+      mu combine [10] AND [10] -> [10]
+      pareto min -> [10]
+    child HA -> [10]
+    union raw -> [10]
+    pareto max -> [10]
+  child HT -> [10]
+  adjusted HT with neutral [01] -> [11]
+  mu combine [11] AND [11] -> [11]
+  pareto min -> [11]
+child H2 -> [11]
+union raw -> [11] [01] [10] [01] [10] [11]
+pareto max -> [11]
+root result -> [11]
+Best move: SK
+Alpha-mu time: 210.346 ms

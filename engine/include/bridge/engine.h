@@ -65,6 +65,36 @@ struct SamplingDebugInfo {
     std::array<std::array<std::uint64_t, 38>, 14> final_dp {};
 };
 
+struct DoubleDummyTable {
+    std::array<std::array<int, 4>, 5> tricks {};
+};
+
+using WorldMask = std::uint64_t;
+
+struct AlphaMuWorld {
+    Position position {};
+};
+
+struct AlphaMuConfig {
+    Seat declarer {Seat::South};
+    std::optional<Suit> trump_suit {};
+    std::uint8_t target_tricks {};
+    std::uint8_t max_declarer_plies {};
+};
+
+struct AlphaMuVector {
+    WorldMask wins {};
+};
+
+struct AlphaMuFront {
+    std::vector<AlphaMuVector> vectors;
+};
+
+struct AlphaMuResult {
+    Card best_move {kNoCard};
+    AlphaMuFront front {};
+};
+
 AnalysisResult analyze(const AnalysisRequest& request);
 Hand hand_of(const Deal& deal, Seat seat);
 Hand& hand_of(Deal& deal, Seat seat);
@@ -102,5 +132,10 @@ std::string format_trick(const Trick& trick);
 std::vector<Hand> equivalent_play_groups(const Trick& trick, Hand legal_moves, Hand hand, Hand played_cards);
 std::string format_card_list(Hand cards);
 std::string format_sampling_debug_table(const SamplingDebugInfo& debug_info, std::uint8_t max_hcp);
+DoubleDummyTable solve_double_dummy_table(const Deal& deal);
+int double_dummy_tricks(const Deal& deal, Seat declarer, std::optional<Suit> trump_suit);
+AlphaMuResult alpha_mu_search(const std::vector<AlphaMuWorld>& worlds, const AlphaMuConfig& config);
+std::string format_alpha_mu_front(const AlphaMuFront& front, std::size_t world_count);
+std::string alpha_mu_debug_tree(const std::vector<AlphaMuWorld>& worlds, const AlphaMuConfig& config);
 
 }  // namespace bridge

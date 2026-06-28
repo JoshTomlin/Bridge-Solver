@@ -1,11 +1,14 @@
 #include "bridge/engine.h"
 
+#include "dll.h"
+
 #include <array>
 #include <bit>
 #include <cctype>
 #include <cstdint>
 #include <initializer_list>
 #include <iomanip>
+#include <mutex>
 #include <random>
 #include <sstream>
 #include <stdexcept>
@@ -60,6 +63,105 @@ struct CountCacheKeyHash {
         return seed;
     }
 };
+
+constexpr int kDdsNotrump = 4;
+
+constexpr int dds_trump(std::optional<Suit> trump_suit) {
+    if (!trump_suit.has_value()) {
+        return kDdsNotrump;
+    }
+
+    switch (*trump_suit) {
+        case Suit::Spades:
+            return 0;
+        case Suit::Hearts:
+            return 1;
+        case Suit::Diamonds:
+            return 2;
+        case Suit::Clubs:
+            return 3;
+    }
+
+    return kDdsNotrump;
+}
+
+constexpr int dds_suit(Suit suit) {
+    switch (suit) {
+        case Suit::Spades:
+            return 0;
+        case Suit::Hearts:
+            return 1;
+        case Suit::Diamonds:
+            return 2;
+        case Suit::Clubs:
+            return 3;
+    }
+
+    return 3;
+}
+
+constexpr int dds_rank(Rank rank) {
+    return static_cast<int>(rank) + 2;
+}
+
+unsigned int dds_holding(Hand hand, Suit suit) {
+    unsigned int result = 0;
+    for (int rank_value = static_cast<int>(Rank::Ace);
+         rank_value >= static_cast<int>(Rank::Two);
+         --rank_value) {
+        const Card card = make_card(suit, static_cast<Rank>(rank_value));
+        if (contains(hand, card)) {
+            result |= (1u << rank_value) << 2;
+        }
+    }
+    return result;
+}
+
+ddTableDeal to_dds_table_deal(const Deal& deal) {
+    ddTableDeal table {};
+    for (const Seat seat : {Seat::North, Seat::East, Seat::South, Seat::West}) {
+        const Hand hand = hand_of(deal, seat);
+        table.cards[seat_index(seat)][0] = dds_holding(hand, Suit::Spades);
+        table.cards[seat_index(seat)][1] = dds_holding(hand, Suit::Hearts);
+        table.cards[seat_index(seat)][2] = dds_holding(hand, Suit::Diamonds);
+        table.cards[seat_index(seat)][3] = dds_holding(hand, Suit::Clubs);
+    }
+    return table;
+}
+
+deal to_dds_deal(const Position& position) {
+    deal dl {};
+    dl.trump = dds_trump(position.current_trick.trump_suit);
+    dl.first = seat_index(position.current_trick.leader);
+
+    for (const Seat seat : {Seat::North, Seat::East, Seat::South, Seat::West}) {
+        const Hand hand = hand_of(position.deal, seat);
+        dl.remainCards[seat_index(seat)][0] = dds_holding(hand, Suit::Spades);
+        dl.remainCards[seat_index(seat)][1] = dds_holding(hand, Suit::Hearts);
+        dl.remainCards[seat_index(seat)][2] = dds_holding(hand, Suit::Diamonds);
+        dl.remainCards[seat_index(seat)][3] = dds_holding(hand, Suit::Clubs);
+    }
+
+    for (std::uint8_t i = 0; i < position.current_trick.card_count; ++i) {
+        dl.currentTrickSuit[i] = dds_suit(suit_of(position.current_trick.cards[i]));
+        dl.currentTrickRank[i] = dds_rank(rank_of(position.current_trick.cards[i]));
+    }
+
+    return dl;
+}
+
+void throw_dds_error(int code) {
+    char line[80] {};
+    ErrorMessage(code, line);
+    throw std::runtime_error(line);
+}
+
+void ensure_dds_initialized() {
+    static std::once_flag init_flag;
+    std::call_once(init_flag, []() {
+        SetMaxThreads(0);
+    });
+}
 
 constexpr std::array<Rank, 4> kHonourRanks {
     Rank::Ace,
@@ -251,6 +353,267 @@ bool wins_against_current_trick(const Trick& trick, Card card) {
     }
 
     return outranks(card, current_winner, lead_suit, trick.trump_suit);
+}
+
+std::size_t first_active_world_index(WorldMask active_worlds) {
+    return static_cast<std::size_t>(std::countr_zero(active_worlds));
+}
+
+bool alpha_mu_dominates(const AlphaMuVector& a, const AlphaMuVector& b) {
+    return (a.wins | b.wins) == a.wins;
+}
+
+AlphaMuFront prune_dominated(AlphaMuFront front) {
+    AlphaMuFront pruned;
+
+    for (const AlphaMuVector& candidate : front.vectors) {
+        bool dominated = false;
+        for (const AlphaMuVector& other : front.vectors) {
+            if (&candidate == &other) {
+                continue;
+            }
+            if (alpha_mu_dominates(other, candidate)) {
+                dominated = true;
+                break;
+            }
+        }
+
+        if (dominated) {
+            continue;
+        }
+
+        bool duplicate = false;
+        for (const AlphaMuVector& kept : pruned.vectors) {
+            if (kept.wins == candidate.wins) {
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (!duplicate) {
+            pruned.vectors.push_back(candidate);
+        }
+    }
+
+    if (pruned.vectors.empty()) {
+        pruned.vectors.push_back(AlphaMuVector {});
+    }
+
+    return pruned;
+}
+
+AlphaMuFront alpha_mu_union_fronts(const std::vector<AlphaMuFront>& fronts) {
+    AlphaMuFront merged;
+    for (const AlphaMuFront& front : fronts) {
+        merged.vectors.insert(merged.vectors.end(), front.vectors.begin(), front.vectors.end());
+    }
+    return prune_dominated(std::move(merged));
+}
+
+AlphaMuFront alpha_mu_and_fronts(const AlphaMuFront& left, const AlphaMuFront& right) {
+    AlphaMuFront combined;
+    for (const AlphaMuVector& lhs : left.vectors) {
+        for (const AlphaMuVector& rhs : right.vectors) {
+            combined.vectors.push_back(AlphaMuVector {.wins = lhs.wins & rhs.wins});
+        }
+    }
+    return prune_dominated(std::move(combined));
+}
+
+std::size_t alpha_mu_best_world_count(const AlphaMuFront& front) {
+    std::size_t best = 0;
+    for (const AlphaMuVector& vector : front.vectors) {
+        best = std::max(best, static_cast<std::size_t>(std::popcount(vector.wins)));
+    }
+    return best;
+}
+
+bool is_alpha_mu_terminal(const Position& position) {
+    return is_deal_finished(position);
+}
+
+std::uint8_t declarer_tricks_won(const Position& position, Seat declarer) {
+    return same_side(declarer, Seat::North)
+        ? position.score.north_south
+        : position.score.east_west;
+}
+
+std::uint8_t alpha_mu_future_tricks(const Position& position, Seat declarer) {
+    if (is_deal_finished(position)) {
+        return 0;
+    }
+
+    ensure_dds_initialized();
+
+    futureTricks future {};
+    const int code = SolveBoard(to_dds_deal(position), -1, 1, 1, &future, 0);
+    if (code != RETURN_NO_FAULT) {
+        throw_dds_error(code);
+    }
+
+    const std::uint8_t remaining_tricks = kRanksPerSuit - position.completed_tricks;
+    const bool leader_is_declarer_side = same_side(position.current_trick.leader, declarer);
+    return leader_is_declarer_side
+        ? static_cast<std::uint8_t>(future.score[0])
+        : static_cast<std::uint8_t>(remaining_tricks - future.score[0]);
+}
+
+AlphaMuFront alpha_mu_leaf_front(
+    const std::vector<AlphaMuWorld>& worlds,
+    WorldMask active_worlds,
+    const AlphaMuConfig& config) {
+    AlphaMuVector vector {};
+
+    for (std::size_t index = 0; index < worlds.size(); ++index) {
+        const WorldMask bit = WorldMask {1} << index;
+        if ((active_worlds & bit) == 0) {
+            continue;
+        }
+
+        const Position& position = worlds[index].position;
+        const std::uint8_t total_tricks =
+            declarer_tricks_won(position, config.declarer) +
+            alpha_mu_future_tricks(position, config.declarer);
+        if (total_tricks >= config.target_tricks) {
+            vector.wins |= bit;
+        }
+    }
+
+    return AlphaMuFront {.vectors = {vector}};
+}
+
+Seat alpha_mu_turn(const Position& position) {
+    return next_to_play(position.current_trick);
+}
+
+Hand alpha_mu_shared_legal_moves(const std::vector<AlphaMuWorld>& worlds, WorldMask active_worlds) {
+    Hand shared = kFullDeck;
+
+    for (std::size_t index = 0; index < worlds.size(); ++index) {
+        const WorldMask bit = WorldMask {1} << index;
+        if ((active_worlds & bit) == 0) {
+            continue;
+        }
+
+        const Position& position = worlds[index].position;
+        const Seat seat = alpha_mu_turn(position);
+        const Hand legal = legal_plays(position.current_trick, hand_of(position.deal, seat));
+        shared &= legal;
+    }
+
+    return shared;
+}
+
+Hand alpha_mu_union_legal_moves(const std::vector<AlphaMuWorld>& worlds, WorldMask active_worlds) {
+    Hand legal_union = kEmptyHand;
+
+    for (std::size_t index = 0; index < worlds.size(); ++index) {
+        const WorldMask bit = WorldMask {1} << index;
+        if ((active_worlds & bit) == 0) {
+            continue;
+        }
+
+        const Position& position = worlds[index].position;
+        const Seat seat = alpha_mu_turn(position);
+        legal_union |= legal_plays(position.current_trick, hand_of(position.deal, seat));
+    }
+
+    return legal_union;
+}
+
+AlphaMuFront alpha_mu_front(
+    const std::vector<AlphaMuWorld>& worlds,
+    WorldMask active_worlds,
+    const AlphaMuConfig& config,
+    std::uint8_t declarer_plies_left) {
+    if (active_worlds == 0) {
+        return AlphaMuFront {.vectors = {AlphaMuVector {}}};
+    }
+
+    const Position& pivot = worlds[first_active_world_index(active_worlds)].position;
+    if (is_alpha_mu_terminal(pivot) || declarer_plies_left == 0) {
+        return alpha_mu_leaf_front(worlds, active_worlds, config);
+    }
+
+    const Seat turn = alpha_mu_turn(pivot);
+    for (std::size_t index = 0; index < worlds.size(); ++index) {
+        const WorldMask bit = WorldMask {1} << index;
+        if ((active_worlds & bit) == 0) {
+            continue;
+        }
+        if (alpha_mu_turn(worlds[index].position) != turn) {
+            throw std::invalid_argument("alpha-mu worlds must share the same player to act");
+        }
+    }
+
+    const bool max_node = same_side(turn, config.declarer);
+    if (max_node) {
+        const Hand shared_moves = alpha_mu_shared_legal_moves(worlds, active_worlds);
+        if (shared_moves == kEmptyHand) {
+            return alpha_mu_leaf_front(worlds, active_worlds, config);
+        }
+
+        std::vector<AlphaMuFront> child_fronts;
+        for (const Card card : cards_descending(shared_moves)) {
+            auto child_worlds = worlds;
+            for (std::size_t index = 0; index < child_worlds.size(); ++index) {
+                const WorldMask bit = WorldMask {1} << index;
+                if ((active_worlds & bit) == 0) {
+                    continue;
+                }
+                play_card(child_worlds[index].position, card);
+            }
+
+            child_fronts.push_back(alpha_mu_front(
+                child_worlds,
+                active_worlds,
+                config,
+                static_cast<std::uint8_t>(declarer_plies_left - 1)));
+        }
+
+        return alpha_mu_union_fronts(child_fronts);
+    }
+
+    const Hand legal_union = alpha_mu_union_legal_moves(worlds, active_worlds);
+    if (legal_union == kEmptyHand) {
+        return alpha_mu_leaf_front(worlds, active_worlds, config);
+    }
+
+    AlphaMuFront combined {.vectors = {AlphaMuVector {.wins = active_worlds}}};
+    for (const Card card : cards_descending(legal_union)) {
+        auto child_worlds = worlds;
+        WorldMask legal_mask = 0;
+
+        for (std::size_t index = 0; index < child_worlds.size(); ++index) {
+            const WorldMask bit = WorldMask {1} << index;
+            if ((active_worlds & bit) == 0) {
+                continue;
+            }
+
+            Position& position = child_worlds[index].position;
+            const Seat seat = alpha_mu_turn(position);
+            const Hand hand = hand_of(position.deal, seat);
+            if (!is_legal_play(position.current_trick, hand, card)) {
+                continue;
+            }
+
+            play_card(position, card);
+            legal_mask |= bit;
+        }
+
+        if (legal_mask == 0) {
+            continue;
+        }
+
+        AlphaMuFront child = alpha_mu_front(child_worlds, legal_mask, config, declarer_plies_left);
+        const WorldMask neutral_mask = active_worlds & ~legal_mask;
+        for (AlphaMuVector& vector : child.vectors) {
+            vector.wins |= neutral_mask;
+        }
+        combined = alpha_mu_and_fronts(combined, child);
+    }
+
+    return combined;
 }
 
 SuitChoiceWays compute_suit_choice_ways(
@@ -953,6 +1316,33 @@ std::string format_sampling_debug_table(const SamplingDebugInfo& debug_info, std
     }
 
     return output.str();
+}
+
+DoubleDummyTable solve_double_dummy_table(const Deal& deal) {
+    if (!has_full_deal(deal)) {
+        throw std::invalid_argument("double dummy solver requires a complete 52-card deal");
+    }
+
+    ensure_dds_initialized();
+
+    ddTableResults result {};
+    const int code = CalcDDtable(to_dds_table_deal(deal), &result);
+    if (code != RETURN_NO_FAULT) {
+        throw_dds_error(code);
+    }
+
+    DoubleDummyTable table {};
+    for (int strain = 0; strain < 5; ++strain) {
+        for (int declarer = 0; declarer < 4; ++declarer) {
+            table.tricks[strain][declarer] = result.resTable[strain][declarer];
+        }
+    }
+    return table;
+}
+
+int double_dummy_tricks(const Deal& deal, Seat declarer, std::optional<Suit> trump_suit) {
+    const auto table = solve_double_dummy_table(deal);
+    return table.tricks[dds_trump(trump_suit)][seat_index(declarer)];
 }
 
 }  // namespace bridge
