@@ -51,7 +51,11 @@ if (WIN32)
 endif()
 
 add_library(bridge_engine
+    src/alpha_mu.cpp
+    src/card.cpp
+    src/dds_solver.cpp
     src/engine.cpp
+    src/game.cpp
 )
 
 target_include_directories(bridge_engine

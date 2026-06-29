@@ -37,6 +37,8 @@ enum class Rank : std::uint8_t {
     Ace
 };
 
+// Card and Hand intentionally use the same machine word.
+// A valid Card has exactly one bit set; a Hand is any set of card bits.
 using Card = std::uint64_t;
 using Hand = std::uint64_t;
 
@@ -46,16 +48,18 @@ inline constexpr std::uint8_t kDeckSize = kRanksPerSuit * kSuitCount;
 inline constexpr Card kNoCard = 0;
 inline constexpr Hand kEmptyHand = 0;
 
-constexpr std::uint8_t to_index(Suit suit, Rank rank) { // 0 = C2, 51 = SA
+// Cards occupy bits C2..CA, D2..DA, H2..HA, S2..SA.
+// Therefore C2 is bit 0 and SA is bit 51.
+constexpr std::uint8_t to_index(Suit suit, Rank rank) {
     return static_cast<std::uint8_t>(static_cast<std::uint8_t>(suit) * kRanksPerSuit +
                                      static_cast<std::uint8_t>(rank));
 }
 
-constexpr Card make_card(Suit suit, Rank rank) { // shift 1 by index to get the card bitmask
+constexpr Card make_card(Suit suit, Rank rank) {
     return Card {1} << to_index(suit, rank);
 }
 
-constexpr bool is_single_card(Card card) { //
+constexpr bool is_single_card(Card card) {
     return card != 0 && (card & (card - 1)) == 0;
 }
 
@@ -71,7 +75,8 @@ constexpr bool contains(Hand hand, Card card) {
     return (hand & card) != 0;
 }
 
-constexpr Hand suit_mask(Suit suit) { 
+// Each suit is a contiguous 13-bit block, so extracting a suit is one AND.
+constexpr Hand suit_mask(Suit suit) {
     return ((Hand {1} << kRanksPerSuit) - 1)
            << (static_cast<std::uint8_t>(suit) * kRanksPerSuit);
 }

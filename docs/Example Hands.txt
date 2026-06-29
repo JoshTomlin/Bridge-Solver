@@ -1,0 +1,47 @@
+1. Classic Suit Combination
+
+AJ32
+A
+-
+-
+
+K954
+K
+-
+-
+
+Need 4 tricks in spades
+
+1. QT98 2 - -           7 - 23 23
+2. QT9 2 2 -		87 - 3 23
+3. QT 2 2 2		987 - 3 3
+4. T 2 23 2		Q987 - 3 -
+
+2. Two-way Guess
+
+AJT9
+AKQ
+AKQ
+234
+
+K876
+234
+234
+AKQ
+
+Need 12 tricks in NT. (Try the same hand in spades?)
+
+Start by generating a bunch of test layouts, say 100.
+Pick a random one and random non-spade lead.
+Now watch the bot play the hand. Opps will play double dummy.
+
+At each trick: Generate say 10 worlds, test what card the alg plays, play the card, repeat. 
+
+There has to be a better way to generate only critical layouts. 
+I think I should write my own alpha-mu alg to make sure it is correct and efficient.
+ - Write basic bridge mechanics with bit masking
+ - Write state vectors and world vectors
+ - Write Pareto Front mechanics (add vector checks if it is dominated first)
+ - Compare Pareto fronts in max and min contexts
+
+

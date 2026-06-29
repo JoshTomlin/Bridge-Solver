@@ -1,3 +1,4 @@
+#include <bit>
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -187,7 +188,202 @@ void print_case(
     std::cout << format_sampling_debug_table(debug, display_hcp) << "\n";
 }
 
-void print_alpha_mu_demo() {
+void print_alpha_mu_discovery_demo() {
+    using namespace bridge;
+
+    const Hand north = make_hand({
+        make_card(Suit::Spades, Rank::Ace),
+        make_card(Suit::Spades, Rank::Jack),
+        make_card(Suit::Spades, Rank::Ten),
+    });
+    const Hand south = make_hand({
+        make_card(Suit::Spades, Rank::King),
+        make_card(Suit::Spades, Rank::Three),
+        make_card(Suit::Spades, Rank::Two),
+    });
+    const Deal queen_west {
+        .hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Hearts, Rank::Ace),
+                make_card(Suit::Hearts, Rank::King),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Nine),
+                make_card(Suit::Spades, Rank::Eight),
+            }),
+        },
+    };
+    const Deal queen_east {
+        .hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Hearts, Rank::Ace),
+                make_card(Suit::Hearts, Rank::King),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Nine),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Seven),
+            }),
+        },
+    };
+    const std::vector<AlphaMuWorld> worlds {
+        AlphaMuWorld {
+            .position = Position {
+                .deal = queen_west,
+                .current_trick = Trick {
+                    .leader = Seat::South,
+                    .trump_suit = std::nullopt,
+                },
+            },
+        },
+        AlphaMuWorld {
+            .position = Position {
+                .deal = queen_east,
+                .current_trick = Trick {
+                    .leader = Seat::South,
+                    .trump_suit = std::nullopt,
+                },
+            },
+        },
+    };
+    const AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = std::nullopt,
+        .target_tricks = 3,
+        .max_declarer_plies = 2,
+    };
+
+    const auto search_start = std::chrono::steady_clock::now();
+    const AlphaMuResult result = alpha_mu_search(worlds, config);
+    const auto search_end = std::chrono::steady_clock::now();
+    const auto search_ms =
+        std::chrono::duration<double, std::milli>(search_end - search_start).count();
+
+    std::cout << "Alpha-mu three-card discovery play\n";
+    std::cout << "World 0: SQ is with West\n" << format_deal(queen_west) << "\n";
+    std::cout << "World 1: SQ is singleton with East\n" << format_deal(queen_east) << "\n";
+    std::cout << "Target: all three tricks; search depth: two Max moves\n";
+    std::cout << "South legal moves: "
+              << format_card_list(hand_of(queen_west, Seat::South)) << "\n";
+    std::cout << "Root front: " << format_alpha_mu_front(result.front, worlds.size()) << "\n";
+    std::cout << "Selected move: " << to_string(result.best_move) << "\n";
+    std::cout << "Alpha-mu time: " << search_ms << " ms\n";
+    std::cout << "Search tree\n" << alpha_mu_debug_tree(worlds, config);
+}
+
+void print_alpha_mu_guess_demo() {
+    using namespace bridge;
+
+    const Hand north = make_hand({
+        make_card(Suit::Spades, Rank::Ace),
+        make_card(Suit::Spades, Rank::Jack),
+        make_card(Suit::Hearts, Rank::Ace),
+        make_card(Suit::Hearts, Rank::King),
+        make_card(Suit::Hearts, Rank::Queen),
+    });
+    const Hand south = make_hand({
+        make_card(Suit::Spades, Rank::Six),
+        make_card(Suit::Diamonds, Rank::Ace),
+        make_card(Suit::Diamonds, Rank::King),
+        make_card(Suit::Diamonds, Rank::Queen),
+        make_card(Suit::Diamonds, Rank::Jack),
+    });
+    const Deal queen_west {
+        .hands = {
+            north,
+            make_hand({
+                make_card(Suit::Clubs, Rank::Jack),
+                make_card(Suit::Hearts, Rank::Jack),
+                make_card(Suit::Hearts, Rank::Ten),
+                make_card(Suit::Hearts, Rank::Nine),
+                make_card(Suit::Hearts, Rank::Eight),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Four),
+                make_card(Suit::Clubs, Rank::Ace),
+                make_card(Suit::Clubs, Rank::King),
+                make_card(Suit::Clubs, Rank::Queen),
+            }),
+        },
+    };
+    const Deal queen_east {
+        .hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Hearts, Rank::Jack),
+                make_card(Suit::Hearts, Rank::Ten),
+                make_card(Suit::Hearts, Rank::Nine),
+                make_card(Suit::Hearts, Rank::Eight),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Four),
+                make_card(Suit::Clubs, Rank::Ace),
+                make_card(Suit::Clubs, Rank::King),
+                make_card(Suit::Clubs, Rank::Queen),
+                make_card(Suit::Clubs, Rank::Jack),
+            }),
+        },
+    };
+
+    auto after_low_spade = [](Deal deal) {
+        Position position {
+            .deal = deal,
+            .current_trick = Trick {
+                .leader = Seat::South,
+                .trump_suit = std::nullopt,
+            },
+        };
+        play_card(position, make_card(Suit::Spades, Rank::Six));
+        play_card(position, make_card(Suit::Spades, Rank::Four));
+        return AlphaMuWorld {.position = position};
+    };
+
+    const std::vector<AlphaMuWorld> worlds {
+        after_low_spade(queen_west),
+        after_low_spade(queen_east),
+    };
+
+    const AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = std::nullopt,
+        .target_tricks = 5,
+        .max_declarer_plies = 1,
+    };
+
+    const Hand root_legal =
+        legal_plays(worlds.front().position.current_trick,
+                    hand_of(worlds.front().position.deal, Seat::North));
+    const auto search_start = std::chrono::steady_clock::now();
+    const AlphaMuResult result = alpha_mu_search(worlds, config);
+    const auto search_end = std::chrono::steady_clock::now();
+    const auto search_ms =
+        std::chrono::duration<double, std::milli>(search_end - search_start).count();
+
+    std::cout << "Alpha-mu five-card two-way guess\n";
+    std::cout << "South has led S6 and West has followed S4. North must play.\n";
+    std::cout << "World 0: SQ is West\n" << format_deal(queen_west) << "\n";
+    std::cout << "World 1: SQ is East\n" << format_deal(queen_east) << "\n";
+    std::cout << "Target: all five tricks; search depth: one Max move\n";
+    std::cout << "North legal moves: " << format_card_list(root_legal) << "\n";
+    std::cout << "Root front: " << format_alpha_mu_front(result.front, worlds.size()) << "\n";
+    std::cout << "Selected move: " << to_string(result.best_move)
+              << " (both guesses win one of two equally weighted worlds)\n";
+    std::cout << "Alpha-mu time: " << search_ms << " ms\n";
+    std::cout << "Search tree\n" << alpha_mu_debug_tree(worlds, config);
+}
+
+void print_alpha_mu_spade_combination_demo() {
     using namespace bridge;
 
     const Hand north = make_hand({
@@ -206,53 +402,91 @@ void print_alpha_mu_demo() {
         make_card(Suit::Hearts, Rank::King),
         make_card(Suit::Hearts, Rank::Three),
     });
-    const std::vector<Card> unknown_defender_cards {
-        make_card(Suit::Spades, Rank::Queen),
-        make_card(Suit::Spades, Rank::Ten),
-        make_card(Suit::Spades, Rank::Eight),
-        make_card(Suit::Spades, Rank::Seven),
-        make_card(Suit::Spades, Rank::Six),
-        make_card(Suit::Clubs, Rank::Ace),
-        make_card(Suit::Clubs, Rank::King),
-        make_card(Suit::Clubs, Rank::Queen),
-        make_card(Suit::Clubs, Rank::Jack),
-        make_card(Suit::Diamonds, Rank::Ace),
-        make_card(Suit::Diamonds, Rank::King),
-        make_card(Suit::Diamonds, Rank::Queen),
+    const std::vector<Deal> deals {
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Diamonds, Rank::King),
+                make_card(Suit::Clubs, Rank::Ace),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Diamonds, Rank::Ace),
+                make_card(Suit::Diamonds, Rank::Queen),
+                make_card(Suit::Clubs, Rank::King),
+                make_card(Suit::Clubs, Rank::Queen),
+                make_card(Suit::Clubs, Rank::Jack),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Diamonds, Rank::King),
+                make_card(Suit::Clubs, Rank::Queen),
+                make_card(Suit::Clubs, Rank::Jack),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Diamonds, Rank::Ace),
+                make_card(Suit::Diamonds, Rank::Queen),
+                make_card(Suit::Clubs, Rank::Ace),
+                make_card(Suit::Clubs, Rank::King),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Diamonds, Rank::Ace),
+                make_card(Suit::Diamonds, Rank::Queen),
+                make_card(Suit::Clubs, Rank::Ace),
+                make_card(Suit::Clubs, Rank::King),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Diamonds, Rank::King),
+                make_card(Suit::Clubs, Rank::Queen),
+                make_card(Suit::Clubs, Rank::Jack),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Diamonds, Rank::Ace),
+                make_card(Suit::Diamonds, Rank::Queen),
+                make_card(Suit::Clubs, Rank::King),
+                make_card(Suit::Clubs, Rank::Queen),
+                make_card(Suit::Clubs, Rank::Jack),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Diamonds, Rank::King),
+                make_card(Suit::Clubs, Rank::Ace),
+            }),
+        }},
     };
-    Hand unknown_defenders = kEmptyHand;
-    for (const Card card : unknown_defender_cards) {
-        unknown_defenders = add_card(unknown_defenders, card);
-    }
 
-    std::vector<Deal> all_world_deals;
-    for (std::uint32_t mask = 0; mask < (1u << unknown_defender_cards.size()); ++mask) {
-        if (std::popcount(mask) != 6) {
-            continue;
-        }
-
-        Hand east = kEmptyHand;
-        for (std::size_t index = 0; index < unknown_defender_cards.size(); ++index) {
-            if ((mask & (1u << index)) != 0) {
-                east = add_card(east, unknown_defender_cards[index]);
-            }
-        }
-
-        const Hand west = unknown_defenders & ~east;
-        const Deal deal {
-            .hands = {north, east, south, west},
-        };
-        all_world_deals.push_back(deal);
-    }
-
-    constexpr std::size_t kSampledWorlds = 4;
     std::vector<AlphaMuWorld> worlds;
-    std::vector<Deal> world_deals;
-    for (std::size_t i = 0; i < kSampledWorlds; ++i) {
-        const std::size_t source_index =
-            (i * (all_world_deals.size() - 1)) / (kSampledWorlds - 1);
-        const Deal& deal = all_world_deals[source_index];
-        world_deals.push_back(deal);
+    for (const Deal& deal : deals) {
         worlds.push_back(AlphaMuWorld {
             .position = Position {
                 .deal = deal,
@@ -263,7 +497,6 @@ void print_alpha_mu_demo() {
             },
         });
     }
-
     const AlphaMuConfig config {
         .declarer = Seat::South,
         .trump_suit = Suit::Spades,
@@ -271,45 +504,370 @@ void print_alpha_mu_demo() {
         .max_declarer_plies = 2,
     };
 
-    const Hand root_legal =
-        legal_plays(worlds.front().position.current_trick,
-                    hand_of(worlds.front().position.deal, Seat::South));
-    const auto search_start = std::chrono::steady_clock::now();
+    std::cout << "Alpha-mu six-card spade combination\n";
+    std::cout << "Target: five tricks in spades; depth: two Max moves\n";
+    for (std::size_t index = 0; index < deals.size(); ++index) {
+        std::cout << "World " << index << "\n" << format_deal(deals[index]) << "\n";
+    }
+
+    std::array<int, 4> double_dummy_max {};
+    for (std::uint8_t target = 1; target <= 6; ++target) {
+        AlphaMuConfig leaf_config = config;
+        leaf_config.target_tricks = target;
+        leaf_config.max_declarer_plies = 0;
+        const AlphaMuResult leaf = alpha_mu_search(worlds, leaf_config);
+        const WorldMask wins = leaf.front.vectors.front().wins;
+        for (std::size_t index = 0; index < worlds.size(); ++index) {
+            if ((wins & (WorldMask {1} << index)) != 0) {
+                double_dummy_max[index] = target;
+            }
+        }
+    }
+    std::cout << "Double-dummy maximum tricks:";
+    for (std::size_t index = 0; index < double_dummy_max.size(); ++index) {
+        std::cout << " w" << index << '=' << double_dummy_max[index];
+    }
+    std::cout << "\n";
+
+    const Hand leads = hand_of(deals.front(), Seat::South);
+    for (const Card card : ordered_cards(leads)) {
+        auto child_worlds = worlds;
+        for (AlphaMuWorld& world : child_worlds) {
+            play_card(world.position, card);
+        }
+        AlphaMuConfig child_config = config;
+        --child_config.max_declarer_plies;
+
+        const auto start = std::chrono::steady_clock::now();
+        const AlphaMuResult child = alpha_mu_search(child_worlds, child_config);
+        const auto end = std::chrono::steady_clock::now();
+        const auto milliseconds =
+            std::chrono::duration<double, std::milli>(end - start).count();
+        std::cout << to_string(card) << " -> "
+                  << format_alpha_mu_front(child.front, worlds.size())
+                  << " (" << milliseconds << " ms)\n";
+    }
+
+    const auto start = std::chrono::steady_clock::now();
     const AlphaMuResult result = alpha_mu_search(worlds, config);
-    const auto search_end = std::chrono::steady_clock::now();
-    const auto search_ms =
-        std::chrono::duration<double, std::milli>(search_end - search_start).count();
-
-    std::cout << "Case 7: Alpha-mu suit-combination demo\n";
-    std::cout << "Declarer: South\n";
-    std::cout << "Contract target: " << static_cast<int>(config.target_tricks)
-              << " tricks in spades\n";
-    std::cout << "Trick depth: " << static_cast<int>(config.max_declarer_plies)
-              << " full tricks\n";
-    std::cout << "Worlds: " << worlds.size()
-              << " evenly spaced East/West splits from "
-              << all_world_deals.size()
-              << " possible defender layouts\n";
-    std::cout << "Unknown defenders: " << format_card_list(unknown_defenders) << "\n";
-    for (std::size_t index = 0; index < world_deals.size(); ++index) {
-        std::cout << "w" << index
-                  << " East=" << format_hand(hand_of(world_deals[index], Seat::East))
-                  << " West=" << format_hand(hand_of(world_deals[index], Seat::West))
-                  << "\n";
-    }
-
-    std::cout << "Opponent spade layouts\n";
-    for (std::size_t index = 0; index < world_deals.size(); ++index) {
-        std::cout << "w" << index
-                  << " East=" << format_hand(cards_in_suit(hand_of(world_deals[index], Seat::East), Suit::Spades))
-                  << " West=" << format_hand(cards_in_suit(hand_of(world_deals[index], Seat::West), Suit::Spades))
-                  << "\n";
-    }
-
-    std::cout << "South legal moves: " << format_card_list(root_legal) << "\n";
+    const auto end = std::chrono::steady_clock::now();
+    const auto milliseconds =
+        std::chrono::duration<double, std::milli>(end - start).count();
     std::cout << "Root front: " << format_alpha_mu_front(result.front, worlds.size()) << "\n";
-    std::cout << "Best first move: " << to_string(result.best_move) << "\n";
-    std::cout << "Alpha-mu time: " << search_ms << " ms\n";
+    std::cout << "Selected lead: " << to_string(result.best_move) << "\n";
+    std::cout << "Total search time: " << milliseconds << " ms\n";
+}
+
+void print_alpha_mu_four_world_ending_demo() {
+    using namespace bridge;
+
+    const Hand north = make_hand({
+        make_card(Suit::Spades, Rank::Ace),
+        make_card(Suit::Spades, Rank::Jack),
+        make_card(Suit::Spades, Rank::Three),
+        make_card(Suit::Spades, Rank::Two),
+    });
+    const Hand south = make_hand({
+        make_card(Suit::Spades, Rank::King),
+        make_card(Suit::Spades, Rank::Nine),
+        make_card(Suit::Spades, Rank::Five),
+        make_card(Suit::Spades, Rank::Four),
+    });
+    const std::vector<Deal> deals {
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Seven),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Hearts, Rank::Ace),
+                make_card(Suit::Hearts, Rank::King),
+                make_card(Suit::Hearts, Rank::Queen),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Hearts, Rank::Ace),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Hearts, Rank::King),
+                make_card(Suit::Hearts, Rank::Queen),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Hearts, Rank::Ace),
+                make_card(Suit::Hearts, Rank::King),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Hearts, Rank::Queen),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Hearts, Rank::Ace),
+                make_card(Suit::Hearts, Rank::King),
+                make_card(Suit::Hearts, Rank::Queen),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Six),
+            }),
+        }},
+    };
+
+    std::vector<AlphaMuWorld> worlds;
+    for (const Deal& deal : deals) {
+        worlds.push_back(AlphaMuWorld {
+            .position = Position {
+                .deal = deal,
+                .current_trick = Trick {
+                    .leader = Seat::South,
+                    .trump_suit = Suit::Spades,
+                },
+            },
+        });
+    }
+    const AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 3,
+        .max_declarer_plies = 2,
+    };
+
+    std::cout << "Alpha-mu four-world, four-card ending\n";
+    std::cout << "Target: three tricks in spades; depth: two Max moves\n";
+    for (std::size_t index = 0; index < deals.size(); ++index) {
+        std::cout << "World " << index << "\n" << format_deal(deals[index]) << "\n";
+    }
+
+    std::array<int, 4> double_dummy_max {};
+    for (std::uint8_t target = 1; target <= 4; ++target) {
+        AlphaMuConfig leaf_config = config;
+        leaf_config.target_tricks = target;
+        leaf_config.max_declarer_plies = 0;
+        const WorldMask wins =
+            alpha_mu_search(worlds, leaf_config).front.vectors.front().wins;
+        for (std::size_t index = 0; index < worlds.size(); ++index) {
+            if ((wins & (WorldMask {1} << index)) != 0) {
+                double_dummy_max[index] = target;
+            }
+        }
+    }
+    std::cout << "Double-dummy maximum tricks:";
+    for (std::size_t index = 0; index < double_dummy_max.size(); ++index) {
+        std::cout << " w" << index << '=' << double_dummy_max[index];
+    }
+    std::cout << "\n";
+
+    for (const Card card : ordered_cards(south)) {
+        auto child_worlds = worlds;
+        for (AlphaMuWorld& world : child_worlds) {
+            play_card(world.position, card);
+        }
+        AlphaMuConfig child_config = config;
+        --child_config.max_declarer_plies;
+        const AlphaMuResult child = alpha_mu_search(child_worlds, child_config);
+        std::cout << to_string(card) << " -> "
+                  << format_alpha_mu_front(child.front, worlds.size()) << "\n";
+    }
+
+    const auto start = std::chrono::steady_clock::now();
+    const AlphaMuResult result = alpha_mu_search(worlds, config);
+    const auto end = std::chrono::steady_clock::now();
+    const auto milliseconds =
+        std::chrono::duration<double, std::milli>(end - start).count();
+    std::cout << "Root front: " << format_alpha_mu_front(result.front, worlds.size()) << "\n";
+    std::cout << "Selected lead: " << to_string(result.best_move) << "\n";
+    std::cout << "Total search time: " << milliseconds << " ms\n";
+}
+
+void print_example_one_demo() {
+    using namespace bridge;
+
+    const Hand north = make_hand({
+        make_card(Suit::Spades, Rank::Ace),
+        make_card(Suit::Spades, Rank::Jack),
+        make_card(Suit::Spades, Rank::Three),
+        make_card(Suit::Spades, Rank::Two),
+        make_card(Suit::Hearts, Rank::Ace),
+    });
+    const Hand south = make_hand({
+        make_card(Suit::Spades, Rank::King),
+        make_card(Suit::Spades, Rank::Nine),
+        make_card(Suit::Spades, Rank::Five),
+        make_card(Suit::Spades, Rank::Four),
+        make_card(Suit::Hearts, Rank::King),
+    });
+    const std::vector<Deal> deals {
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Diamonds, Rank::Two),
+                make_card(Suit::Diamonds, Rank::Three),
+                make_card(Suit::Clubs, Rank::Two),
+                make_card(Suit::Clubs, Rank::Three),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Hearts, Rank::Two),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Diamonds, Rank::Three),
+                make_card(Suit::Clubs, Rank::Two),
+                make_card(Suit::Clubs, Rank::Three),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Hearts, Rank::Two),
+                make_card(Suit::Diamonds, Rank::Two),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Diamonds, Rank::Three),
+                make_card(Suit::Clubs, Rank::Three),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Hearts, Rank::Two),
+                make_card(Suit::Diamonds, Rank::Two),
+                make_card(Suit::Clubs, Rank::Two),
+            }),
+        }},
+        Deal {.hands = {
+            north,
+            make_hand({
+                make_card(Suit::Spades, Rank::Queen),
+                make_card(Suit::Spades, Rank::Ten),
+                make_card(Suit::Spades, Rank::Eight),
+                make_card(Suit::Spades, Rank::Seven),
+                make_card(Suit::Diamonds, Rank::Three),
+            }),
+            south,
+            make_hand({
+                make_card(Suit::Spades, Rank::Six),
+                make_card(Suit::Hearts, Rank::Two),
+                make_card(Suit::Diamonds, Rank::Two),
+                make_card(Suit::Clubs, Rank::Two),
+                make_card(Suit::Clubs, Rank::Three),
+            }),
+        }},
+    };
+
+    std::vector<AlphaMuWorld> worlds;
+    for (const Deal& deal : deals) {
+        worlds.push_back(AlphaMuWorld {
+            .position = Position {
+                .deal = deal,
+                .current_trick = Trick {
+                    .leader = Seat::North,
+                    .trump_suit = Suit::Spades,
+                },
+            },
+        });
+    }
+
+    std::cout << "Example 1: Classic Suit Combination\n";
+    for (std::size_t index = 0; index < deals.size(); ++index) {
+        std::cout << "World " << index << "\n" << format_deal(deals[index]) << "\n";
+    }
+
+    AlphaMuConfig leaf_config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 4,
+        .max_declarer_plies = 0,
+    };
+    std::array<int, 4> double_dummy_max {};
+    for (std::uint8_t target = 1; target <= 5; ++target) {
+        leaf_config.target_tricks = target;
+        const WorldMask wins =
+            alpha_mu_search(worlds, leaf_config).front.vectors.front().wins;
+        for (std::size_t index = 0; index < worlds.size(); ++index) {
+            if ((wins & (WorldMask {1} << index)) != 0) {
+                double_dummy_max[index] = target;
+            }
+        }
+    }
+    std::cout << "Double-dummy maximum tricks:";
+    for (std::size_t index = 0; index < double_dummy_max.size(); ++index) {
+        std::cout << " w" << index << '=' << double_dummy_max[index];
+    }
+    std::cout << "\n";
+
+    for (std::uint8_t depth = 1; depth <= 3; ++depth) {
+        const AlphaMuConfig config {
+            .declarer = Seat::South,
+            .trump_suit = Suit::Spades,
+            .target_tricks = 4,
+            .max_declarer_plies = depth,
+        };
+        std::cout << "M=" << static_cast<int>(depth) << "\n";
+        for (const Card card : ordered_cards(north)) {
+            auto child_worlds = worlds;
+            for (AlphaMuWorld& world : child_worlds) {
+                play_card(world.position, card);
+            }
+            AlphaMuConfig child_config = config;
+            --child_config.max_declarer_plies;
+            const AlphaMuFront front =
+                alpha_mu_search(child_worlds, child_config).front;
+            std::cout << "  " << to_string(card) << " -> "
+                      << format_alpha_mu_front(front, worlds.size()) << "\n";
+        }
+        const auto start = std::chrono::steady_clock::now();
+        const AlphaMuResult result = alpha_mu_search(worlds, config);
+        const auto end = std::chrono::steady_clock::now();
+        std::cout << "  root " << format_alpha_mu_front(result.front, worlds.size())
+                  << "; selected " << to_string(result.best_move)
+                  << "; time "
+                  << std::chrono::duration<double, std::milli>(end - start).count()
+                  << " ms\n";
+    }
 }
 
 }  // namespace
@@ -319,7 +877,23 @@ int main(int argc, char** argv) {
 
     try {
         if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-demo") {
-            print_alpha_mu_demo();
+            print_alpha_mu_discovery_demo();
+            return 0;
+        }
+        if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-guess-demo") {
+            print_alpha_mu_guess_demo();
+            return 0;
+        }
+        if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-spade-demo") {
+            print_alpha_mu_spade_combination_demo();
+            return 0;
+        }
+        if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-four-world-demo") {
+            print_alpha_mu_four_world_ending_demo();
+            return 0;
+        }
+        if (argc > 1 && std::string_view(argv[1]) == "--example-1") {
+            print_example_one_demo();
             return 0;
         }
 
@@ -575,7 +1149,7 @@ int main(int argc, char** argv) {
                   << "\n";
         std::cout << "Sampling time: " << uniformity_ms << " ms\n";
         std::cout << "\n";
-        print_alpha_mu_demo();
+        print_alpha_mu_discovery_demo();
     } catch (const std::exception& error) {
         std::cerr << error.what() << "\n";
         return 1;
