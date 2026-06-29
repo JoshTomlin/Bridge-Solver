@@ -1,3 +1,4 @@
+#include <array>
 #include <bit>
 #include <chrono>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <vector>
 
 #include "bridge/engine.h"
+#include "playthrough_demo.h"
 
 namespace {
 
@@ -381,6 +383,130 @@ void print_alpha_mu_guess_demo() {
               << " (both guesses win one of two equally weighted worlds)\n";
     std::cout << "Alpha-mu time: " << search_ms << " ms\n";
     std::cout << "Search tree\n" << alpha_mu_debug_tree(worlds, config);
+}
+
+void print_alpha_mu_spade_64_world_demo() {
+    using namespace bridge;
+
+    constexpr std::size_t kWorldCount = 64;
+    constexpr std::uint64_t kFirstSeed = 0xA1B2C3D4ULL;
+
+    const Hand north = make_hand({
+        make_card(Suit::Spades, Rank::Ace),
+        make_card(Suit::Spades, Rank::Jack),
+        make_card(Suit::Spades, Rank::Three),
+        make_card(Suit::Spades, Rank::Two),
+        make_card(Suit::Hearts, Rank::Ace),
+    });
+    const Hand south = make_hand({
+        make_card(Suit::Spades, Rank::King),
+        make_card(Suit::Spades, Rank::Nine),
+        make_card(Suit::Spades, Rank::Five),
+        make_card(Suit::Spades, Rank::Four),
+        make_card(Suit::Hearts, Rank::King),
+    });
+    const Hand defender_cards = make_hand({
+        make_card(Suit::Spades, Rank::Queen),
+        make_card(Suit::Spades, Rank::Ten),
+        make_card(Suit::Spades, Rank::Eight),
+        make_card(Suit::Spades, Rank::Seven),
+        make_card(Suit::Spades, Rank::Six),
+        make_card(Suit::Hearts, Rank::Two),
+        make_card(Suit::Diamonds, Rank::Three),
+        make_card(Suit::Diamonds, Rank::Two),
+        make_card(Suit::Clubs, Rank::Three),
+        make_card(Suit::Clubs, Rank::Two),
+    });
+
+    const HandSamplingConstraints constraints;
+    const auto sampling_start = std::chrono::steady_clock::now();
+    const std::uint64_t possible_east_hands = count_constrained_hands(
+        defender_cards,
+        kEmptyHand,
+        kEmptyHand,
+        constraints,
+        5);
+
+    std::vector<AlphaMuWorld> worlds;
+    worlds.reserve(kWorldCount);
+    std::array<std::size_t, 6> east_spade_lengths {};
+    for (std::size_t index = 0; index < kWorldCount; ++index) {
+        const std::optional<Hand> east = sample_constrained_hand(
+            defender_cards,
+            constraints,
+            kFirstSeed + index,
+            5);
+        if (!east.has_value()) {
+            throw std::runtime_error("failed to sample a defender hand");
+        }
+
+        const Hand west = defender_cards & ~*east;
+        ++east_spade_lengths[card_count(cards_in_suit(*east, Suit::Spades))];
+        worlds.push_back(AlphaMuWorld {
+            .position = Position {
+                .deal = Deal {.hands = {north, *east, south, west}},
+                .current_trick = Trick {
+                    .leader = Seat::North,
+                    .trump_suit = Suit::Spades,
+                },
+            },
+        });
+    }
+    const auto sampling_end = std::chrono::steady_clock::now();
+    const double sampling_ms =
+        std::chrono::duration<double, std::milli>(sampling_end - sampling_start).count();
+
+    const AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 4,
+        .max_declarer_plies = 2,
+    };
+
+    std::cout << "Alpha-mu five-card AJ32 A opposite K954 K, 64 sampled worlds\n";
+    std::cout << "North: " << format_hand(north) << "\n";
+    std::cout << "South: " << format_hand(south) << "\n";
+    std::cout << "Possible East hands: " << possible_east_hands << "\n";
+    std::cout << "Sampling: " << sampling_ms << " ms (seed " << kFirstSeed << ")\n";
+    std::cout << "East spade lengths:";
+    for (std::size_t length = 0; length < east_spade_lengths.size(); ++length) {
+        std::cout << ' ' << length << '=' << east_spade_lengths[length];
+    }
+    std::cout << "\nTarget: 4 tricks; North leads; M=2\n";
+
+    Card best_move = kNoCard;
+    std::size_t best_count = 0;
+    const auto evaluation_start = std::chrono::steady_clock::now();
+    for (const Card move : ordered_cards(north)) {
+        auto child_worlds = worlds;
+        for (AlphaMuWorld& world : child_worlds) {
+            play_card(world.position, move);
+        }
+
+        AlphaMuConfig child_config = config;
+        --child_config.max_declarer_plies;
+        const auto move_start = std::chrono::steady_clock::now();
+        const AlphaMuResult child = alpha_mu_search(child_worlds, child_config);
+        const auto move_end = std::chrono::steady_clock::now();
+        const std::size_t won = best_winning_world_count(child.front);
+        const double move_ms =
+            std::chrono::duration<double, std::milli>(move_end - move_start).count();
+
+        if (best_move == kNoCard || won > best_count) {
+            best_move = move;
+            best_count = won;
+        }
+        std::cout << to_string(move) << ": " << won << '/' << kWorldCount
+                  << " worlds won, " << child.front.vectors.size()
+                  << " Pareto vector(s), " << move_ms << " ms\n";
+    }
+    const auto evaluation_end = std::chrono::steady_clock::now();
+    const double evaluation_ms =
+        std::chrono::duration<double, std::milli>(evaluation_end - evaluation_start).count();
+
+    std::cout << "Selected lead: " << to_string(best_move) << " ("
+              << best_count << '/' << kWorldCount << ")\n";
+    std::cout << "All move evaluations: " << evaluation_ms << " ms\n";
 }
 
 void print_alpha_mu_spade_combination_demo() {
@@ -866,7 +992,15 @@ void print_example_one_demo() {
                   << "; selected " << to_string(result.best_move)
                   << "; time "
                   << std::chrono::duration<double, std::milli>(end - start).count()
-                  << " ms\n";
+                  << " ms\n"
+                  << "  stats: nodes=" << result.stats.nodes
+                  << " leaves=" << result.stats.leaves
+                  << " DDS-worlds=" << result.stats.dds_worlds
+                  << " TT-hits=" << result.stats.transposition_hits
+                  << " early-cuts=" << result.stats.early_cuts
+                  << " root-cuts=" << result.stats.root_cuts
+                  << " iterations=" << static_cast<int>(result.stats.completed_iterations)
+                  << "\n";
     }
 }
 
@@ -886,6 +1020,58 @@ int main(int argc, char** argv) {
         }
         if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-spade-demo") {
             print_alpha_mu_spade_combination_demo();
+            return 0;
+        }
+        if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-spade-64-demo") {
+            print_alpha_mu_spade_64_world_demo();
+            return 0;
+        }
+        if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-playthrough") {
+            bool auto_run = false;
+            bool batch_ten = false;
+            std::optional<std::uint64_t> true_deal_seed;
+            std::uint8_t target_tricks = 12;
+            std::uint8_t search_depth = 2;
+            for (int index = 2; index < argc; ++index) {
+                const std::string_view option(argv[index]);
+                if (option == "--auto") {
+                    auto_run = true;
+                } else if (option == "--batch-10") {
+                    batch_ten = true;
+                    auto_run = true;
+                } else if (option == "--target-13") {
+                    target_tricks = 13;
+                } else if (option == "--depth-3") {
+                    search_depth = 3;
+                } else if (option == "--depth-4") {
+                    search_depth = 4;
+                } else if (option == "--seed") {
+                    if (index + 1 >= argc) {
+                        throw std::invalid_argument("--seed requires an integer value");
+                    }
+                    true_deal_seed = std::stoull(argv[++index]);
+                    auto_run = true;
+                } else {
+                    throw std::invalid_argument("unknown playthrough option");
+                }
+            }
+            if (batch_ten) {
+                if (true_deal_seed.has_value()) {
+                    throw std::invalid_argument("--seed cannot be combined with --batch-10");
+                }
+                bridge::demo::run_alpha_mu_batch(10, target_tricks, search_depth);
+            } else if (true_deal_seed.has_value()) {
+                bridge::demo::run_alpha_mu_playthrough_with_seed(
+                    !auto_run,
+                    target_tricks,
+                    search_depth,
+                    *true_deal_seed);
+            } else {
+                bridge::demo::run_alpha_mu_playthrough(
+                    !auto_run,
+                    target_tricks,
+                    search_depth);
+            }
             return 0;
         }
         if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-four-world-demo") {

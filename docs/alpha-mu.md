@@ -24,6 +24,13 @@ struct ParetoFront {
 };
 ```
 
+When `AlphaMuConfig::build_trick_policy` is enabled,
+`AlphaMuResult::trick_policy` retains the selected Pareto strategy for
+the remainder of the current trick. Declarer nodes contain one selected card;
+defender nodes branch on the publicly observed card and carry the compatible
+world mask. The playthrough follows this policy instead of resolving later
+decisions from a newly sampled information set.
+
 This representation supports at most 64 sampled worlds. Bit `i` in `wins` is 1
 when that strategy reaches the target in world `i`, and 0 when it does not.
 For four worlds, `[1011]` is stored as bits `0b1101`; formatted vectors are
@@ -170,24 +177,84 @@ Focused tests for front insertion, MAX union, MIN Cartesian intersection,
 two-way guesses, discovery plays, and the four-world example are in
 `engine/tests/engine_tests.cpp`.
 
-## Performance and Future Optimizations
+## Search Optimizations
 
-The representation is already compact, but the current recursion favors clarity
-over advanced optimization. The main costs are:
+The search uses iterative deepening from `M=1` to the requested depth. One
+transposition table is retained across those iterations. Each node entry stores
+an exact Pareto front and best move separately for each searched depth; the best
+move is also used as the first move in the next iteration.
+
+At a MIN node, a shallower cached front is an optimistic bound. If every vector
+in that cached front is covered by the current MAX alpha front, the branch is
+cut because deeper search can only make the MIN result worse for MAX. Cut
+results are not stored as exact transposition entries.
+
+At the root, the previous iteration's score is an upper bound. Once the current
+iteration reaches that score, remaining root moves are skipped. The returned
+root front may therefore omit unsearched dominated alternatives, but the
+selected score and move are preserved.
+
+`AlphaMuConfig` can independently disable iterative deepening, the table, early
+cuts, and root cuts. `AlphaMuResult::stats` reports nodes, leaves, DDS worlds,
+table activity, cuts, and completed iterations. Tests compare optimized search
+against all optimizations disabled.
+
+The remaining main costs are:
 
 - Copying all worlds once per branch
 - DDS calls at leaves
 - Cartesian growth at MIN nodes
 - Linear Pareto-front insertion
 
-Useful optimizations can be added behind the current interfaces:
+Further optimizations from the papers can be added behind the current interfaces:
 
 1. Equivalent-card move reduction
-2. Transposition tables keyed by public state, active worlds, and M
-3. Early cuts and root cuts from the papers
+2. Useful-world and zero/one-world cuts
+3. Deep alpha cuts and cut-on-win
 4. Incremental world storage instead of copying every world
-5. Cached DDS leaf evaluations
+5. Parallel DDS leaf evaluation
 6. Faster Pareto structures if measured fronts become large
 
 These should be benchmarked individually. The current separated functions make
 each optimization local and preserve a readable reference implementation.
+
+## Interactive Example 2 Playthrough
+
+The CLI can play the 6NT example from `docs/Example Hands.txt` card by card:
+
+```powershell
+.\build\engine\Release\bridge_engine_cli.exe --alpha-mu-playthrough
+```
+
+Press Enter after each card. Add `--auto` to run without pauses. The simulator:
+
+1. Generates one reproducible hidden East/West deal.
+2. Makes a random non-spade opening lead from West.
+3. Samples 64 worlds at the first declarer or dummy decision in each trick.
+4. Selects and follows one contingent alpha-mu strategy until that trick ends.
+5. Conditions each defender branch on the worlds where the observed card exists.
+6. Resamples for the next trick using observed cards, remaining hand sizes, and
+   proven voids.
+7. Prints the sampled location of `SQ` and every alpha-mu move evaluation.
+8. Uses DDS on the hidden true deal for defender decisions, excluding spade
+   leads and discards when another legal suit is available, then breaking equal
+   DDS choices toward the lowest rank.
+9. Reveals the true deal only after the hand is complete.
+
+With the documented target of 12 tricks, losing one trick to `SQ` still makes
+6NT because declarer has nine side-suit winners and three remaining spade
+tricks. Therefore alpha-mu has no reason to delay the spade play. To make the
+two-way guess consequential, ask alpha-mu to target all 13 tricks:
+
+```powershell
+.\build\engine\Release\bridge_engine_cli.exe --alpha-mu-playthrough --target-13
+```
+
+Options can be combined, for example `--auto --target-13`. Defender card-choice
+likelihood is not yet a sampling weight: previous defender plays constrain the
+posterior only through the played cards and any failure to follow suit.
+
+Add `--depth-3` to search three MAX decisions instead of the default `M=2`.
+Add `--depth-4` to search four MAX decisions.
+Add `--batch-10` to run ten reproducible random hidden layouts without pauses.
+Add `--seed N` to replay one exact hidden layout without pauses.

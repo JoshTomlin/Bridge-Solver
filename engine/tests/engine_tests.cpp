@@ -622,6 +622,109 @@ std::vector<bridge::AlphaMuWorld> discovery_play_worlds() {
     return {make_world(queen_west), make_world(queen_east)};
 }
 
+std::vector<bridge::AlphaMuWorld> two_to_one_count_worlds() {
+    const Hand north = bridge::make_hand({
+        bridge::make_card(Suit::Spades, Rank::Jack),
+        bridge::make_card(Suit::Spades, Rank::Ten),
+    });
+    const Hand south = bridge::make_hand({
+        bridge::make_card(Suit::Spades, Rank::King),
+        bridge::make_card(Suit::Spades, Rank::Six),
+    });
+
+    auto make_world = [&](Hand east, Hand west) {
+        return bridge::AlphaMuWorld {
+            .position = bridge::Position {
+                .deal = bridge::Deal {.hands = {north, east, south, west}},
+                .current_trick = bridge::Trick {
+                    .leader = Seat::North,
+                    .trump_suit = std::nullopt,
+                },
+            },
+        };
+    };
+
+    return {
+        make_world(
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Queen),
+                bridge::make_card(Suit::Spades, Rank::Four),
+            }),
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Five),
+                bridge::make_card(Suit::Spades, Rank::Three),
+            })),
+        make_world(
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Queen),
+                bridge::make_card(Suit::Spades, Rank::Five),
+            }),
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Four),
+                bridge::make_card(Suit::Spades, Rank::Three),
+            })),
+        make_world(
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Five),
+                bridge::make_card(Suit::Spades, Rank::Four),
+            }),
+            bridge::make_hand({
+                bridge::make_card(Suit::Spades, Rank::Queen),
+                bridge::make_card(Suit::Spades, Rank::Three),
+            })),
+    };
+}
+
+std::vector<bridge::AlphaMuWorld> exact_four_card_spade_worlds() {
+    const Hand north = bridge::make_hand({
+        bridge::make_card(Suit::Spades, Rank::Ace),
+        bridge::make_card(Suit::Spades, Rank::Jack),
+        bridge::make_card(Suit::Spades, Rank::Ten),
+        bridge::make_card(Suit::Spades, Rank::Nine),
+    });
+    const Hand south = bridge::make_hand({
+        bridge::make_card(Suit::Spades, Rank::King),
+        bridge::make_card(Suit::Spades, Rank::Eight),
+        bridge::make_card(Suit::Spades, Rank::Seven),
+        bridge::make_card(Suit::Spades, Rank::Six),
+    });
+    const Hand fixed_east = bridge::make_hand({
+        bridge::make_card(Suit::Clubs, Rank::Jack),
+        bridge::make_card(Suit::Clubs, Rank::Nine),
+    });
+    const Hand variable = bridge::make_hand({
+        bridge::make_card(Suit::Hearts, Rank::Nine),
+        bridge::make_card(Suit::Spades, Rank::Queen),
+        bridge::make_card(Suit::Spades, Rank::Five),
+        bridge::make_card(Suit::Spades, Rank::Four),
+        bridge::make_card(Suit::Spades, Rank::Three),
+        bridge::make_card(Suit::Spades, Rank::Two),
+    });
+    const std::vector<Card> cards = ordered_cards(variable);
+    std::vector<bridge::AlphaMuWorld> worlds;
+    for (std::size_t first = 0; first < cards.size(); ++first) {
+        for (std::size_t second = first + 1; second < cards.size(); ++second) {
+            const Hand selected = bridge::make_hand({cards[first], cards[second]});
+            const Hand east = fixed_east | selected;
+            const Hand west = variable & ~selected;
+            const Hand remaining = north | east | south | west;
+            worlds.push_back(bridge::AlphaMuWorld {
+                .position = bridge::Position {
+                    .deal = bridge::Deal {.hands = {north, east, south, west}},
+                    .current_trick = bridge::Trick {
+                        .leader = Seat::South,
+                        .trump_suit = std::nullopt,
+                    },
+                    .score = bridge::Score {.north_south = 9},
+                    .played_cards = bridge::kFullDeck & ~remaining,
+                    .completed_tricks = 9,
+                },
+            });
+        }
+    }
+    return worlds;
+}
+
 std::vector<bridge::AlphaMuWorld> example_one_worlds() {
     const Hand north = bridge::make_hand({
         bridge::make_card(Suit::Spades, Rank::Ace),
@@ -806,6 +909,16 @@ void test_max_and_min_front_combinations() {
             [expected](const OutcomeVector& outcome) { return outcome.wins == expected; });
         require(found, "MIN should form the Cartesian product using vector intersection");
     }
+
+    const ParetoFront candidate {.vectors = {
+        OutcomeVector {.wins = 0b0011},
+        OutcomeVector {.wins = 0b0100},
+    }};
+    const ParetoFront bound {.vectors = {OutcomeVector {.wins = 0b0111}}};
+    require(bridge::pareto_front_is_covered_by(candidate, bound),
+            "a front should be covered when every vector is dominated by the bound");
+    require(!bridge::pareto_front_is_covered_by(bound, candidate),
+            "front coverage should preserve the direction of the alpha bound");
 }
 
 void test_alpha_mu_one_ply_returns_legal_declarer_move() {
@@ -898,6 +1011,71 @@ void test_alpha_mu_finds_spade_discovery_play() {
             "the discovery play should guarantee all three tricks in both worlds");
 }
 
+void test_alpha_mu_retains_globally_selected_trick_response() {
+    const auto worlds = two_to_one_count_worlds();
+    const bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = std::nullopt,
+        .target_tricks = 2,
+        .max_declarer_plies = 2,
+        .build_trick_policy = true,
+    };
+
+    const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
+    require(result.best_move == bridge::make_card(Suit::Spades, Rank::Jack),
+            "the two-to-one count strategy should begin with SJ");
+    require(result.trick_policy != nullptr &&
+                result.trick_policy->declarer_move == result.best_move,
+            "alpha-mu should expose the selected root strategy");
+
+    const auto east_node = result.trick_policy->continuation;
+    require(east_node != nullptr && east_node->player == Seat::East,
+            "the trick strategy should branch on East's card");
+    const Card east_four = bridge::make_card(Suit::Spades, Rank::Four);
+    const auto branch = std::find_if(
+        east_node->defender_branches.begin(),
+        east_node->defender_branches.end(),
+        [&](const bridge::AlphaMuPolicyBranch& candidate) {
+            return candidate.card == east_four;
+        });
+    require(branch != east_node->defender_branches.end() &&
+                branch->possible_worlds == 0b101,
+            "E4 should retain the queen-East and queen-West worlds where E4 exists");
+    require(branch->continuation != nullptr &&
+                branch->continuation->player == Seat::South &&
+                branch->continuation->declarer_move ==
+                    bridge::make_card(Suit::Spades, Rank::Six),
+            "the globally selected two-to-one strategy must play S6 after E4");
+}
+
+void test_alpha_mu_exact_four_card_spade_distribution() {
+    const auto worlds = exact_four_card_spade_worlds();
+    bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = std::nullopt,
+        .target_tricks = 13,
+        .max_declarer_plies = 4,
+    };
+    config.use_root_cut = false;
+    const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
+    const auto score_for = [&](Card card) {
+        const auto move = std::find_if(
+            result.root_moves.begin(),
+            result.root_moves.end(),
+            [&](const bridge::AlphaMuRootMove& candidate) {
+                return candidate.move == card;
+            });
+        require(move != result.root_moves.end(), "expected spade move was not evaluated");
+        return move->winning_worlds;
+    };
+    require(result.best_move == bridge::make_card(Suit::Spades, Rank::Eight),
+            "the first-round finesse should be optimal at M=4");
+    require(score_for(bridge::make_card(Suit::Spades, Rank::King)) == 7,
+            "SK should win only the layouts resolved without a later entry guess");
+    require(score_for(bridge::make_card(Suit::Spades, Rank::Eight)) == 10,
+            "S8 should win every queen-West layout");
+}
+
 void test_alpha_mu_example_one_classic_combination() {
     const auto worlds = example_one_worlds();
     const bridge::AlphaMuConfig config {
@@ -913,6 +1091,39 @@ void test_alpha_mu_example_one_classic_combination() {
     require(result.front.vectors.size() == 1 &&
                 result.front.vectors.front().wins == 0b1111,
             "Example 1 should preserve four tricks in all four worlds");
+}
+
+void test_alpha_mu_optimizations_match_reference_search() {
+    const auto worlds = example_one_worlds();
+    bridge::AlphaMuConfig optimized_config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 4,
+        .max_declarer_plies = 3,
+    };
+    bridge::AlphaMuConfig reference_config = optimized_config;
+    reference_config.use_iterative_deepening = false;
+    reference_config.use_transposition_table = false;
+    reference_config.use_early_cut = false;
+    reference_config.use_root_cut = false;
+
+    const bridge::AlphaMuResult optimized =
+        bridge::alpha_mu_search(worlds, optimized_config);
+    const bridge::AlphaMuResult reference =
+        bridge::alpha_mu_search(worlds, reference_config);
+
+    require(optimized.best_move == reference.best_move,
+            "optimized alpha-mu should choose the same move as reference search");
+    require(bridge::best_winning_world_count(optimized.front) ==
+                bridge::best_winning_world_count(reference.front),
+            "optimized alpha-mu should preserve the reference winning-world score");
+    require(optimized.stats.completed_iterations == 3,
+            "M=3 iterative deepening should complete three iterations");
+    require(optimized.stats.transposition_probes > 0 &&
+                optimized.stats.transposition_stores > 0,
+            "optimized search should exercise its transposition table");
+    require(optimized.stats.early_cuts > 0 && optimized.stats.root_cuts > 0,
+            "Example 1 at M=3 should exercise early and root cuts");
 }
 
 }  // namespace
@@ -936,7 +1147,10 @@ int main() {
         test_alpha_mu_one_ply_returns_legal_declarer_move();
         test_alpha_mu_preserves_two_way_guess();
         test_alpha_mu_finds_spade_discovery_play();
+        test_alpha_mu_retains_globally_selected_trick_response();
+        test_alpha_mu_exact_four_card_spade_distribution();
         test_alpha_mu_example_one_classic_combination();
+        test_alpha_mu_optimizations_match_reference_search();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << "\n";
         return 1;

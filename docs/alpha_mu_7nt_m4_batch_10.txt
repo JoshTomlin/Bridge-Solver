@@ -1,0 +1,386 @@
+﻿# Alpha-Mu 7NT Batch Experiment
+
+Settings: 64 worlds, M=4, target 13, trick-scoped policies, no voluntary defender spade leads or discards.
+Summary: 7/10 reached 13 tricks; mean NS tricks 12.0; measured runtime 2675.9090 s.
+
+## Run 1
+
+Seed: 474316174440 | SQ: West | Result: NS 10 - EW 3 | Runtime: 569.4650 s
+Search totals: 13 searches, 491972 nodes, 2276081 DDS worlds, 3038 early cuts, 37 root cuts, 12407 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+Q5                      432
+-                       JT98765
+T98765                  J
+JT765                   98
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W D6, N DA, E DJ, S D4 -> N
+2. N HA, E H5, S H4, W D5 discard -> N
+3. N HK, E H6, S H3, W C5 discard -> N
+4. N HQ, E H7, S H2, W C6 discard -> N
+5. N DK, E H8 discard, S D3, W D7 -> N
+6. N DQ, E C8 discard, S D2, W D8 -> N
+7. N C4, E C9, S CA, W C7 -> S
+8. S CK, W CT, N C3, E H9 discard -> S
+9. S CQ, W CJ, N C2, E HT discard -> S
+10. S S8, W S5, N SA, E S2 -> N
+11. N SJ, E S3, S S7, W SQ -> W
+12. W D9, N ST discard, E HJ discard, S SK discard -> W
+13. W DT, N S9 discard, E S4 discard, S S6 discard -> W
+
+## Run 2
+
+Seed: 11400715293639372925 | SQ: East | Result: NS 13 - EW 0 | Runtime: 230.7340 s
+Search totals: 13 searches, 325906 nodes, 1004644 DDS worlds, 3680 early cuts, 35 root cuts, 4954 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+432                     Q5
+J987                    T65
+J97                     T865
+T76                     J985
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W HJ, N HA, E H5, S H4 -> N
+2. N HK, E H6, S H3, W H7 -> N
+3. N HQ, E HT, S H2, W H8 -> N
+4. N DA, E D5, S D4, W D7 -> N
+5. N DK, E D6, S D3, W D9 -> N
+6. N DQ, E D8, S D2, W DJ -> N
+7. N C4, E C5, S CA, W C6 -> S
+8. S CK, W C7, N C3, E C8 -> S
+9. S CQ, W CT, N C2, E C9 -> S
+10. S S8, W S2, N SA, E S5 -> N
+11. N SJ, E SQ, S SK, W S3 -> S
+12. S S7, W S4, N ST, E DT discard -> N
+13. N S9, E CJ discard, S S6, W H9 discard -> N
+
+## Run 3
+
+Seed: 4354686039253019794 | SQ: East | Result: NS 9 - EW 4 | Runtime: 220.4720 s
+Search totals: 13 searches, 295003 nodes, 956348 DDS worlds, 3631 early cuts, 37 root cuts, 3207 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+5432                    Q
+JT8                     9765
+T875                    J96
+T8                      J9765
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W H8, N HA, E H5, S H4 -> N
+2. N HK, E H6, S H3, W HT -> N
+3. N HQ, E H7, S H2, W HJ -> N
+4. N DA, E D6, S D4, W D5 -> N
+5. N DK, E D9, S D3, W D7 -> N
+6. N DQ, E DJ, S D2, W D8 -> N
+7. N C4, E C5, S CA, W C8 -> S
+8. S CK, W CT, N C3, E C6 -> S
+9. S CQ, W DT discard, N C2, E C7 -> S
+10. S S8, W S2, N SJ, E SQ -> E
+11. E H9, S SK discard, W S3 discard, N SA discard -> E
+12. E C9, S S7 discard, W S4 discard, N ST discard -> E
+13. E CJ, S S6 discard, W S5 discard, N S9 discard -> E
+
+## Run 4
+
+Seed: 15755400858576218279 | SQ: East | Result: NS 10 - EW 3 | Runtime: 212.1770 s
+Search totals: 13 searches, 247634 nodes, 960123 DDS worlds, 3454 early cuts, 37 root cuts, 3319 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+543                     Q2
+97                      JT865
+JT85                    976
+JT95                    876
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W DJ, N DA, E D6, S D4 -> N
+2. N HA, E H5, S H4, W H7 -> N
+3. N HK, E H6, S H3, W H9 -> N
+4. N HQ, E H8, S H2, W D5 discard -> N
+5. N DK, E D7, S D3, W D8 -> N
+6. N DQ, E D9, S D2, W DT -> N
+7. N C4, E C6, S CA, W C5 -> S
+8. S CK, W C9, N C3, E C7 -> S
+9. S CQ, W CT, N C2, E C8 -> S
+10. S S8, W S3, N SJ, E SQ -> E
+11. E HT, S SK discard, W CJ discard, N SA discard -> E
+12. E HJ, S S7 discard, W S4 discard, N ST discard -> E
+13. E S2, S S6, W S5, N S9 -> N
+
+## Run 5
+
+Seed: 8709371604189865148 | SQ: West | Result: NS 13 - EW 0 | Runtime: 233.5630 s
+Search totals: 13 searches, 290874 nodes, 992427 DDS worlds, 3567 early cuts, 36 root cuts, 3360 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+Q543                    2
+J96                     T875
+J875                    T96
+87                      JT965
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W HJ, N HA, E H5, S H4 -> N
+2. N HK, E H7, S H3, W H6 -> N
+3. N HQ, E H8, S H2, W H9 -> N
+4. N DA, E D6, S D4, W D5 -> N
+5. N DK, E D9, S D3, W D7 -> N
+6. N DQ, E DT, S D2, W D8 -> N
+7. N C4, E C5, S CA, W C7 -> S
+8. S CK, W C8, N C3, E C6 -> S
+9. S CQ, W DJ discard, N C2, E C9 -> S
+10. S S8, W S3, N SJ, E S2 -> N
+11. N ST, E HT discard, S SK, W S4 -> S
+12. S S7, W S5, N S9, E CT discard -> N
+13. N SA, E CJ discard, S S6, W SQ -> N
+
+## Run 6
+
+Seed: 1663342349803512017 | SQ: East | Result: NS 13 - EW 0 | Runtime: 279.6100 s
+Search totals: 13 searches, 417646 nodes, 1242372 DDS worlds, 4806 early cuts, 36 root cuts, 6255 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+52                      Q43
+T                       J98765
+J9875                   T6
+J8765                   T9
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W C7, N C4, E C9, S CA -> S
+2. S H4, W HT, N HA, E H5 -> N
+3. N HK, E H6, S H3, W D5 discard -> N
+4. N HQ, E H7, S H2, W C5 discard -> N
+5. N DA, E D6, S D4, W D7 -> N
+6. N DK, E DT, S D3, W D8 -> N
+7. N DQ, E H8 discard, S D2, W D9 -> N
+8. N C3, E CT, S CK, W C6 -> S
+9. S CQ, W C8, N C2, E H9 discard -> S
+10. S S8, W S2, N SA, E S3 -> N
+11. N SJ, E S4, S S7, W S5 -> N
+12. N ST, E SQ, S SK, W DJ discard -> S
+13. S S6, W CJ discard, N S9, E HJ discard -> N
+
+## Run 7
+
+Seed: 13064057169126710502 | SQ: West | Result: NS 13 - EW 0 | Runtime: 245.6360 s
+Search totals: 13 searches, 282219 nodes, 975606 DDS worlds, 3602 early cuts, 35 root cuts, 5349 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+Q43                     52
+JT85                    976
+T86                     J975
+975                     JT86
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W C5, N C4, E C6, S CA -> S
+2. S H4, W H5, N HA, E H6 -> N
+3. N HK, E H7, S H3, W H8 -> N
+4. N HQ, E H9, S H2, W HT -> N
+5. N DA, E D5, S D4, W D6 -> N
+6. N DK, E D7, S D3, W D8 -> N
+7. N DQ, E D9, S D2, W DT -> N
+8. N C3, E C8, S CK, W C7 -> S
+9. S CQ, W C9, N C2, E CT -> S
+10. S S8, W S3, N SJ, E S2 -> N
+11. N ST, E S5, S SK, W S4 -> S
+12. S S7, W SQ, N SA, E DJ discard -> N
+13. N S9, E CJ discard, S S6, W HJ discard -> N
+
+## Run 8
+
+Seed: 6018027914740357371 | SQ: West | Result: NS 13 - EW 0 | Runtime: 229.8900 s
+Search totals: 13 searches, 282515 nodes, 973081 DDS worlds, 2996 early cuts, 36 root cuts, 3357 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+Q43                     52
+J875                    T96
+JT96                    875
+96                      JT875
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W D9, N DA, E D5, S D4 -> N
+2. N HA, E H6, S H4, W H5 -> N
+3. N HK, E H9, S H3, W H7 -> N
+4. N HQ, E HT, S H2, W H8 -> N
+5. N DK, E D7, S D3, W D6 -> N
+6. N DQ, E D8, S D2, W DT -> N
+7. N C4, E C5, S CA, W C6 -> S
+8. S CK, W C9, N C3, E C7 -> S
+9. S CQ, W HJ discard, N C2, E C8 -> S
+10. S S8, W S3, N SJ, E S2 -> N
+11. N ST, E S5, S SK, W S4 -> S
+12. S S7, W SQ, N SA, E CT discard -> N
+13. N S9, E CJ discard, S S6, W DJ discard -> N
+
+## Run 9
+
+Seed: 17418742734063555856 | SQ: East | Result: NS 13 - EW 0 | Runtime: 241.0340 s
+Search totals: 13 searches, 310730 nodes, 1011814 DDS worlds, 3872 early cuts, 35 root cuts, 5039 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+54                      Q32
+T865                    J97
+JT9                     8765
+JT85                    976
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W CJ, N C4, E C6, S CA -> S
+2. S H4, W H5, N HA, E H7 -> N
+3. N HK, E H9, S H3, W H6 -> N
+4. N HQ, E HJ, S H2, W H8 -> N
+5. N DA, E D5, S D4, W D9 -> N
+6. N DK, E D6, S D3, W DT -> N
+7. N DQ, E D7, S D2, W DJ -> N
+8. N C3, E C7, S CK, W C5 -> S
+9. S CQ, W C8, N C2, E C9 -> S
+10. S S8, W S4, N SA, E S2 -> N
+11. N SJ, E S3, S S7, W S5 -> N
+12. N ST, E SQ, S SK, W HT discard -> S
+13. S S6, W CT discard, N S9, E D8 discard -> N
+
+## Run 10
+
+Seed: 10372713479677202725 | SQ: East | Result: NS 13 - EW 0 | Runtime: 213.3280 s
+Search totals: 13 searches, 256324 nodes, 917206 DDS worlds, 3562 early cuts, 39 root cuts, 1848 exact TT hits.
+
+```text
+            AJT9
+            AKQ
+            AKQ
+            432
+
+2                       Q543
+J9876                   T5
+T6                      J9875
+JT975                   86
+
+            K876
+            432
+            432
+            AKQ
+```
+
+Play:
+
+1. W CJ, N C4, E C6, S CA -> S
+2. S H4, W H6, N HA, E H5 -> N
+3. N HK, E HT, S H3, W H7 -> N
+4. N HQ, E D5 discard, S H2, W H8 -> N
+5. N DA, E D7, S D4, W D6 -> N
+6. N DK, E D8, S D3, W DT -> N
+7. N DQ, E D9, S D2, W C5 discard -> N
+8. N C3, E C8, S CK, W C7 -> S
+9. S CQ, W C9, N C2, E DJ discard -> S
+10. S S8, W S2, N SA, E S3 -> N
+11. N SJ, E S4, S S7, W H9 discard -> N
+12. N ST, E S5, S S6, W CT discard -> N
+13. N S9, E SQ, S SK, W HJ discard -> S
+
+Discards are marked when the played card differs from the led suit.

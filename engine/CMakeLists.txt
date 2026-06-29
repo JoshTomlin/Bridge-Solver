@@ -68,6 +68,7 @@ target_link_libraries(bridge_engine PUBLIC dds)
 
 add_executable(bridge_engine_cli
     src/main.cpp
+    src/playthrough_demo.cpp
 )
 
 target_link_libraries(bridge_engine_cli PRIVATE bridge_engine)
