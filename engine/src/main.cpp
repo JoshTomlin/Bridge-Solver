@@ -1117,6 +1117,7 @@ int main(int argc, char** argv) {
             std::optional<std::uint64_t> true_deal_seed;
             std::uint8_t target_tricks = 12;
             std::uint8_t search_depth = 2;
+            double max_search_seconds = 5.0;
             for (int index = 2; index < argc; ++index) {
                 const std::string_view option(argv[index]);
                 if (option == "--auto") {
@@ -1130,6 +1131,16 @@ int main(int argc, char** argv) {
                     search_depth = 3;
                 } else if (option == "--depth-4") {
                     search_depth = 4;
+                } else if (option == "--max-depth") {
+                    if (index + 1 >= argc) {
+                        throw std::invalid_argument("--max-depth requires an integer value");
+                    }
+                    search_depth = static_cast<std::uint8_t>(std::stoul(argv[++index]));
+                } else if (option == "--time-limit") {
+                    if (index + 1 >= argc) {
+                        throw std::invalid_argument("--time-limit requires seconds");
+                    }
+                    max_search_seconds = std::stod(argv[++index]);
                 } else if (option == "--seed") {
                     if (index + 1 >= argc) {
                         throw std::invalid_argument("--seed requires an integer value");
@@ -1144,18 +1155,21 @@ int main(int argc, char** argv) {
                 if (true_deal_seed.has_value()) {
                     throw std::invalid_argument("--seed cannot be combined with --batch-10");
                 }
-                bridge::demo::run_alpha_mu_batch(10, target_tricks, search_depth);
+                bridge::demo::run_alpha_mu_batch(
+                    10, target_tricks, search_depth, max_search_seconds);
             } else if (true_deal_seed.has_value()) {
                 bridge::demo::run_alpha_mu_playthrough_with_seed(
                     !auto_run,
                     target_tricks,
                     search_depth,
+                    max_search_seconds,
                     *true_deal_seed);
             } else {
                 bridge::demo::run_alpha_mu_playthrough(
                     !auto_run,
                     target_tricks,
-                    search_depth);
+                    search_depth,
+                    max_search_seconds);
             }
             return 0;
         }

@@ -237,5 +237,9 @@ posterior only through the played cards and any failure to follow suit.
 
 Add `--depth-3` to search three MAX decisions instead of the default `M=2`.
 Add `--depth-4` to search four MAX decisions.
+Use `--max-depth N` for another ceiling and `--time-limit SECONDS` for the
+soft per-search budget. The playthrough default is 5 seconds. Every started M
+finishes; growth measured over the previous iterations is used to avoid
+starting a deeper M unlikely to fit in the remaining budget.
 Add `--batch-10` to run ten reproducible random hidden layouts without pauses.
 Add `--seed N` to replay one exact hidden layout without pauses.

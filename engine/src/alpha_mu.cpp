@@ -256,22 +256,6 @@ NodeEvaluation evaluate_min_node(
     return NodeEvaluation {.front = std::move(result), .best_move = first_move};
 }
 
-void accumulate_stats(AlphaMuSearchStats& destination, const AlphaMuSearchStats& source) {
-    destination.nodes += source.nodes;
-    destination.leaves += source.leaves;
-    destination.dds_worlds += source.dds_worlds;
-    destination.transposition_probes += source.transposition_probes;
-    destination.transposition_hits += source.transposition_hits;
-    destination.transposition_stores += source.transposition_stores;
-    destination.early_cuts += source.early_cuts;
-    destination.root_cuts += source.root_cuts;
-    destination.equivalent_moves_skipped += source.equivalent_moves_skipped;
-    destination.max_equivalent_moves_skipped += source.max_equivalent_moves_skipped;
-    destination.min_equivalent_moves_skipped += source.min_equivalent_moves_skipped;
-    destination.forced_trump_run_cuts += source.forced_trump_run_cuts;
-    destination.win_cuts += source.win_cuts;
-}
-
 struct RootIteration {
     NodeEvaluation evaluation;
     std::vector<AlphaMuRootMove> root_moves;
@@ -561,6 +545,7 @@ AlphaMuResult run_search(
     NodeEvaluation final_evaluation;
     std::vector<AlphaMuRootMove> final_root_moves;
     std::optional<std::size_t> previous_score;
+    std::optional<double> previous_iteration_seconds;
     const std::uint8_t first_depth =
         config.optimizations.iterative_deepening && config.max_declarer_plies > 0
             ? 1
@@ -569,6 +554,7 @@ AlphaMuResult run_search(
     for (std::uint8_t depth = first_depth;
          depth <= config.max_declarer_plies;
          ++depth) {
+        const auto iteration_start = std::chrono::steady_clock::now();
         audit_line(
             context,
             0,
@@ -581,6 +567,9 @@ AlphaMuResult run_search(
         previous_score = best_winning_world_count(final_evaluation.front);
         ++context.stats.completed_iterations;
         context.stats.completed_depth = depth;
+        const double iteration_seconds = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - iteration_start).count();
+        context.stats.last_iteration_ms = iteration_seconds * 1000.0;
         audit_line(
             context,
             0,
@@ -593,16 +582,30 @@ AlphaMuResult run_search(
         if (config.optimizations.iterative_deepening && config.max_search_seconds > 0.0) {
             const double elapsed_seconds = std::chrono::duration<double>(
                 std::chrono::steady_clock::now() - search_start).count();
-            if (elapsed_seconds >= config.max_search_seconds) {
+            double projected_next_seconds = iteration_seconds;
+            if (previous_iteration_seconds.has_value() &&
+                *previous_iteration_seconds > 0.0) {
+                const double measured_growth = std::max(
+                    1.0,
+                    iteration_seconds / *previous_iteration_seconds);
+                projected_next_seconds = iteration_seconds * measured_growth;
+            }
+            context.stats.projected_next_iteration_ms =
+                projected_next_seconds * 1000.0;
+            if (elapsed_seconds >= config.max_search_seconds ||
+                elapsed_seconds + projected_next_seconds >= config.max_search_seconds) {
                 context.stats.stopped_by_time_limit = true;
                 audit_line(
                     context,
                     0,
                     "iteration",
-                    "soft time limit reached; no partial iteration was started");
+                    "declined the next M: elapsed=" +
+                        std::to_string(elapsed_seconds) + "s projected-next=" +
+                        std::to_string(projected_next_seconds) + "s");
                 break;
             }
         }
+        previous_iteration_seconds = iteration_seconds;
     }
     context.stats.tree_search_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - search_start).count();
@@ -612,19 +615,18 @@ AlphaMuResult run_search(
         const auto policy_start = std::chrono::steady_clock::now();
         AlphaMuConfig policy_config = config;
         policy_config.max_declarer_plies = context.stats.completed_depth;
-        SearchContext policy_context {.config = policy_config};
+        if (config.collect_audit_log) {
+            context.audit << "[policy] reconstruction optimization events\n";
+        }
+        // Policy reconstruction asks for fronts from the search we just ran.
+        // Reusing the same table avoids repeating the entire completed M.
         trick_policy = build_trick_policy(
             worlds,
             policy_config,
             final_evaluation.best_move,
-            policy_context);
+            context);
         context.stats.policy_build_ms = std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - policy_start).count();
-        accumulate_stats(context.stats, policy_context.stats);
-        if (config.collect_audit_log && !policy_context.audit.str().empty()) {
-            context.audit << "[policy] reconstruction optimization events\n"
-                          << policy_context.audit.str();
-        }
     }
 
     return AlphaMuResult {

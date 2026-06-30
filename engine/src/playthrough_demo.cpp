@@ -240,7 +240,8 @@ AlphaMuResult choose_alpha_mu_strategy(
     const Position& actual_position,
     const SampleBatch& samples,
     std::uint8_t target_tricks,
-    std::uint8_t search_depth) {
+    std::uint8_t search_depth,
+    double max_search_seconds) {
     const Seat player = next_to_play(actual_position.current_trick);
     const Hand legal = legal_plays(
         actual_position.current_trick,
@@ -251,6 +252,7 @@ AlphaMuResult choose_alpha_mu_strategy(
         .target_tricks = target_tricks,
         .max_declarer_plies = search_depth,
         .build_trick_policy = true,
+        .max_search_seconds = max_search_seconds,
     };
 
     const auto start = std::chrono::steady_clock::now();
@@ -280,11 +282,36 @@ AlphaMuResult choose_alpha_mu_strategy(
               << " early-cuts=" << result.stats.early_cuts
               << " root-cuts=" << result.stats.root_cuts
               << " equals-skipped=" << result.stats.equivalent_moves_skipped
+              << " (MAX=" << result.stats.max_equivalent_moves_skipped
+              << ", MIN=" << result.stats.min_equivalent_moves_skipped << ')'
               << " forced-trump-cuts=" << result.stats.forced_trump_run_cuts
               << " win-cuts=" << result.stats.win_cuts
-              << " completed-M=" << static_cast<int>(result.stats.completed_depth)
-              << "\n";
+              << " completed-M=" << static_cast<int>(result.stats.completed_depth);
+    if (result.stats.stopped_by_time_limit) {
+        std::cout << " (soft time limit reached)";
+    }
+    std::cout << "\n";
     return result;
+}
+
+void accumulate_search_stats(
+    AlphaMuSearchStats& total,
+    const AlphaMuSearchStats& current) {
+    total.nodes += current.nodes;
+    total.leaves += current.leaves;
+    total.dds_worlds += current.dds_worlds;
+    total.transposition_probes += current.transposition_probes;
+    total.transposition_hits += current.transposition_hits;
+    total.transposition_stores += current.transposition_stores;
+    total.early_cuts += current.early_cuts;
+    total.root_cuts += current.root_cuts;
+    total.equivalent_moves_skipped += current.equivalent_moves_skipped;
+    total.max_equivalent_moves_skipped += current.max_equivalent_moves_skipped;
+    total.min_equivalent_moves_skipped += current.min_equivalent_moves_skipped;
+    total.forced_trump_run_cuts += current.forced_trump_run_cuts;
+    total.win_cuts += current.win_cuts;
+    total.tree_search_ms += current.tree_search_ms;
+    total.policy_build_ms += current.policy_build_ms;
 }
 
 const AlphaMuPolicyBranch* policy_branch_for_card(
@@ -365,6 +392,7 @@ void run_alpha_mu_playthrough_with_seed(
     bool pause_between_cards,
     std::uint8_t target_tricks,
     std::uint8_t search_depth,
+    double max_search_seconds,
     std::uint64_t true_deal_seed) {
     const auto simulation_start = std::chrono::steady_clock::now();
     if (target_tricks < kContractTricks || target_tricks > 13) {
@@ -372,6 +400,9 @@ void run_alpha_mu_playthrough_with_seed(
     }
     if (search_depth == 0 || search_depth > 13) {
         throw std::invalid_argument("playthrough depth must be between 1 and 13");
+    }
+    if (max_search_seconds < 0.0) {
+        throw std::invalid_argument("playthrough time limit cannot be negative");
     }
     const Deal true_deal = generate_true_deal(true_deal_seed);
     Position actual_position {
@@ -385,6 +416,10 @@ void run_alpha_mu_playthrough_with_seed(
     std::array<std::uint8_t, 4> cards_remaining {13, 13, 13, 13};
     const std::uint64_t world_seed = kWorldSeed ^ true_deal_seed;
     std::mt19937_64 defender_rng(true_deal_seed ^ kWorldSeed);
+    AlphaMuSearchStats search_totals;
+    std::array<std::uint64_t, 14> completed_depth_counts {};
+    std::size_t search_count = 0;
+    double sampling_milliseconds = 0.0;
 
     std::cout << "Example 2: 6NT, declarer needs 12 tricks\n";
     std::cout << "True defender deal seed: " << true_deal_seed
@@ -393,7 +428,8 @@ void run_alpha_mu_playthrough_with_seed(
     std::cout << "South: " << format_hand(hand_of(true_deal, Seat::South)) << "\n";
     std::cout << "Alpha-mu: " << kWorldCount << " worlds, M="
               << static_cast<int>(search_depth) << ", target="
-              << static_cast<int>(target_tricks) << "\n\n";
+              << static_cast<int>(target_tricks) << ", soft limit="
+              << max_search_seconds << " s/search\n\n";
     std::cout << "Defender policy: never lead or discard a spade unless forced.\n\n";
 
     Hand opening_choices = hand_of(actual_position.deal, Seat::West) &
@@ -430,7 +466,8 @@ void run_alpha_mu_playthrough_with_seed(
                 std::cout << "Posterior deals: " << samples.possible_deals
                           << "; sampled " << kWorldCount
                           << " (" << samples.unique_samples << " unique) in "
-                          << samples.milliseconds << " ms\n";
+                           << samples.milliseconds << " ms\n";
+                sampling_milliseconds += samples.milliseconds;
 
                 const Card spade_queen = make_card(Suit::Spades, Rank::Queen);
                 if (contains(actual_position.played_cards, spade_queen)) {
@@ -443,7 +480,11 @@ void run_alpha_mu_playthrough_with_seed(
                     actual_position,
                     samples,
                     target_tricks,
-                    search_depth);
+                    search_depth,
+                    max_search_seconds);
+                ++search_count;
+                accumulate_search_stats(search_totals, result.stats);
+                ++completed_depth_counts[result.stats.completed_depth];
                 trick_policy = std::move(result.trick_policy);
             } else {
                 std::cout << "Following the strategy selected earlier in this trick.\n";
@@ -511,6 +552,25 @@ void run_alpha_mu_playthrough_with_seed(
         ? Seat::East
         : Seat::West;
     std::cout << "SQ was with " << to_string(queen_seat) << ".\n";
+    std::cout << "Aggregate search stats: searches=" << search_count
+              << " nodes=" << search_totals.nodes
+              << " DDS-worlds=" << search_totals.dds_worlds
+              << " TT-hits=" << search_totals.transposition_hits
+              << " early-cuts=" << search_totals.early_cuts
+              << " root-cuts=" << search_totals.root_cuts
+              << " equals-skipped=" << search_totals.equivalent_moves_skipped
+              << " (MAX=" << search_totals.max_equivalent_moves_skipped
+              << ", MIN=" << search_totals.min_equivalent_moves_skipped << ')'
+              << " win-cuts=" << search_totals.win_cuts << "\n";
+    std::cout << "Completed-M histogram:";
+    for (std::size_t depth = 0; depth < completed_depth_counts.size(); ++depth) {
+        if (completed_depth_counts[depth] != 0) {
+            std::cout << " M" << depth << '=' << completed_depth_counts[depth];
+        }
+    }
+    std::cout << "\nSearch timing: sampling=" << sampling_milliseconds
+              << " ms tree=" << search_totals.tree_search_ms
+              << " ms policy=" << search_totals.policy_build_ms << " ms\n";
     const auto simulation_end = std::chrono::steady_clock::now();
     const double simulation_seconds =
         std::chrono::duration<double>(simulation_end - simulation_start).count();
@@ -520,18 +580,21 @@ void run_alpha_mu_playthrough_with_seed(
 void run_alpha_mu_playthrough(
     bool pause_between_cards,
     std::uint8_t target_tricks,
-    std::uint8_t search_depth) {
+    std::uint8_t search_depth,
+    double max_search_seconds) {
     run_alpha_mu_playthrough_with_seed(
         pause_between_cards,
         target_tricks,
         search_depth,
+        max_search_seconds,
         kTrueDealSeed);
 }
 
 void run_alpha_mu_batch(
     std::size_t run_count,
     std::uint8_t target_tricks,
-    std::uint8_t search_depth) {
+    std::uint8_t search_depth,
+    double max_search_seconds) {
     for (std::size_t run = 0; run < run_count; ++run) {
         const std::uint64_t seed = kTrueDealSeed + run * kSeedStep;
         std::cout << "\n############################################################\n";
@@ -541,6 +604,7 @@ void run_alpha_mu_batch(
             false,
             target_tricks,
             search_depth,
+            max_search_seconds,
             seed);
     }
 }

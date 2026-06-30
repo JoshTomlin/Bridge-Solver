@@ -107,8 +107,9 @@ struct AlphaMuConfig {
     // by default because detailed logs can be large during a deep search.
     bool collect_audit_log {false};
 
-    // Soft iterative-deepening budget. Zero disables it. An iteration that has
-    // already started always finishes; the limit only prevents the next M.
+    // Soft iterative-deepening budget. Zero disables it. A completed iteration
+    // is never discarded; measured growth is used to avoid starting a deeper M
+    // that is unlikely to fit in the remaining budget.
     double max_search_seconds {};
 };
 
@@ -129,6 +130,8 @@ struct AlphaMuSearchStats {
     std::uint8_t completed_iterations {};
     std::uint8_t completed_depth {};
     bool stopped_by_time_limit {};
+    double last_iteration_ms {};
+    double projected_next_iteration_ms {};
     double tree_search_ms {};
     double policy_build_ms {};
 };

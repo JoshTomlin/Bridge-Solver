@@ -52,7 +52,7 @@ intended for short endings and regression tests.
 
 | CLI name | Configuration member | Main implementation | Why it is safe | Primary measurement |
 |---|---|---|---|---|
-| `iterative` | `iterative_deepening` | `run_search` | Earlier depths only provide move ordering and valid upper bounds; the last completed M is returned | `completed_iterations`, `completed_depth` |
+| `iterative` | `iterative_deepening` | `run_search` | Earlier depths provide move ordering and valid upper bounds; measured iteration growth avoids starting an M unlikely to fit the soft budget | `completed_iterations`, `completed_depth`, iteration timing |
 | `tt` | `transposition_table` | `alpha_mu_node`, `search_root_iteration` | An exact front is reused only for the same state and M | `transposition_probes`, `hits`, `stores` |
 | `canonical-tt` | `canonical_transposition_keys` | `make_node_key` | Absolute rank gaps do not matter once those cards are gone; relative remaining ownership is preserved | Compare TT hits and nodes in A/B benchmark |
 | `max-equals` | `max_equivalent_cards` | `representative_cards` | Cards are grouped only when no live intervening rank or current trick status can distinguish them | `max_equivalent_moves_skipped` |
@@ -65,6 +65,10 @@ intended for short endings and regression tests.
 `equivalent_moves_skipped` is the sum of the MAX and MIN equivalent counters.
 `tree_search_ms` times root iteration; `policy_build_ms` separately times the
 optional retained-trick-policy reconstruction.
+
+Policy reconstruction reuses the search's transposition table. It requests the
+same exact fronts in order to recover one concrete contingent strategy, so a
+fresh table would needlessly repeat the completed search depth.
 
 ## Dependencies
 
