@@ -1,18 +1,22 @@
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = __dirname;
+const directory = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(directory, process.argv[2] || ".");
 const port = process.env.PORT || 3000;
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8"
+  ".css": "text/css; charset=utf-8",
+  ".wasm": "application/wasm"
 };
 
 const server = http.createServer((req, res) => {
-  const requestPath = req.url === "/" ? "/index.html" : req.url;
+  const url = new URL(req.url, "http://localhost");
+  const requestPath = url.pathname === "/" ? "/index.html" : url.pathname;
   const safePath = path.normalize(requestPath).replace(/^(\.\.[/\\])+/, "");
   const filePath = path.join(root, safePath);
 

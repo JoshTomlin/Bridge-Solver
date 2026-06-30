@@ -1,2 +1,4 @@
 build/
 website/node_modules/
+website/dist/
+build-wasm/

@@ -12,6 +12,9 @@
 
 namespace bridge {
 
+// Declarer and dummy can make at most 26 combined card choices in a full deal.
+inline constexpr std::uint8_t kMaxDeclarerPlies = 26;
+
 // Bit i represents sampled world i. The current implementation supports 64 worlds.
 using WorldMask = std::uint64_t;
 

@@ -647,8 +647,8 @@ AlphaMuResult alpha_mu_search(
     const std::vector<AlphaMuWorld>& worlds,
     const AlphaMuConfig& config) {
     alpha_mu_detail::validate_worlds(worlds, config);
-    if (config.max_declarer_plies > 13) {
-        throw std::invalid_argument("alpha-mu supports at most 13 Max moves");
+    if (config.max_declarer_plies > kMaxDeclarerPlies) {
+        throw std::invalid_argument("alpha-mu supports at most 26 Max moves");
     }
     return alpha_mu_detail::run_search(worlds, config);
 }

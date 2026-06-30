@@ -68,7 +68,7 @@ source-of-truth deal. `analyze` samples defender layouts and runs alpha-mu.
 Use `undo` to take back one card or `replay` to restart the entered deal.
 
 Type `help` in the interface for the complete command list.
-The default soft search limit is 30 seconds. Use `set time SECONDS` to adjust
+The default soft search limit is 5 seconds. Use `set time SECONDS` to adjust
 it, or `set time 0` to disable it. A running iteration always finishes; the
 limit prevents alpha-mu from starting the next `M`.
 
@@ -84,3 +84,20 @@ The implementation map and interpretation guide are in
 cd website
 npm start
 ```
+
+The browser app supports deal entry, local save/load, card-by-card play,
+single-decision alpha-mu analysis, full-deal simulation, and persistent timing
+history. The C++ engine and DDS run as WebAssembly in a dedicated Web Worker.
+
+Build the complete browser version after activating Emscripten:
+
+```powershell
+.\build-wasm.ps1
+cd website
+npm run preview
+```
+
+The production files are written to `website/dist`. Pushing `main` triggers
+`.github/workflows/deploy-pages.yml`, which builds the WebAssembly module and
+deploys that static directory to GitHub Pages. In the repository Pages settings,
+select **GitHub Actions** as the source once before the first deployment.

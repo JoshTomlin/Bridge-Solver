@@ -1,8 +1,12 @@
 {
   "name": "bridge-solver-website",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "node build.js",
+    "preview": "node server.js dist",
+    "test:wasm": "node wasm-smoke.mjs"
   }
 }

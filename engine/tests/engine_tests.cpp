@@ -1401,6 +1401,38 @@ void test_alpha_mu_soft_time_limit_stops_between_iterations() {
             "the last completed iteration must still return a move");
 }
 
+void test_alpha_mu_supports_full_26_ply_ceiling() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({bridge::make_card(Suit::Spades, Rank::Ace)}),
+        bridge::make_hand({bridge::make_card(Suit::Spades, Rank::Two)}),
+        bridge::make_hand({bridge::make_card(Suit::Spades, Rank::King)}),
+        bridge::make_hand({bridge::make_card(Suit::Spades, Rank::Queen)}),
+    }};
+    const std::vector<bridge::AlphaMuWorld> worlds {
+        bridge::AlphaMuWorld {
+            .position = bridge::Position {
+                .deal = deal,
+                .current_trick = bridge::Trick {.leader = Seat::North},
+                .played_cards = bridge::kFullDeck & ~(
+                    deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+            },
+        },
+    };
+    bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .target_tricks = 1,
+        .max_declarer_plies = bridge::kMaxDeclarerPlies,
+    };
+    config.optimizations.iterative_deepening = false;
+
+    const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
+    require(result.best_move == bridge::make_card(Suit::Spades, Rank::Ace) &&
+                bridge::best_winning_world_count(result.front) == 1,
+            "M=26 should search a simple ending to its winning terminal state");
+    require(result.stats.completed_depth == bridge::kMaxDeclarerPlies,
+            "the transposition table should safely store the M=26 root result");
+}
+
 }  // namespace
 
 int main() {
@@ -1433,6 +1465,7 @@ int main() {
         test_alpha_mu_example_one_classic_combination();
         test_alpha_mu_optimizations_match_reference_search();
         test_alpha_mu_soft_time_limit_stops_between_iterations();
+        test_alpha_mu_supports_full_26_ply_ceiling();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << "\n";
         return 1;

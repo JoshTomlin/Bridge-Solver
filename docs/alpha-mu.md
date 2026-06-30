@@ -235,8 +235,9 @@ Options can be combined, for example `--auto --target-13`. Defender card-choice
 likelihood is not yet a sampling weight: previous defender plays constrain the
 posterior only through the played cards and any failure to follow suit.
 
-Add `--depth-3` to search three MAX decisions instead of the default `M=2`.
-Add `--depth-4` to search four MAX decisions.
+The adaptive playthrough uses the full-deal ceiling `M=26`; the five-second
+budget normally stops much earlier. Add `--depth-3` or `--depth-4` to force a
+small ceiling for comparison.
 Use `--max-depth N` for another ceiling and `--time-limit SECONDS` for the
 soft per-search budget. The playthrough default is 5 seconds. Every started M
 finishes; growth measured over the previous iterations is used to avoid

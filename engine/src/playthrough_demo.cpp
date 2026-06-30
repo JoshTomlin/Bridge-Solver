@@ -398,8 +398,8 @@ void run_alpha_mu_playthrough_with_seed(
     if (target_tricks < kContractTricks || target_tricks > 13) {
         throw std::invalid_argument("playthrough target must be 12 or 13 tricks");
     }
-    if (search_depth == 0 || search_depth > 13) {
-        throw std::invalid_argument("playthrough depth must be between 1 and 13");
+    if (search_depth == 0 || search_depth > kMaxDeclarerPlies) {
+        throw std::invalid_argument("playthrough depth must be between 1 and 26");
     }
     if (max_search_seconds < 0.0) {
         throw std::invalid_argument("playthrough time limit cannot be negative");
@@ -417,7 +417,7 @@ void run_alpha_mu_playthrough_with_seed(
     const std::uint64_t world_seed = kWorldSeed ^ true_deal_seed;
     std::mt19937_64 defender_rng(true_deal_seed ^ kWorldSeed);
     AlphaMuSearchStats search_totals;
-    std::array<std::uint64_t, 14> completed_depth_counts {};
+    std::array<std::uint64_t, kMaxDeclarerPlies + 1> completed_depth_counts {};
     std::size_t search_count = 0;
     double sampling_milliseconds = 0.0;
 

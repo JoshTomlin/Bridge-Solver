@@ -141,8 +141,9 @@ void AnalysisSession::set_settings(BotSettings settings) {
     if (settings.world_count == 0 || settings.world_count > 64) {
         throw std::invalid_argument("world count must be between 1 and 64");
     }
-    if (settings.max_declarer_plies == 0 || settings.max_declarer_plies > 13) {
-        throw std::invalid_argument("depth M must be between 1 and 13");
+    if (settings.max_declarer_plies == 0 ||
+        settings.max_declarer_plies > kMaxDeclarerPlies) {
+        throw std::invalid_argument("depth M must be between 1 and 26");
     }
     if (settings.target_tricks == 0 || settings.target_tricks > 13) {
         throw std::invalid_argument("target tricks must be between 1 and 13");

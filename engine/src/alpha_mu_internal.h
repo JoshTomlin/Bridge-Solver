@@ -29,7 +29,7 @@ struct CachedNode {
 };
 
 struct TranspositionEntry {
-    std::array<std::optional<CachedNode>, 14> by_depth;
+    std::array<std::optional<CachedNode>, kMaxDeclarerPlies + 1> by_depth;
     Card move_hint {kNoCard};
 };
 

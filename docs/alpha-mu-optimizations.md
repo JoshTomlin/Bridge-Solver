@@ -34,6 +34,11 @@ small values copied through a recursive algorithm; classes and virtual methods
 would hide transitions without making them faster. A class is warranted later
 only where it enforces a real invariant.
 
+`kMaxDeclarerPlies` is 26 because declarer and dummy make at most 13 plays each.
+The transposition table stores depth slots 0 through 26. A five-second adaptive
+search will rarely reach that ceiling in a full deal, but short endings can now
+be searched all the way to completion.
+
 ## Reference Search
 
 Every shortcut is in `AlphaMuOptimizations`. To run the recurrence without any

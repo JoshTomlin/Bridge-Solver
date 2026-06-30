@@ -1116,7 +1116,7 @@ int main(int argc, char** argv) {
             bool batch_ten = false;
             std::optional<std::uint64_t> true_deal_seed;
             std::uint8_t target_tricks = 12;
-            std::uint8_t search_depth = 2;
+            std::uint8_t search_depth = bridge::kMaxDeclarerPlies;
             double max_search_seconds = 5.0;
             for (int index = 2; index < argc; ++index) {
                 const std::string_view option(argv[index]);
@@ -1135,7 +1135,12 @@ int main(int argc, char** argv) {
                     if (index + 1 >= argc) {
                         throw std::invalid_argument("--max-depth requires an integer value");
                     }
-                    search_depth = static_cast<std::uint8_t>(std::stoul(argv[++index]));
+                    const unsigned long requested_depth = std::stoul(argv[++index]);
+                    if (requested_depth == 0 ||
+                        requested_depth > bridge::kMaxDeclarerPlies) {
+                        throw std::invalid_argument("--max-depth must be between 1 and 26");
+                    }
+                    search_depth = static_cast<std::uint8_t>(requested_depth);
                 } else if (option == "--time-limit") {
                     if (index + 1 >= argc) {
                         throw std::invalid_argument("--time-limit requires seconds");

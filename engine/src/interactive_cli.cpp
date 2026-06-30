@@ -88,7 +88,7 @@ void print_help(std::ostream& output) {
         "  bot                 Let alpha-mu or DDS play the current card\n"
         "  undo                Undo the most recent card\n"
         "  replay              Restart the entered deal\n"
-        "  set depth N         Set alpha-mu depth M (1-13)\n"
+        "  set depth N         Set alpha-mu depth M (1-26)\n"
         "  set worlds N        Set sampled worlds (1-64)\n"
         "  set target N        Set required North/South tricks\n"
         "  set seed N          Set the sampling seed\n"

@@ -3,51 +3,162 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bridge Solver</title>
+    <meta name="theme-color" content="#123d34">
+    <title>Bridge Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <main class="app-shell">
-      <section class="hero">
-        <p class="eyebrow">Bridge Solver</p>
-        <h1>Declarer-play analysis over constrained hidden hands.</h1>
-        <p class="lede">
-          Start by entering South and dummy. Then we can count legal East/West
-          deals, sample from them, and later evaluate candidate lines of play.
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Bridge Lab home">
+        <span class="brand-mark">♠</span>
+        <span>Bridge Lab</span>
+      </a>
+      <nav aria-label="Page sections">
+        <a href="#deal">Deal</a>
+        <a href="#analysis">Analysis</a>
+        <a href="#runs">Runs</a>
+      </nav>
+      <div class="engine-pill is-loading" id="engine-pill">
+        <span class="status-light"></span>
+        <span id="engine-label">Loading engine</span>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="intro reveal">
+        <div>
+          <p class="eyebrow">Imperfect-information declarer play</p>
+          <h1>Put the deal on the table.</h1>
+        </div>
+        <p class="intro-copy">
+          Sample hidden worlds, inspect every candidate card, and keep the
+          timing trail. The solver runs locally in your browser.
         </p>
       </section>
 
-      <section class="panel-grid">
-        <article class="panel">
-          <h2>Known Hands</h2>
-          <label for="south-hand">South hand</label>
-          <textarea id="south-hand" rows="4" placeholder="AKQ.J73.T62.A95"></textarea>
+      <section class="workbench reveal" id="deal">
+        <aside class="control-panel deal-editor">
+          <div class="panel-heading">
+            <div>
+              <p class="section-number">01</p>
+              <h2>Deal</h2>
+            </div>
+            <button class="text-button" id="new-deal" type="button">New</button>
+          </div>
 
-          <label for="north-hand">Dummy hand</label>
-          <textarea id="north-hand" rows="4" placeholder="J94.AK4.AKQ.843"></textarea>
-        </article>
+          <label class="field">
+            <span>Name</span>
+            <input id="deal-name" value="7NT spade guess" autocomplete="off">
+          </label>
 
-        <article class="panel">
-          <h2>Restrictions</h2>
-          <label for="west-hcp">West HCP range</label>
-          <input id="west-hcp" type="text" placeholder="e.g. 8-11">
+          <div class="hand-inputs">
+            <label class="field"><span>North</span><input id="north-hand" value="AJT9.AKQ.AKQ.432" spellcheck="false"></label>
+            <label class="field"><span>East</span><input id="east-hand" value="Q5.T65.T865.J985" spellcheck="false"></label>
+            <label class="field"><span>South</span><input id="south-hand" value="K876.432.432.AKQ" spellcheck="false"></label>
+            <label class="field"><span>West</span><input id="west-hand" value="432.J987.J97.T76" spellcheck="false"></label>
+          </div>
 
-          <label for="east-shape">East shape clue</label>
-          <input id="east-shape" type="text" placeholder="e.g. 5-3-3-2">
+          <div class="two-up">
+            <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>
+            <label class="field"><span>Trump</span><select id="trump"><option selected>NT</option><option>S</option><option>H</option><option>D</option><option>C</option></select></label>
+          </div>
 
-          <label for="notes">Notes</label>
-          <textarea id="notes" rows="4" placeholder="Future spot for auction or play clues"></textarea>
-        </article>
+          <label class="field">
+            <span>Notes</span>
+            <textarea id="deal-notes" rows="3" placeholder="Auction, inference, or question to investigate"></textarea>
+          </label>
+
+          <div class="button-row">
+            <button class="button primary" id="load-deal" type="button">Put on table</button>
+            <button class="button secondary" id="save-deal" type="button">Save deal</button>
+          </div>
+          <p class="field-help">Hands use SHDC order, for example <code>AJT9.AKQ.AKQ.432</code>.</p>
+
+          <div class="saved-block">
+            <div class="subheading"><h3>Saved deals</h3><span id="deal-count">0</span></div>
+            <div class="saved-list" id="saved-deals"></div>
+          </div>
+        </aside>
+
+        <section class="table-stage" aria-label="Bridge table">
+          <div class="felt-grain"></div>
+          <article class="seat north" data-seat="North">
+            <p>North</p><div class="holding" data-holding="North"></div>
+          </article>
+          <article class="seat west" data-seat="West">
+            <p>West</p><div class="holding" data-holding="West"></div>
+          </article>
+          <article class="seat east" data-seat="East">
+            <p>East</p><div class="holding" data-holding="East"></div>
+          </article>
+          <article class="seat south" data-seat="South">
+            <p>South</p><div class="holding" data-holding="South"></div>
+          </article>
+
+          <div class="table-centre">
+            <div class="scoreline"><span>NS <strong id="score-ns">0</strong></span><span>EW <strong id="score-ew">0</strong></span></div>
+            <p class="turn-label" id="turn-label">Load a deal to begin</p>
+            <div class="current-trick" id="current-trick"></div>
+          </div>
+
+          <div class="play-dock">
+            <div class="play-heading">
+              <div><span class="micro-label">Legal cards</span><strong id="legal-summary">No active deal</strong></div>
+              <div class="compact-actions">
+                <button class="icon-button" id="undo" type="button" title="Undo last card">Undo</button>
+                <button class="icon-button" id="replay" type="button" title="Replay deal">Replay</button>
+              </div>
+            </div>
+            <div class="card-actions" id="legal-cards"></div>
+          </div>
+        </section>
+
+        <aside class="control-panel analysis-panel" id="analysis">
+          <div class="panel-heading">
+            <div><p class="section-number">02</p><h2>Analysis</h2></div>
+            <span class="mode-chip">Alpha-mu</span>
+          </div>
+
+          <div class="settings-grid">
+            <label class="field"><span>Worlds</span><input id="world-count" type="number" min="1" max="64" value="64"></label>
+            <label class="field"><span>Maximum M</span><input id="max-depth" type="number" min="1" max="26" value="26"></label>
+            <label class="field"><span>Target tricks</span><input id="target-tricks" type="number" min="1" max="13" value="13"></label>
+            <label class="field"><span>Time limit</span><div class="input-suffix"><input id="time-limit" type="number" min="0" step="0.5" value="5"><span>s</span></div></label>
+          </div>
+          <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>
+
+          <div class="button-stack">
+            <button class="button primary" id="analyze-position" type="button">Analyze this decision</button>
+            <button class="button dark" id="analyze-full" type="button">Play and analyze full deal</button>
+            <button class="button danger is-hidden" id="cancel-analysis" type="button">Stop analysis</button>
+          </div>
+
+          <div class="progress-card is-hidden" id="progress-card">
+            <div class="progress-top"><span id="progress-label">Analyzing</span><span id="progress-value">0%</span></div>
+            <div class="progress-track"><span id="progress-bar"></span></div>
+          </div>
+
+          <div class="result-empty" id="result-empty">
+            <span class="result-glyph">μ</span>
+            <p>Run an analysis to see the recommended card, world count, Pareto result, and optimization statistics.</p>
+          </div>
+          <div class="analysis-result is-hidden" id="analysis-result"></div>
+        </aside>
       </section>
 
-      <section class="panel results">
-        <h2>Engine Status</h2>
-        <p id="engine-status">C++ engine not connected yet. UI shell is ready.</p>
-        <button id="analyze-button" type="button">Preview Request</button>
-        <pre id="request-preview"></pre>
+      <section class="run-section reveal" id="runs">
+        <div class="run-heading">
+          <div><p class="section-number">03</p><h2>Saved runs</h2></div>
+          <button class="text-button" id="clear-runs" type="button">Clear history</button>
+        </div>
+        <div class="run-list" id="run-list"></div>
       </section>
     </main>
 
-    <script src="./app.js"></script>
+    <div class="toast-region" id="toast-region" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
   </body>
 </html>
