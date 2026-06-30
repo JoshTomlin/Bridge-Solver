@@ -4,12 +4,98 @@
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 #include "bridge/engine.h"
+#include "interactive_cli.h"
 #include "playthrough_demo.h"
 
 namespace {
+
+void print_alpha_mu_all_equals_demo() {
+    using namespace bridge;
+
+    constexpr std::size_t kWorldCount = 64;
+    constexpr std::uint64_t kTrueSeed = 0xA11E0A1ULL;
+    constexpr std::uint64_t kWorldSeed = 0x64E0A15ULL;
+    const Hand north = suit_mask(Suit::Hearts);
+    const Hand south = suit_mask(Suit::Spades);
+    const Hand defender_cards = suit_mask(Suit::Diamonds) | suit_mask(Suit::Clubs);
+    const HandSamplingConstraints constraints;
+    const std::optional<Hand> true_east = sample_constrained_hand(
+        defender_cards, constraints, kTrueSeed, 13);
+    if (!true_east.has_value()) {
+        throw std::runtime_error("failed to generate the true defender layout");
+    }
+    const Deal true_deal {.hands = {
+        north,
+        *true_east,
+        south,
+        defender_cards & ~*true_east,
+    }};
+
+    const auto sampling_start = std::chrono::steady_clock::now();
+    std::vector<AlphaMuWorld> worlds;
+    worlds.reserve(kWorldCount);
+    std::unordered_set<Hand> unique_east_hands;
+    for (std::size_t index = 0; index < kWorldCount; ++index) {
+        const std::optional<Hand> east = sample_constrained_hand(
+            defender_cards, constraints, kWorldSeed + index, 13);
+        if (!east.has_value()) {
+            throw std::runtime_error("failed to sample a defender world");
+        }
+        unique_east_hands.insert(*east);
+        worlds.push_back(AlphaMuWorld {
+            .position = Position {
+                .deal = Deal {.hands = {
+                    north,
+                    *east,
+                    south,
+                    defender_cards & ~*east,
+                }},
+                .current_trick = Trick {
+                    .leader = Seat::South,
+                    .trump_suit = Suit::Spades,
+                },
+            },
+        });
+    }
+    const double sampling_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - sampling_start).count();
+    const AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 13,
+        .max_declarer_plies = 4,
+    };
+
+    const auto start = std::chrono::steady_clock::now();
+    const AlphaMuResult result = alpha_mu_search(worlds, config);
+    const double milliseconds = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - start).count();
+
+    std::cout << "All-trumps alpha-mu demo\n";
+    std::cout << "Hidden source-of-truth deal:\n" << format_deal(true_deal) << '\n';
+    std::cout << "Possible East hands: " << count_constrained_hands(
+        defender_cards, kEmptyHand, kEmptyHand, constraints, 13) << '\n';
+    std::cout << "Sampled worlds: " << kWorldCount << " ("
+              << unique_east_hands.size() << " unique) in "
+              << sampling_ms << " ms\n";
+    std::cout << "Contract target: 13 tricks; trump: Spades; South leads; M=4\n";
+    std::cout << "Selected lead: " << to_string(result.best_move) << '\n';
+    std::cout << "Worlds won: " << best_winning_world_count(result.front)
+              << '/' << kWorldCount << '\n';
+    std::cout << "Time: " << milliseconds << " ms\n";
+    std::cout << "Stats: nodes=" << result.stats.nodes
+              << " DDS-worlds=" << result.stats.dds_worlds
+              << " TT-hits=" << result.stats.transposition_hits
+              << " equals-skipped=" << result.stats.equivalent_moves_skipped
+              << " forced-trump-cuts=" << result.stats.forced_trump_run_cuts
+              << " win-cuts=" << result.stats.win_cuts
+              << " completed-M=" << static_cast<int>(result.stats.completed_depth)
+              << '\n';
+}
 
 bridge::Hand south_hand() {
     using namespace bridge;
@@ -460,7 +546,7 @@ void print_alpha_mu_spade_64_world_demo() {
         .declarer = Seat::South,
         .trump_suit = Suit::Spades,
         .target_tricks = 4,
-        .max_declarer_plies = 2,
+        .max_declarer_plies = 10,
     };
 
     std::cout << "Alpha-mu five-card AJ32 A opposite K954 K, 64 sampled worlds\n";
@@ -472,41 +558,32 @@ void print_alpha_mu_spade_64_world_demo() {
     for (std::size_t length = 0; length < east_spade_lengths.size(); ++length) {
         std::cout << ' ' << length << '=' << east_spade_lengths[length];
     }
-    std::cout << "\nTarget: 4 tricks; North leads; M=2\n";
+    std::cout << "\nTarget: 4 tricks; North leads; M=10\n";
 
-    Card best_move = kNoCard;
-    std::size_t best_count = 0;
     const auto evaluation_start = std::chrono::steady_clock::now();
-    for (const Card move : ordered_cards(north)) {
-        auto child_worlds = worlds;
-        for (AlphaMuWorld& world : child_worlds) {
-            play_card(world.position, move);
-        }
-
-        AlphaMuConfig child_config = config;
-        --child_config.max_declarer_plies;
-        const auto move_start = std::chrono::steady_clock::now();
-        const AlphaMuResult child = alpha_mu_search(child_worlds, child_config);
-        const auto move_end = std::chrono::steady_clock::now();
-        const std::size_t won = best_winning_world_count(child.front);
-        const double move_ms =
-            std::chrono::duration<double, std::milli>(move_end - move_start).count();
-
-        if (best_move == kNoCard || won > best_count) {
-            best_move = move;
-            best_count = won;
-        }
-        std::cout << to_string(move) << ": " << won << '/' << kWorldCount
-                  << " worlds won, " << child.front.vectors.size()
-                  << " Pareto vector(s), " << move_ms << " ms\n";
-    }
+    const AlphaMuResult result = alpha_mu_search(worlds, config);
     const auto evaluation_end = std::chrono::steady_clock::now();
     const double evaluation_ms =
         std::chrono::duration<double, std::milli>(evaluation_end - evaluation_start).count();
 
-    std::cout << "Selected lead: " << to_string(best_move) << " ("
-              << best_count << '/' << kWorldCount << ")\n";
-    std::cout << "All move evaluations: " << evaluation_ms << " ms\n";
+    std::cout << "Final-iteration root moves:\n";
+    for (const AlphaMuRootMove& move : result.root_moves) {
+        std::cout << "  " << to_string(move.move) << ": "
+                  << move.winning_worlds << '/' << kWorldCount
+                  << " worlds, " << move.pareto_vectors << " vector(s)\n";
+    }
+    std::cout << "Selected lead: " << to_string(result.best_move) << " ("
+              << best_winning_world_count(result.front) << '/' << kWorldCount << ")\n";
+    std::cout << "Evaluation: " << evaluation_ms << " ms\n";
+    std::cout << "Search stats: nodes=" << result.stats.nodes
+              << " leaves=" << result.stats.leaves
+              << " DDS-worlds=" << result.stats.dds_worlds
+              << " TT-hits=" << result.stats.transposition_hits
+              << " early-cuts=" << result.stats.early_cuts
+              << " root-cuts=" << result.stats.root_cuts
+              << " equals-skipped=" << result.stats.equivalent_moves_skipped
+              << " completed-M=" << static_cast<int>(result.stats.completed_depth)
+              << "\n";
 }
 
 void print_alpha_mu_spade_combination_demo() {
@@ -1010,6 +1087,14 @@ int main(int argc, char** argv) {
     using namespace bridge;
 
     try {
+        if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-all-equals-demo") {
+            print_alpha_mu_all_equals_demo();
+            return 0;
+        }
+        if (argc > 1 && std::string_view(argv[1]) == "--interactive") {
+            bridge::cli::run_interactive(std::cin, std::cout);
+            return 0;
+        }
         if (argc > 1 && std::string_view(argv[1]) == "--alpha-mu-demo") {
             print_alpha_mu_discovery_demo();
             return 0;

@@ -55,6 +55,29 @@ Build and run the starter CLI:
 .\build.ps1 -Run
 ```
 
+### Interactive Position Lab
+
+```powershell
+.\build\engine\Release\bridge_engine_cli.exe --interactive
+```
+
+Use `new` to enter four equal-size hands in SHDC notation, such as
+`AJ32.A.-.-`. Normal `show` output hides East and West; `reveal` displays the
+source-of-truth deal. `analyze` samples defender layouts and runs alpha-mu.
+`bot` plays alpha-mu for North/South and DDS for East/West.
+Use `undo` to take back one card or `replay` to restart the entered deal.
+
+Type `help` in the interface for the complete command list.
+The default soft search limit is 30 seconds. Use `set time SECONDS` to adjust
+it, or `set time 0` to disable it. A running iteration always finishes; the
+limit prevents alpha-mu from starting the next `M`.
+
+Use `optimizations` to list all search shortcuts, `set opt NAME on|off` to
+toggle one, and `benchmark NAME` to run it off and on against the same sampled
+worlds. `set audit on` prints the optimization events taken by `analyze`.
+The implementation map and interpretation guide are in
+`docs/alpha-mu-optimizations.md`.
+
 ### JavaScript UI
 
 ```powershell

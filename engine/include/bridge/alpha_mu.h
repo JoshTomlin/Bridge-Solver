@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "bridge/game.h"
@@ -52,6 +53,44 @@ struct AlphaMuWorld {
     Position position {};
 };
 
+// Search shortcuts are deliberately independent so each one can be tested and
+// benchmarked against the same reference search. Some have dependencies noted
+// in docs/alpha-mu.md; disabling a dependency simply makes its shortcut inert.
+enum class AlphaMuOptimization : std::uint8_t {
+    IterativeDeepening,
+    TranspositionTable,
+    CanonicalTranspositionKeys,
+    MaxEquivalentCards,
+    MinEquivalentSuccessors,
+    EarlyCut,
+    RootCut,
+    WinCut,
+    ForcedTrumpRun,
+};
+
+struct AlphaMuOptimizations {
+    bool iterative_deepening {true};
+    bool transposition_table {true};
+    bool canonical_transposition_keys {true};
+    bool max_equivalent_cards {true};
+    bool min_equivalent_successors {true};
+    bool early_cut {true};
+    bool root_cut {true};
+    bool win_cut {true};
+    bool forced_trump_run {true};
+};
+
+std::string_view to_string(AlphaMuOptimization optimization);
+std::optional<AlphaMuOptimization> parse_alpha_mu_optimization(std::string_view name);
+bool optimization_enabled(
+    const AlphaMuOptimizations& optimizations,
+    AlphaMuOptimization optimization);
+void set_optimization_enabled(
+    AlphaMuOptimizations& optimizations,
+    AlphaMuOptimization optimization,
+    bool enabled);
+AlphaMuOptimizations disabled_alpha_mu_optimizations();
+
 struct AlphaMuConfig {
     Seat declarer {Seat::South};
     std::optional<Suit> trump_suit {};
@@ -61,11 +100,16 @@ struct AlphaMuConfig {
     // Defender choices do not consume M; M=1 is the paper's PIMC baseline.
     std::uint8_t max_declarer_plies {};
 
-    bool use_iterative_deepening {true};
-    bool use_transposition_table {true};
-    bool use_early_cut {true};
-    bool use_root_cut {true};
+    AlphaMuOptimizations optimizations {};
     bool build_trick_policy {false};
+
+    // Records human-readable optimization events. This is intentionally off
+    // by default because detailed logs can be large during a deep search.
+    bool collect_audit_log {false};
+
+    // Soft iterative-deepening budget. Zero disables it. An iteration that has
+    // already started always finishes; the limit only prevents the next M.
+    double max_search_seconds {};
 };
 
 struct AlphaMuSearchStats {
@@ -77,7 +121,16 @@ struct AlphaMuSearchStats {
     std::uint64_t transposition_stores {};
     std::uint64_t early_cuts {};
     std::uint64_t root_cuts {};
+    std::uint64_t equivalent_moves_skipped {};
+    std::uint64_t max_equivalent_moves_skipped {};
+    std::uint64_t min_equivalent_moves_skipped {};
+    std::uint64_t forced_trump_run_cuts {};
+    std::uint64_t win_cuts {};
     std::uint8_t completed_iterations {};
+    std::uint8_t completed_depth {};
+    bool stopped_by_time_limit {};
+    double tree_search_ms {};
+    double policy_build_ms {};
 };
 
 struct AlphaMuRootMove {
@@ -115,6 +168,7 @@ struct AlphaMuResult {
     std::vector<AlphaMuRootMove> root_moves;
     std::shared_ptr<const AlphaMuPolicyNode> trick_policy;
     AlphaMuSearchStats stats {};
+    std::string audit_log;
 };
 
 AlphaMuResult alpha_mu_search(

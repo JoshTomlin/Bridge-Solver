@@ -51,7 +51,11 @@ if (WIN32)
 endif()
 
 add_library(bridge_engine
+    src/analysis_session.cpp
     src/alpha_mu.cpp
+    src/alpha_mu_pareto.cpp
+    src/alpha_mu_policy.cpp
+    src/alpha_mu_state.cpp
     src/card.cpp
     src/dds_solver.cpp
     src/engine.cpp
@@ -67,6 +71,7 @@ target_compile_features(bridge_engine PUBLIC cxx_std_20)
 target_link_libraries(bridge_engine PUBLIC dds)
 
 add_executable(bridge_engine_cli
+    src/interactive_cli.cpp
     src/main.cpp
     src/playthrough_demo.cpp
 )

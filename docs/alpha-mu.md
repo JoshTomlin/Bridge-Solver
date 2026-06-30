@@ -7,8 +7,17 @@ move after looking at each hidden world.
 
 ## Files and Public Types
 
-The public API is in `engine/include/bridge/alpha_mu.h`; the recursion is in
-`engine/src/alpha_mu.cpp`.
+The public API is in `engine/include/bridge/alpha_mu.h`. The implementation is
+split by responsibility:
+
+- `alpha_mu_pareto.cpp`: vector and Pareto-front algebra
+- `alpha_mu_state.cpp`: possible-world state, canonical keys, and equivalents
+- `alpha_mu.cpp`: leaf evaluation, MAX/MIN recursion, cuts, and root iteration
+- `alpha_mu_policy.cpp`: reconstruction of the selected within-trick strategy
+- `alpha_mu_internal.h`: the deliberately small private interface between them
+
+Read them in that order. The detailed switch, counter, and benchmark map is in
+`docs/alpha-mu-optimizations.md`.
 
 The types are small value types rather than class hierarchies:
 
@@ -179,44 +188,16 @@ two-way guesses, discovery plays, and the four-world example are in
 
 ## Search Optimizations
 
-The search uses iterative deepening from `M=1` to the requested depth. One
-transposition table is retained across those iterations. Each node entry stores
-an exact Pareto front and best move separately for each searched depth; the best
-move is also used as the first move in the next iteration.
+All current shortcuts are exact: turning one on may remove work but must not
+change the winning-world score. They are collected in
+`AlphaMuConfig::optimizations`; `disabled_alpha_mu_optimizations()` selects the
+plain recurrence used as the correctness reference.
 
-At a MIN node, a shallower cached front is an optimistic bound. If every vector
-in that cached front is covered by the current MAX alpha front, the branch is
-cut because deeper search can only make the MIN result worse for MAX. Cut
-results are not stored as exact transposition entries.
-
-At the root, the previous iteration's score is an upper bound. Once the current
-iteration reaches that score, remaining root moves are skipped. The returned
-root front may therefore omit unsearched dominated alternatives, but the
-selected score and move are preserved.
-
-`AlphaMuConfig` can independently disable iterative deepening, the table, early
-cuts, and root cuts. `AlphaMuResult::stats` reports nodes, leaves, DDS worlds,
-table activity, cuts, and completed iterations. Tests compare optimized search
-against all optimizations disabled.
-
-The remaining main costs are:
-
-- Copying all worlds once per branch
-- DDS calls at leaves
-- Cartesian growth at MIN nodes
-- Linear Pareto-front insertion
-
-Further optimizations from the papers can be added behind the current interfaces:
-
-1. Equivalent-card move reduction
-2. Useful-world and zero/one-world cuts
-3. Deep alpha cuts and cut-on-win
-4. Incremental world storage instead of copying every world
-5. Parallel DDS leaf evaluation
-6. Faster Pareto structures if measured fronts become large
-
-These should be benchmarked individually. The current separated functions make
-each optimization local and preserve a readable reference implementation.
+`AlphaMuSearchStats` reports tree-search time, policy-reconstruction time, node
+and DDS counts, table activity, and a separate counter for each kind of cut or
+equivalent branch. `collect_audit_log` records the concrete shortcuts taken in
+one run. See `docs/alpha-mu-optimizations.md` for the complete code map,
+dependencies, CLI commands, and extension checklist.
 
 ## Interactive Example 2 Playthrough
 

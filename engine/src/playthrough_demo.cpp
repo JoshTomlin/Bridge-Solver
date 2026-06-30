@@ -278,7 +278,12 @@ AlphaMuResult choose_alpha_mu_strategy(
               << " DDS-worlds=" << result.stats.dds_worlds
               << " TT-hits=" << result.stats.transposition_hits
               << " early-cuts=" << result.stats.early_cuts
-              << " root-cuts=" << result.stats.root_cuts << "\n";
+              << " root-cuts=" << result.stats.root_cuts
+              << " equals-skipped=" << result.stats.equivalent_moves_skipped
+              << " forced-trump-cuts=" << result.stats.forced_trump_run_cuts
+              << " win-cuts=" << result.stats.win_cuts
+              << " completed-M=" << static_cast<int>(result.stats.completed_depth)
+              << "\n";
     return result;
 }
 

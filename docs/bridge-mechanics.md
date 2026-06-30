@@ -12,7 +12,11 @@ trick operations.
 - `engine/include/bridge/game.h`: deal, trick, score, and position types
 - `engine/src/game.cpp`: legal moves, trick winners, state transitions, and display
 - `engine/include/bridge/alpha_mu.h`: outcome vectors, Pareto fronts, and search API
-- `engine/src/alpha_mu.cpp`: alpha-mu recursion
+- `engine/src/alpha_mu_pareto.cpp`: outcome dominance and Pareto-front algebra
+- `engine/src/alpha_mu_state.cpp`: state keys, move ordering, and card equivalence
+- `engine/src/alpha_mu.cpp`: MAX/MIN recursion, cuts, DDS leaves, and iteration
+- `engine/src/alpha_mu_policy.cpp`: retained within-trick strategy reconstruction
+- `engine/src/alpha_mu_internal.h`: private interface between those search files
 - `engine/include/bridge/dds_solver.h`: narrow DDS wrapper API
 - `engine/src/dds_solver.cpp`: conversion to DDS data structures
 - `engine/include/bridge/engine.h`: umbrella header plus sampling API
@@ -143,3 +147,6 @@ Enumerate legal cards       O(number of cards returned)
 
 The expensive part of the program is not bridge mechanics. It is the number of
 search branches, Pareto vectors, sampled worlds, and DDS leaf calls.
+
+For the optimization switches and measurements around those costs, continue
+with `docs/alpha-mu-optimizations.md`.
