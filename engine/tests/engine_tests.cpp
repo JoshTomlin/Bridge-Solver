@@ -614,6 +614,73 @@ void test_sampled_hand_satisfies_constraints() {
             "sampled East hand must satisfy minimum HCP");
 }
 
+void test_sampled_hand_respects_forced_cards() {
+    const Hand available = bridge::make_hand({
+        bridge::make_card(Suit::Spades, Rank::Ace),
+        bridge::make_card(Suit::Spades, Rank::Queen),
+        bridge::make_card(Suit::Hearts, Rank::Ace),
+        bridge::make_card(Suit::Hearts, Rank::Jack),
+        bridge::make_card(Suit::Diamonds, Rank::King),
+        bridge::make_card(Suit::Clubs, Rank::Two),
+    });
+    const Card required = bridge::make_card(Suit::Hearts, Rank::Ace);
+    const Card forbidden = bridge::make_card(Suit::Spades, Rank::Queen);
+    HandSamplingConstraints constraints {};
+    constraints.min_hcp = 5;
+
+    for (std::uint64_t seed = 1; seed <= 20; ++seed) {
+        const auto sampled = bridge::sample_constrained_hand(
+            available,
+            required,
+            forbidden,
+            constraints,
+            seed,
+            3);
+        require(sampled.has_value(), "forced-card sampling should find a valid hand");
+        require(bridge::contains(*sampled, required),
+                "every sampled hand must contain its required cards");
+        require(!bridge::contains(*sampled, forbidden),
+                "no sampled hand may contain a forbidden card");
+    }
+}
+
+void test_analysis_session_combines_defender_restrictions() {
+    bridge::Deal deal;
+    bridge::hand_of(deal, Seat::North) = *bridge::parse_hand_record("A.A.-.-");
+    bridge::hand_of(deal, Seat::East) = *bridge::parse_hand_record("Q.J.-.-");
+    bridge::hand_of(deal, Seat::South) = *bridge::parse_hand_record("K.K.-.-");
+    bridge::hand_of(deal, Seat::West) = *bridge::parse_hand_record("J.Q.-.-");
+
+    bridge::AnalysisSession session(deal, Seat::East, std::nullopt);
+    bridge::DefenderRestrictions restrictions;
+    restrictions.east.required_cards = bridge::make_card(Suit::Spades, Rank::Queen);
+    restrictions.east.hand.min_lengths[static_cast<std::size_t>(Suit::Spades)] = 1;
+    restrictions.east.hand.max_lengths[static_cast<std::size_t>(Suit::Spades)] = 1;
+    restrictions.east.hand.min_hcp = 3;
+    restrictions.east.hand.max_hcp = 3;
+    restrictions.west.required_cards = bridge::make_card(Suit::Hearts, Rank::Queen);
+    restrictions.west.hand.min_lengths[static_cast<std::size_t>(Suit::Hearts)] = 1;
+    restrictions.west.hand.max_lengths[static_cast<std::size_t>(Suit::Hearts)] = 1;
+
+    session.set_defender_restrictions(restrictions);
+    require(session.possible_deals() == 1,
+            "East and West restrictions should compile to one compatible layout");
+
+    session.play(bridge::make_card(Suit::Spades, Rank::Queen));
+    require(session.possible_deals() == 1,
+            "initial restrictions should be reduced after a restricted card is played");
+
+    restrictions.east.required_cards = bridge::make_card(Suit::Hearts, Rank::Queen);
+    bool rejected = false;
+    try {
+        bridge::AnalysisSession invalid_session(deal, Seat::East, std::nullopt);
+        invalid_session.set_defender_restrictions(restrictions);
+    } catch (const std::invalid_argument&) {
+        rejected = true;
+    }
+    require(rejected, "restrictions that contradict the true deal must be rejected");
+}
+
 void test_real_world_exact_shape_count() {
     Hand south = bridge::make_hand({
         bridge::make_card(Suit::Spades, Rank::Two),
@@ -1451,6 +1518,8 @@ int main() {
         test_sampling_count_matches_bruteforce_medium_subset();
         test_partition_identity();
         test_sampled_hand_satisfies_constraints();
+        test_sampled_hand_respects_forced_cards();
+        test_analysis_session_combines_defender_restrictions();
         test_real_world_exact_shape_count();
         test_real_world_small_hearts_count();
         test_double_dummy_wrapper_smoke();

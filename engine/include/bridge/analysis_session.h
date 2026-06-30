@@ -26,6 +26,17 @@ struct BotSettings {
     bool collect_audit_log {false};
 };
 
+struct SeatRestrictions {
+    Hand required_cards {kEmptyHand};
+    Hand forbidden_cards {kEmptyHand};
+    HandSamplingConstraints hand;
+};
+
+struct DefenderRestrictions {
+    SeatRestrictions east;
+    SeatRestrictions west;
+};
+
 struct SessionAnalysis {
     AlphaMuResult search;
     std::uint64_t possible_deals {};
@@ -57,6 +68,9 @@ public:
     const Deal& original_deal() const;
     const BotSettings& settings() const;
     void set_settings(BotSettings settings);
+    const DefenderRestrictions& defender_restrictions() const;
+    void set_defender_restrictions(DefenderRestrictions restrictions);
+    std::uint64_t possible_deals() const;
 
     SessionAnalysis analyze();
     OptimizationBenchmark benchmark(AlphaMuOptimization optimization);
@@ -86,7 +100,16 @@ private:
         double sampling_ms {};
     };
 
-    HandSamplingConstraints sampling_constraints(Hand defender_cards) const;
+    struct SamplingRequest {
+        Hand available_cards {kEmptyHand};
+        Hand included_cards {kEmptyHand};
+        Hand excluded_cards {kEmptyHand};
+        HandSamplingConstraints constraints;
+        std::uint8_t target_card_count {};
+    };
+
+    SeatRestrictions remaining_restrictions(Seat seat, Hand defender_cards) const;
+    SamplingRequest sampling_request() const;
     SampledWorlds sample_worlds();
     AlphaMuConfig search_config(bool build_policy) const;
     void advance_policy(Seat player, Card card);
@@ -95,6 +118,7 @@ private:
     Position initial_position_ {};
     Position position_ {};
     BotSettings settings_ {};
+    DefenderRestrictions restrictions_ {};
     VoidTable voids_ {};
     std::uint64_t analysis_number_ {};
     std::shared_ptr<const AlphaMuPolicyNode> policy_;

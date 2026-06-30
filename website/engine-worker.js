@@ -101,6 +101,12 @@ self.addEventListener("message", async (event) => {
           payload.leader,
           payload.trump
         ));
+        if (payload.restrictions) {
+          result = parseResult(engine.setRestrictions(
+            payload.restrictions.east,
+            payload.restrictions.west
+          ));
+        }
         break;
       case "analyze": result = analyze(payload); break;
       case "play": result = parseResult(engine.play(payload.card)); break;

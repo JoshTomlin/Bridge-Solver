@@ -173,6 +173,57 @@ h3 { font-size: 1rem; }
 .field-help, .muted-copy { color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
 .field-help { margin: 10px 0 0; }
 
+.knowledge-panel {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid #c6d2cc;
+  border-radius: 11px;
+  background: #f4f7f2;
+}
+.knowledge-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  color: var(--forest);
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.knowledge-panel > summary::-webkit-details-marker { display: none; }
+.knowledge-panel > summary::before { content: "+"; font-family: ui-monospace, monospace; }
+.knowledge-panel[open] > summary::before { content: "-"; }
+.knowledge-panel > summary span { margin-right: auto; }
+.knowledge-panel > summary small { color: var(--muted); font-size: 0.62rem; font-weight: 500; }
+.knowledge-panel > .field-help { margin: 0; padding: 0 12px 12px; }
+.restriction-seat { padding: 14px 12px; border-top: 1px solid #d4ddd8; }
+.restriction-seat h3 { color: var(--forest); font-size: 0.9rem; }
+.restriction-cards .field { margin-top: 10px; }
+.restriction-cards input { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; text-transform: uppercase; }
+.range-grid {
+  display: grid;
+  grid-template-columns: 42px 1fr 1fr;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+.range-grid > span { color: var(--muted); font-size: 0.58rem; font-weight: 700; text-transform: uppercase; }
+.range-grid > span:not(:first-child) { text-align: center; }
+.range-grid b { color: #59635e; font-size: 0.67rem; }
+.range-grid input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 4px;
+  text-align: center;
+  background: #fffdf8;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  outline: none;
+}
+.range-grid input:focus { border-color: var(--felt-light); box-shadow: 0 0 0 2px rgba(38, 112, 95, 0.1); }
+
 .button-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; margin-top: 20px; }
 .button-stack { display: grid; gap: 8px; margin-top: 20px; }
 .button {

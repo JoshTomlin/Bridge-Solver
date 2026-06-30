@@ -26,6 +26,13 @@ try {
   ));
   assert.equal(session.state.legalCards.length, 13);
 
+  const restricted = parse(engine.setRestrictions(
+    { required: "SQ", minS: 2, maxS: 2 },
+    { minS: 3, maxS: 3 }
+  ));
+  assert.ok(restricted.possibleDeals > 0);
+  assert.ok(restricted.possibleDeals < session.possibleDeals);
+
   const result = parse(engine.analyze(8, 1, 13, "11565831", 1));
   assert.equal(result.analysis.uniqueWorlds, 8);
   assert.ok(result.analysis.bestMove);

@@ -60,6 +60,73 @@ std::optional<Suit> parse_trump_name(std::string_view text) {
     throw std::invalid_argument("trump must be S, H, D, C, or NT");
 }
 
+Hand parse_card_list(std::string text, std::string_view label) {
+    for (char& character : text) {
+        if (character == ',' || character == ';') character = ' ';
+    }
+    std::istringstream input(text);
+    std::string token;
+    Hand cards = kEmptyHand;
+    while (input >> token) {
+        if (token == "-") continue;
+        const std::optional<Card> card = parse_card(token);
+        if (!card.has_value()) {
+            throw std::invalid_argument(
+                std::string(label) + " contains invalid card '" + token + "'");
+        }
+        cards = add_card(cards, *card);
+    }
+    return cards;
+}
+
+std::uint8_t restriction_number(
+    const emscripten::val& value,
+    const char* property,
+    std::uint8_t fallback) {
+    const emscripten::val item = value[property];
+    if (item.isUndefined() || item.isNull()) return fallback;
+    const int number = item.as<int>();
+    if (number < 0 || number > 255) {
+        throw std::invalid_argument(std::string(property) + " is outside the valid range");
+    }
+    return static_cast<std::uint8_t>(number);
+}
+
+SeatRestrictions parse_seat_restrictions(
+    const emscripten::val& value,
+    std::string_view label) {
+    SeatRestrictions result;
+    if (value.isUndefined() || value.isNull()) return result;
+
+    const emscripten::val required = value["required"];
+    const emscripten::val forbidden = value["forbidden"];
+    result.required_cards = parse_card_list(
+        required.isUndefined() ? "" : required.as<std::string>(),
+        std::string(label) + " required cards");
+    result.forbidden_cards = parse_card_list(
+        forbidden.isUndefined() ? "" : forbidden.as<std::string>(),
+        std::string(label) + " forbidden cards");
+
+    const std::array<std::pair<Suit, const char*>, 4> suits {{
+        {Suit::Spades, "S"},
+        {Suit::Hearts, "H"},
+        {Suit::Diamonds, "D"},
+        {Suit::Clubs, "C"},
+    }};
+    for (const auto& [suit, name] : suits) {
+        const std::size_t index = static_cast<std::size_t>(suit);
+        const std::string min_name = std::string("min") + name;
+        const std::string max_name = std::string("max") + name;
+        result.hand.min_lengths[index] = restriction_number(
+            value, min_name.c_str(), 0);
+        result.hand.max_lengths[index] = restriction_number(
+            value, max_name.c_str(), kRanksPerSuit);
+    }
+    result.hand.min_hcp = restriction_number(value, "minHcp", 0);
+    result.hand.max_hcp = restriction_number(value, "maxHcp", 37);
+    return result;
+}
+
 std::string holding(Hand hand, Suit suit) {
     std::string result;
     for (int rank = static_cast<int>(Rank::Ace);
@@ -236,9 +303,29 @@ public:
             }
             session_ = std::make_unique<AnalysisSession>(
                 deal, parse_seat_name(leader), parse_trump_name(trump));
-            return "{\"ok\":true,\"state\":" + state_json(*session_) + '}';
+            return "{\"ok\":true,\"possibleDeals\":" +
+                std::to_string(session_->possible_deals()) +
+                ",\"state\":" + state_json(*session_) + '}';
         } catch (const std::exception& error) {
             session_.reset();
+            return error_json(error);
+        }
+    }
+
+    std::string set_restrictions(
+        const emscripten::val& east,
+        const emscripten::val& west) {
+        try {
+            require_session();
+            DefenderRestrictions restrictions {
+                .east = parse_seat_restrictions(east, "East"),
+                .west = parse_seat_restrictions(west, "West"),
+            };
+            session_->set_defender_restrictions(std::move(restrictions));
+            return "{\"ok\":true,\"possibleDeals\":" +
+                std::to_string(session_->possible_deals()) +
+                ",\"state\":" + state_json(*session_) + '}';
+        } catch (const std::exception& error) {
             return error_json(error);
         }
     }
@@ -349,6 +436,7 @@ EMSCRIPTEN_BINDINGS(bridge_solver_browser) {
     emscripten::class_<bridge::BrowserBridgeEngine>("BridgeEngine")
         .constructor<>()
         .function("createSession", &bridge::BrowserBridgeEngine::create_session)
+        .function("setRestrictions", &bridge::BrowserBridgeEngine::set_restrictions)
         .function("state", &bridge::BrowserBridgeEngine::state)
         .function("analyze", &bridge::BrowserBridgeEngine::analyze)
         .function("play", &bridge::BrowserBridgeEngine::play)

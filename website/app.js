@@ -13,6 +13,7 @@ const elements = {
   leader: byId("leader"),
   trump: byId("trump"),
   notes: byId("deal-notes"),
+  restrictionStatus: byId("restriction-status"),
   savedDeals: byId("saved-deals"),
   dealCount: byId("deal-count"),
   legalCards: byId("legal-cards"),
@@ -43,6 +44,53 @@ let currentDeal = null;
 let currentState = null;
 let busy = false;
 let engineReady = false;
+
+const restrictionSuits = ["S", "H", "D", "C"];
+
+function defaultSeatRestrictions() {
+  return {
+    required: "",
+    forbidden: "",
+    minS: 0, maxS: 13,
+    minH: 0, maxH: 13,
+    minD: 0, maxD: 13,
+    minC: 0, maxC: 13,
+    minHcp: 0, maxHcp: 37
+  };
+}
+
+function collectSeatRestrictions(prefix) {
+  const result = {
+    required: byId(`${prefix}-required`).value.trim().toUpperCase(),
+    forbidden: byId(`${prefix}-forbidden`).value.trim().toUpperCase()
+  };
+  for (const suit of restrictionSuits) {
+    result[`min${suit}`] = Number(byId(`${prefix}-min-${suit.toLowerCase()}`).value);
+    result[`max${suit}`] = Number(byId(`${prefix}-max-${suit.toLowerCase()}`).value);
+  }
+  result.minHcp = Number(byId(`${prefix}-min-hcp`).value);
+  result.maxHcp = Number(byId(`${prefix}-max-hcp`).value);
+  return result;
+}
+
+function applySeatRestrictions(prefix, source = {}) {
+  const restrictions = { ...defaultSeatRestrictions(), ...source };
+  byId(`${prefix}-required`).value = restrictions.required;
+  byId(`${prefix}-forbidden`).value = restrictions.forbidden;
+  for (const suit of restrictionSuits) {
+    byId(`${prefix}-min-${suit.toLowerCase()}`).value = restrictions[`min${suit}`];
+    byId(`${prefix}-max-${suit.toLowerCase()}`).value = restrictions[`max${suit}`];
+  }
+  byId(`${prefix}-min-hcp`).value = restrictions.minHcp;
+  byId(`${prefix}-max-hcp`).value = restrictions.maxHcp;
+}
+
+function hasSeatRestrictions(source = {}) {
+  const value = { ...defaultSeatRestrictions(), ...source };
+  return value.required || value.forbidden ||
+    restrictionSuits.some((suit) => value[`min${suit}`] !== 0 || value[`max${suit}`] !== 13) ||
+    value.minHcp !== 0 || value.maxHcp !== 37;
+}
 
 const engine = new EngineClient({
   onStatus(status, message) {
@@ -87,7 +135,11 @@ function collectDeal() {
     west: elements.west.value.trim(),
     leader: elements.leader.value,
     trump: elements.trump.value,
-    notes: elements.notes.value.trim()
+    notes: elements.notes.value.trim(),
+    restrictions: {
+      east: collectSeatRestrictions("east"),
+      west: collectSeatRestrictions("west")
+    }
   };
 }
 
@@ -101,6 +153,11 @@ function applyDeal(deal) {
   elements.leader.value = deal.leader || "South";
   elements.trump.value = deal.trump || "NT";
   elements.notes.value = deal.notes || "";
+  applySeatRestrictions("east", deal.restrictions?.east);
+  applySeatRestrictions("west", deal.restrictions?.west);
+  byId("defender-knowledge").open =
+    Boolean(hasSeatRestrictions(deal.restrictions?.east) || hasSeatRestrictions(deal.restrictions?.west));
+  elements.restrictionStatus.textContent = "Load to count";
   currentState = null;
   renderTable();
 }
@@ -318,6 +375,7 @@ async function putDealOnTable() {
   const response = await engine.createSession(deal);
   currentDeal = deal;
   currentState = response.state;
+  elements.restrictionStatus.textContent = `${formatNumber(response.possibleDeals)} deal${response.possibleDeals === 1 ? "" : "s"}`;
   renderTable();
   toast("Deal loaded", "success");
 }
@@ -328,6 +386,7 @@ async function analyzePosition() {
     const settings = analysisSettings();
     const result = await engine.analyze(settings);
     currentState = result.state;
+    elements.restrictionStatus.textContent = `${formatNumber(result.analysis.possibleDeals)} deal${result.analysis.possibleDeals === 1 ? "" : "s"}`;
     showAnalysis(result.analysis);
     saveRun({ mode: "decision", deal: collectDeal(), settings, result });
     renderRuns();
@@ -374,7 +433,7 @@ byId("save-deal").addEventListener("click", () => {
   toast("Deal saved on this device", "success");
 });
 byId("new-deal").addEventListener("click", () => {
-  applyDeal({ name: "Untitled deal", north: "-.-.-.-", east: "-.-.-.-", south: "-.-.-.-", west: "-.-.-.-", leader: "South", trump: "NT", notes: "" });
+  applyDeal({ name: "Untitled deal", north: "-.-.-.-", east: "-.-.-.-", south: "-.-.-.-", west: "-.-.-.-", leader: "South", trump: "NT", notes: "", restrictions: {} });
 });
 elements.savedDeals.addEventListener("click", safely(async (event) => {
   const loadButton = event.target.closest("[data-load-deal]");
@@ -424,8 +483,32 @@ byId("clear-runs").addEventListener("click", () => {
   clearRuns();
   renderRuns();
 });
-for (const input of [elements.north, elements.east, elements.south, elements.west]) {
-  input.addEventListener("input", () => { if (!currentState) renderTable(); });
+function invalidateSession() {
+  currentState = null;
+  elements.restrictionStatus.textContent = "Reload to apply";
+  renderTable();
+}
+
+const restrictionFields = ["east", "west"].flatMap((seat) => [
+  byId(`${seat}-required`),
+  byId(`${seat}-forbidden`),
+  ...restrictionSuits.flatMap((suit) => [
+    byId(`${seat}-min-${suit.toLowerCase()}`),
+    byId(`${seat}-max-${suit.toLowerCase()}`)
+  ]),
+  byId(`${seat}-min-hcp`),
+  byId(`${seat}-max-hcp`)
+]);
+for (const input of [
+  elements.north,
+  elements.east,
+  elements.south,
+  elements.west,
+  elements.leader,
+  elements.trump,
+  ...restrictionFields
+]) {
+  input.addEventListener("input", invalidateSession);
 }
 
 renderSavedDeals();

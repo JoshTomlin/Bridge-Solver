@@ -265,6 +265,19 @@ std::uint64_t count_constrained_hands_impl(
     std::uint8_t target_card_count) {
     static std::unordered_map<CountCacheKey, std::uint64_t, CountCacheKeyHash> cache;
 
+    if ((included_cards & excluded_cards) != kEmptyHand ||
+        ((included_cards | excluded_cards) & ~available_cards) != kEmptyHand ||
+        card_count(included_cards) > target_card_count ||
+        target_card_count > card_count(available_cards & ~excluded_cards) ||
+        constraints.min_hcp > constraints.max_hcp) {
+        return 0;
+    }
+    for (std::size_t suit = 0; suit < kSuitCount; ++suit) {
+        if (constraints.min_lengths[suit] > constraints.max_lengths[suit]) {
+            return 0;
+        }
+    }
+
     const CountCacheKey key {
         .available_cards = available_cards,
         .included_cards = included_cards,
@@ -346,16 +359,37 @@ std::optional<Hand> sample_constrained_hand(
     const HandSamplingConstraints& constraints,
     std::uint64_t random_seed,
     std::uint8_t target_card_count) {
+    return sample_constrained_hand(
+        available_cards,
+        kEmptyHand,
+        kEmptyHand,
+        constraints,
+        random_seed,
+        target_card_count);
+}
+
+std::optional<Hand> sample_constrained_hand(
+    Hand available_cards,
+    Hand included_cards,
+    Hand excluded_cards,
+    const HandSamplingConstraints& constraints,
+    std::uint64_t random_seed,
+    std::uint8_t target_card_count) {
     const std::uint64_t total =
-        count_constrained_hands(available_cards, kEmptyHand, kEmptyHand, constraints, target_card_count);
+        count_constrained_hands(
+            available_cards,
+            included_cards,
+            excluded_cards,
+            constraints,
+            target_card_count);
     if (total == 0) {
         return std::nullopt;
     }
 
     std::mt19937_64 rng(random_seed);
-    Hand included = kEmptyHand;
-    Hand excluded = kEmptyHand;
-    auto ordered_cards = cards_descending(available_cards);
+    Hand included = included_cards;
+    Hand excluded = excluded_cards;
+    auto ordered_cards = cards_descending(available_cards & ~included & ~excluded);
 
     for (const Card card : ordered_cards) {
         const std::uint8_t selected_count = card_count(included);

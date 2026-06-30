@@ -57,6 +57,13 @@ std::optional<Hand> sample_constrained_hand(
     const HandSamplingConstraints& constraints,
     std::uint64_t random_seed,
     std::uint8_t target_card_count = kRanksPerSuit);
+std::optional<Hand> sample_constrained_hand(
+    Hand available_cards,
+    Hand included_cards,
+    Hand excluded_cards,
+    const HandSamplingConstraints& constraints,
+    std::uint64_t random_seed,
+    std::uint8_t target_card_count = kRanksPerSuit);
 SamplingDebugInfo sampling_debug_info(
     Hand available_cards,
     Hand included_cards,

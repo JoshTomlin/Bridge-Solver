@@ -87,7 +87,10 @@ npm start
 
 The browser app supports deal entry, local save/load, card-by-card play,
 single-decision alpha-mu analysis, full-deal simulation, and persistent timing
-history. The C++ engine and DDS run as WebAssembly in a dedicated Web Worker.
+history. The optional **Defender knowledge** panel adds hard East/West known
+cards, forbidden cards, suit-length ranges, and HCP ranges. Compatible-layout
+counts and contradictions are reported when the deal is loaded. The C++ engine
+and DDS run as WebAssembly in a dedicated Web Worker.
 
 Build the complete browser version after activating Emscripten:
 

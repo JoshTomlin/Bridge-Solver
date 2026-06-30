@@ -65,6 +65,54 @@ void validate_deal(const Deal& deal) {
     }
 }
 
+void validate_seat_restrictions(
+    const SeatRestrictions& restrictions,
+    Hand actual_hand,
+    Hand defender_cards,
+    Seat seat) {
+    const std::string name = to_string(seat);
+    if ((restrictions.required_cards & restrictions.forbidden_cards) != kEmptyHand) {
+        throw std::invalid_argument(name + " cannot require and forbid the same card");
+    }
+    if (((restrictions.required_cards | restrictions.forbidden_cards) &
+         ~defender_cards) != kEmptyHand) {
+        throw std::invalid_argument(
+            name + " card restrictions must refer to unseen defender cards");
+    }
+    if ((restrictions.required_cards & ~actual_hand) != kEmptyHand) {
+        throw std::invalid_argument(name + " required cards contradict the true deal");
+    }
+    if ((restrictions.forbidden_cards & actual_hand) != kEmptyHand) {
+        throw std::invalid_argument(name + " forbidden cards contradict the true deal");
+    }
+    if (restrictions.hand.min_hcp > restrictions.hand.max_hcp ||
+        restrictions.hand.max_hcp > 37) {
+        throw std::invalid_argument(name + " HCP range is invalid");
+    }
+
+    const std::uint8_t actual_hcp = high_card_points(actual_hand);
+    if (actual_hcp < restrictions.hand.min_hcp ||
+        actual_hcp > restrictions.hand.max_hcp) {
+        throw std::invalid_argument(name + " HCP range contradicts the true deal");
+    }
+
+    for (const Suit suit : kHandRecordSuits) {
+        const std::size_t index = static_cast<std::size_t>(suit);
+        if (restrictions.hand.min_lengths[index] >
+                restrictions.hand.max_lengths[index] ||
+            restrictions.hand.max_lengths[index] > kRanksPerSuit) {
+            throw std::invalid_argument(
+                name + " " + to_string(suit) + " length range is invalid");
+        }
+        const std::uint8_t actual_length = card_count(cards_in_suit(actual_hand, suit));
+        if (actual_length < restrictions.hand.min_lengths[index] ||
+            actual_length > restrictions.hand.max_lengths[index]) {
+            throw std::invalid_argument(
+                name + " " + to_string(suit) + " length contradicts the true deal");
+        }
+    }
+}
+
 std::string void_string(
     const std::array<std::array<bool, 4>, 4>& voids,
     Seat seat) {
@@ -155,35 +203,136 @@ void AnalysisSession::set_settings(BotSettings settings) {
     policy_.reset();
 }
 
-HandSamplingConstraints AnalysisSession::sampling_constraints(Hand defender_cards) const {
-    HandSamplingConstraints constraints;
+const DefenderRestrictions& AnalysisSession::defender_restrictions() const {
+    return restrictions_;
+}
+
+void AnalysisSession::set_defender_restrictions(DefenderRestrictions restrictions) {
+    const Hand defender_cards =
+        hand_of(original_deal_, Seat::East) | hand_of(original_deal_, Seat::West);
+    validate_seat_restrictions(
+        restrictions.east,
+        hand_of(original_deal_, Seat::East),
+        defender_cards,
+        Seat::East);
+    validate_seat_restrictions(
+        restrictions.west,
+        hand_of(original_deal_, Seat::West),
+        defender_cards,
+        Seat::West);
+
+    DefenderRestrictions previous = restrictions_;
+    restrictions_ = std::move(restrictions);
+    if (possible_deals() == 0) {
+        restrictions_ = std::move(previous);
+        throw std::invalid_argument("the defender restrictions admit no layouts");
+    }
+    analysis_number_ = 0;
+    policy_.reset();
+}
+
+SeatRestrictions AnalysisSession::remaining_restrictions(
+    Seat seat,
+    Hand defender_cards) const {
+    SeatRestrictions result = seat == Seat::East ? restrictions_.east : restrictions_.west;
+    const Hand played_by_seat =
+        hand_of(original_deal_, seat) & ~hand_of(position_.deal, seat);
+    result.required_cards &= defender_cards;
+    result.forbidden_cards &= defender_cards;
+
     for (const Suit suit : kHandRecordSuits) {
         const std::size_t index = static_cast<std::size_t>(suit);
-        if (voids_[seat_index(Seat::East)][index]) {
-            constraints.max_lengths[index] = 0;
-        }
-        if (voids_[seat_index(Seat::West)][index]) {
-            const std::uint8_t remaining = card_count(cards_in_suit(defender_cards, suit));
-            constraints.min_lengths[index] = remaining;
-            constraints.max_lengths[index] = remaining;
+        const std::uint8_t played = card_count(cards_in_suit(played_by_seat, suit));
+        result.hand.min_lengths[index] = result.hand.min_lengths[index] > played
+            ? static_cast<std::uint8_t>(result.hand.min_lengths[index] - played)
+            : 0;
+        result.hand.max_lengths[index] = result.hand.max_lengths[index] > played
+            ? static_cast<std::uint8_t>(result.hand.max_lengths[index] - played)
+            : 0;
+        if (voids_[seat_index(seat)][index]) result.hand.max_lengths[index] = 0;
+    }
+
+    const std::uint8_t played_hcp = high_card_points(played_by_seat);
+    result.hand.min_hcp = result.hand.min_hcp > played_hcp
+        ? static_cast<std::uint8_t>(result.hand.min_hcp - played_hcp)
+        : 0;
+    result.hand.max_hcp = result.hand.max_hcp > played_hcp
+        ? static_cast<std::uint8_t>(result.hand.max_hcp - played_hcp)
+        : 0;
+    return result;
+}
+
+AnalysisSession::SamplingRequest AnalysisSession::sampling_request() const {
+    const Hand defender_cards =
+        hand_of(position_.deal, Seat::East) | hand_of(position_.deal, Seat::West);
+    const SeatRestrictions east = remaining_restrictions(Seat::East, defender_cards);
+    const SeatRestrictions west = remaining_restrictions(Seat::West, defender_cards);
+
+    SamplingRequest request {
+        .available_cards = defender_cards,
+        .included_cards = east.required_cards | west.forbidden_cards,
+        .excluded_cards = east.forbidden_cards | west.required_cards,
+        .constraints = east.hand,
+        .target_card_count = card_count(hand_of(position_.deal, Seat::East)),
+    };
+
+    for (const Suit suit : kHandRecordSuits) {
+        const std::size_t index = static_cast<std::size_t>(suit);
+        const std::uint8_t total = card_count(cards_in_suit(defender_cards, suit));
+        const std::uint8_t from_west_min = total > west.hand.max_lengths[index]
+            ? static_cast<std::uint8_t>(total - west.hand.max_lengths[index])
+            : 0;
+        const std::uint8_t from_west_max = total >= west.hand.min_lengths[index]
+            ? static_cast<std::uint8_t>(total - west.hand.min_lengths[index])
+            : 0;
+        request.constraints.min_lengths[index] = std::max(
+            request.constraints.min_lengths[index], from_west_min);
+        request.constraints.max_lengths[index] = std::min(
+            request.constraints.max_lengths[index], from_west_max);
+        if (west.hand.min_lengths[index] > total) {
+            request.constraints.min_lengths[index] = 1;
+            request.constraints.max_lengths[index] = 0;
         }
     }
-    return constraints;
+
+    const std::uint8_t total_hcp = high_card_points(defender_cards);
+    const std::uint8_t from_west_min_hcp = total_hcp > west.hand.max_hcp
+        ? static_cast<std::uint8_t>(total_hcp - west.hand.max_hcp)
+        : 0;
+    const std::uint8_t from_west_max_hcp = total_hcp >= west.hand.min_hcp
+        ? static_cast<std::uint8_t>(total_hcp - west.hand.min_hcp)
+        : 0;
+    request.constraints.min_hcp = std::max(
+        request.constraints.min_hcp, from_west_min_hcp);
+    request.constraints.max_hcp = std::min(
+        request.constraints.max_hcp, from_west_max_hcp);
+    if (west.hand.min_hcp > total_hcp) {
+        request.constraints.min_hcp = 1;
+        request.constraints.max_hcp = 0;
+    }
+    return request;
+}
+
+std::uint64_t AnalysisSession::possible_deals() const {
+    const SamplingRequest request = sampling_request();
+    return count_constrained_hands(
+        request.available_cards,
+        request.included_cards,
+        request.excluded_cards,
+        request.constraints,
+        request.target_card_count);
 }
 
 AnalysisSession::SampledWorlds AnalysisSession::sample_worlds() {
-    const Hand defender_cards =
-        hand_of(position_.deal, Seat::East) | hand_of(position_.deal, Seat::West);
-    const std::uint8_t east_card_count = card_count(hand_of(position_.deal, Seat::East));
-    const HandSamplingConstraints constraints = sampling_constraints(defender_cards);
+    const SamplingRequest request = sampling_request();
 
     SampledWorlds sampled;
     sampled.possible_deals = count_constrained_hands(
-        defender_cards,
-        kEmptyHand,
-        kEmptyHand,
-        constraints,
-        east_card_count);
+        request.available_cards,
+        request.included_cards,
+        request.excluded_cards,
+        request.constraints,
+        request.target_card_count);
     if (sampled.possible_deals == 0) {
         throw std::logic_error("the public constraints admit no defender layouts");
     }
@@ -195,10 +344,12 @@ AnalysisSession::SampledWorlds AnalysisSession::sample_worlds() {
         const std::uint64_t seed = settings_.random_seed +
             analysis_number_ * 0x9E3779B97F4A7C15ULL + index;
         const std::optional<Hand> east = sample_constrained_hand(
-            defender_cards,
-            constraints,
+            request.available_cards,
+            request.included_cards,
+            request.excluded_cards,
+            request.constraints,
             seed,
-            east_card_count);
+            request.target_card_count);
         if (!east.has_value()) {
             throw std::logic_error("failed to sample a defender layout");
         }
@@ -206,7 +357,7 @@ AnalysisSession::SampledWorlds AnalysisSession::sample_worlds() {
 
         Position sampled_position = position_;
         hand_of(sampled_position.deal, Seat::East) = *east;
-        hand_of(sampled_position.deal, Seat::West) = defender_cards & ~*east;
+        hand_of(sampled_position.deal, Seat::West) = request.available_cards & ~*east;
         sampled.worlds.push_back(AlphaMuWorld {.position = sampled_position});
     }
     ++analysis_number_;

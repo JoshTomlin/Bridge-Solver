@@ -61,6 +61,46 @@
             <label class="field"><span>West</span><input id="west-hand" value="432.J987.J97.T76" spellcheck="false"></label>
           </div>
 
+          <details class="knowledge-panel" id="defender-knowledge">
+            <summary>
+              <span>Defender knowledge</span>
+              <small id="restriction-status">Unrestricted</small>
+            </summary>
+            <p class="field-help">Hard public constraints used when sampling worlds. Card names use suit first, such as <code>SQ HK</code>.</p>
+
+            <section class="restriction-seat" data-restriction-seat="east">
+              <h3>East</h3>
+              <div class="two-up restriction-cards">
+                <label class="field"><span>Known cards</span><input id="east-required" placeholder="SQ HK" spellcheck="false"></label>
+                <label class="field"><span>Cannot hold</span><input id="east-forbidden" placeholder="CQ" spellcheck="false"></label>
+              </div>
+              <div class="range-grid">
+                <span>Suit</span><span>Min</span><span>Max</span>
+                <b>S</b><input id="east-min-s" type="number" min="0" max="13" value="0" aria-label="East minimum spades"><input id="east-max-s" type="number" min="0" max="13" value="13" aria-label="East maximum spades">
+                <b>H</b><input id="east-min-h" type="number" min="0" max="13" value="0" aria-label="East minimum hearts"><input id="east-max-h" type="number" min="0" max="13" value="13" aria-label="East maximum hearts">
+                <b>D</b><input id="east-min-d" type="number" min="0" max="13" value="0" aria-label="East minimum diamonds"><input id="east-max-d" type="number" min="0" max="13" value="13" aria-label="East maximum diamonds">
+                <b>C</b><input id="east-min-c" type="number" min="0" max="13" value="0" aria-label="East minimum clubs"><input id="east-max-c" type="number" min="0" max="13" value="13" aria-label="East maximum clubs">
+                <b>HCP</b><input id="east-min-hcp" type="number" min="0" max="37" value="0" aria-label="East minimum HCP"><input id="east-max-hcp" type="number" min="0" max="37" value="37" aria-label="East maximum HCP">
+              </div>
+            </section>
+
+            <section class="restriction-seat" data-restriction-seat="west">
+              <h3>West</h3>
+              <div class="two-up restriction-cards">
+                <label class="field"><span>Known cards</span><input id="west-required" placeholder="SQ HK" spellcheck="false"></label>
+                <label class="field"><span>Cannot hold</span><input id="west-forbidden" placeholder="CQ" spellcheck="false"></label>
+              </div>
+              <div class="range-grid">
+                <span>Suit</span><span>Min</span><span>Max</span>
+                <b>S</b><input id="west-min-s" type="number" min="0" max="13" value="0" aria-label="West minimum spades"><input id="west-max-s" type="number" min="0" max="13" value="13" aria-label="West maximum spades">
+                <b>H</b><input id="west-min-h" type="number" min="0" max="13" value="0" aria-label="West minimum hearts"><input id="west-max-h" type="number" min="0" max="13" value="13" aria-label="West maximum hearts">
+                <b>D</b><input id="west-min-d" type="number" min="0" max="13" value="0" aria-label="West minimum diamonds"><input id="west-max-d" type="number" min="0" max="13" value="13" aria-label="West maximum diamonds">
+                <b>C</b><input id="west-min-c" type="number" min="0" max="13" value="0" aria-label="West minimum clubs"><input id="west-max-c" type="number" min="0" max="13" value="13" aria-label="West maximum clubs">
+                <b>HCP</b><input id="west-min-hcp" type="number" min="0" max="37" value="0" aria-label="West minimum HCP"><input id="west-max-hcp" type="number" min="0" max="37" value="37" aria-label="West maximum HCP">
+              </div>
+            </section>
+          </details>
+
           <div class="two-up">
             <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>
             <label class="field"><span>Trump</span><select id="trump"><option selected>NT</option><option>S</option><option>H</option><option>D</option><option>C</option></select></label>
