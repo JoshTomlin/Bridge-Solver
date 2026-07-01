@@ -37,6 +37,7 @@ try {
   assert.equal(result.analysis.uniqueWorlds, 8);
   assert.ok(result.analysis.bestMove);
   assert.ok(result.analysis.stats.ddsWorlds > 0);
+  assert.ok(result.analysis.stats.leafDdsBatches > 0);
   assert.equal(result.analysis.sampledWorlds.length, 8);
   assert.ok(result.analysis.rootMoves.length > 1);
   assert.ok(result.analysis.rootMoves.every(

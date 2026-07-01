@@ -2,6 +2,7 @@
 
 #include "dll.h"
 
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 
@@ -175,27 +176,29 @@ std::vector<std::uint8_t> double_dummy_future_tricks_batch(
     }
 
     ensure_dds_initialized();
-    boards batch {};
-    batch.noOfBoards = static_cast<int>(positions.size());
+    // DDS's fixed-capacity batch types total roughly 65 KiB. Keeping them off
+    // the stack is required for Emscripten's default 64 KiB stack reservation.
+    auto batch = std::make_unique<boards>();
+    batch->noOfBoards = static_cast<int>(positions.size());
     for (std::size_t index = 0; index < positions.size(); ++index) {
         if (is_deal_finished(positions[index])) {
             throw std::invalid_argument("DDS batch cannot contain a finished deal");
         }
-        batch.deals[index] = to_dds_deal(positions[index]);
-        batch.target[index] = -1;
-        batch.solutions[index] = 1;
-        batch.mode[index] = 1;
+        batch->deals[index] = to_dds_deal(positions[index]);
+        batch->target[index] = -1;
+        batch->solutions[index] = 1;
+        batch->mode[index] = 1;
     }
 
-    solvedBoards solved {};
-    const int code = SolveAllBoardsBin(&batch, &solved);
+    auto solved = std::make_unique<solvedBoards>();
+    const int code = SolveAllBoardsBin(batch.get(), solved.get());
     if (code != RETURN_NO_FAULT) throw_dds_error(code);
 
     std::vector<std::uint8_t> result;
     result.reserve(positions.size());
     for (std::size_t index = 0; index < positions.size(); ++index) {
         result.push_back(declarer_future_tricks(
-            positions[index], declarer, solved.solvedBoard[index].score[0]));
+            positions[index], declarer, solved->solvedBoard[index].score[0]));
     }
     return result;
 }
