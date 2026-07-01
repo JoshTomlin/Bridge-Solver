@@ -40,14 +40,30 @@ struct SearchContext {
     std::ostringstream audit;
 };
 
+// A MAX ancestor's current front is an alpha bound. useful_worlds records the
+// worlds that were not already proven losses at that ancestor; descendant
+// worlds that became impossible are neutral wins when comparing to this bound.
+struct AlphaBound {
+    const ParetoFront* front {};
+    WorldMask useful_worlds {};
+};
+
+using AlphaBounds = std::vector<AlphaBound>;
+
 struct NodeEvaluation {
     ParetoFront front;
     Card best_move {kNoCard};
+    bool pruned {};
 };
 
 ParetoFront zero_front();
 void merge_max_front(ParetoFront& destination, const ParetoFront& source);
 bool front_wins_all_worlds(const ParetoFront& front, WorldMask active_worlds);
+WorldMask worlds_with_possible_win(const ParetoFront& front);
+bool front_is_covered_by_alpha(
+    const ParetoFront& candidate,
+    WorldMask candidate_active_worlds,
+    const AlphaBounds& bounds);
 WorldMask all_worlds_mask(std::size_t world_count);
 std::size_t first_world(WorldMask active_worlds);
 
@@ -62,6 +78,7 @@ std::vector<Card> representative_cards(
 NodeKey make_node_key(
     const std::vector<AlphaMuWorld>& worlds,
     WorldMask active_worlds,
+    WorldMask useful_worlds,
     bool canonical);
 
 std::string format_world_mask(WorldMask mask, std::size_t world_count);
@@ -91,9 +108,10 @@ const CachedNode* shallow_cached_node(
 NodeEvaluation alpha_mu_node(
     const std::vector<AlphaMuWorld>& worlds,
     WorldMask active_worlds,
+    WorldMask useful_worlds,
     std::uint8_t max_moves_left,
     SearchContext& context,
-    const ParetoFront* alpha,
+    const AlphaBounds& alpha_bounds,
     std::ostringstream* trace,
     std::size_t trace_depth);
 

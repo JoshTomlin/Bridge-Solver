@@ -6,6 +6,7 @@
 #include <array>
 #include <chrono>
 #include <cctype>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -18,16 +19,21 @@
 namespace bridge::cli {
 namespace {
 
-constexpr std::array<AlphaMuOptimization, 9> kOptimizations {
+constexpr std::array<AlphaMuOptimization, 14> kOptimizations {
     AlphaMuOptimization::IterativeDeepening,
     AlphaMuOptimization::TranspositionTable,
     AlphaMuOptimization::CanonicalTranspositionKeys,
     AlphaMuOptimization::MaxEquivalentCards,
     AlphaMuOptimization::MinEquivalentSuccessors,
     AlphaMuOptimization::EarlyCut,
+    AlphaMuOptimization::UsefulWorlds,
+    AlphaMuOptimization::WorldCuts,
+    AlphaMuOptimization::EmptyEntry,
+    AlphaMuOptimization::DeepAlphaCut,
     AlphaMuOptimization::RootCut,
     AlphaMuOptimization::WinCut,
     AlphaMuOptimization::ForcedTrumpRun,
+    AlphaMuOptimization::LeafDdsBatch,
 };
 
 std::string lower(std::string text) {
@@ -120,6 +126,41 @@ void print_optimizations(const AnalysisSession& session, std::ostream& output) {
     output << std::right;
 }
 
+std::uint64_t optimization_event_count(
+    const AlphaMuSearchStats& stats,
+    AlphaMuOptimization optimization) {
+    switch (optimization) {
+        case AlphaMuOptimization::IterativeDeepening:
+            return stats.completed_iterations;
+        case AlphaMuOptimization::TranspositionTable:
+        case AlphaMuOptimization::CanonicalTranspositionKeys:
+            return stats.transposition_hits;
+        case AlphaMuOptimization::MaxEquivalentCards:
+            return stats.max_equivalent_moves_skipped;
+        case AlphaMuOptimization::MinEquivalentSuccessors:
+            return stats.min_equivalent_moves_skipped;
+        case AlphaMuOptimization::EarlyCut:
+            return stats.early_cuts;
+        case AlphaMuOptimization::UsefulWorlds:
+            return stats.useful_worlds_removed;
+        case AlphaMuOptimization::WorldCuts:
+            return stats.world_cuts;
+        case AlphaMuOptimization::EmptyEntry:
+            return stats.empty_entry_searches;
+        case AlphaMuOptimization::DeepAlphaCut:
+            return stats.deep_alpha_cuts;
+        case AlphaMuOptimization::RootCut:
+            return stats.root_cuts;
+        case AlphaMuOptimization::WinCut:
+            return stats.win_cuts;
+        case AlphaMuOptimization::ForcedTrumpRun:
+            return stats.forced_trump_run_cuts;
+        case AlphaMuOptimization::LeafDdsBatch:
+            return stats.leaf_dds_batches;
+    }
+    return 0;
+}
+
 std::unique_ptr<AnalysisSession> read_session(
     std::istream& input,
     std::ostream& output) {
@@ -196,12 +237,17 @@ SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
            << " DDS-worlds=" << analysis.search.stats.dds_worlds
            << " TT-hits=" << analysis.search.stats.transposition_hits
            << " early-cuts=" << analysis.search.stats.early_cuts
+           << " deep-alpha-cuts=" << analysis.search.stats.deep_alpha_cuts
+           << " useful-removed=" << analysis.search.stats.useful_worlds_removed
+           << " world-cuts=" << analysis.search.stats.world_cuts
+           << " empty-entry=" << analysis.search.stats.empty_entry_searches
            << " root-cuts=" << analysis.search.stats.root_cuts
            << " equals-skipped=" << analysis.search.stats.equivalent_moves_skipped
            << " (MAX " << analysis.search.stats.max_equivalent_moves_skipped
            << ", MIN " << analysis.search.stats.min_equivalent_moves_skipped << ')'
            << " forced-trump-cuts=" << analysis.search.stats.forced_trump_run_cuts
            << " win-cuts=" << analysis.search.stats.win_cuts
+           << " DDS-batches=" << analysis.search.stats.leaf_dds_batches
            << " completed-M="
            << static_cast<int>(analysis.search.stats.completed_depth);
     if (analysis.search.stats.stopped_by_time_limit) {
@@ -244,6 +290,10 @@ void print_benchmark(
     output << std::left << std::setw(18) << "equals skipped" << std::right
            << std::setw(14) << off.search.stats.equivalent_moves_skipped
            << std::setw(14) << on.search.stats.equivalent_moves_skipped << '\n';
+    output << std::left << std::setw(18) << "shortcut events" << std::right
+           << std::setw(14) << optimization_event_count(off.search.stats, benchmark.optimization)
+           << std::setw(14) << optimization_event_count(on.search.stats, benchmark.optimization)
+           << '\n';
     output << std::left << std::setw(18) << "winning worlds" << std::right
            << std::setw(14) << off_score << std::setw(14) << on_score << '\n';
     output << std::left << std::setw(18) << "best move" << std::right

@@ -213,12 +213,20 @@ std::string stats_json(const AlphaMuSearchStats& stats) {
            << ",\"ttHits\":" << stats.transposition_hits
            << ",\"ttStores\":" << stats.transposition_stores
            << ",\"earlyCuts\":" << stats.early_cuts
+           << ",\"usefulWorldsRemoved\":" << stats.useful_worlds_removed
+           << ",\"worldCuts\":" << stats.world_cuts
+           << ",\"zeroWorldCuts\":" << stats.zero_world_cuts
+           << ",\"oneWorldCuts\":" << stats.one_world_cuts
+           << ",\"emptyEntrySearches\":" << stats.empty_entry_searches
+           << ",\"deepAlphaCuts\":" << stats.deep_alpha_cuts
            << ",\"rootCuts\":" << stats.root_cuts
            << ",\"winCuts\":" << stats.win_cuts
            << ",\"equivalentMoves\":" << stats.equivalent_moves_skipped
            << ",\"maxEquivalentMoves\":" << stats.max_equivalent_moves_skipped
            << ",\"minEquivalentMoves\":" << stats.min_equivalent_moves_skipped
            << ",\"forcedTrumpCuts\":" << stats.forced_trump_run_cuts
+           << ",\"leafDdsBatches\":" << stats.leaf_dds_batches
+           << ",\"leafDdsWorlds\":" << stats.leaf_dds_worlds
            << ",\"completedIterations\":" << static_cast<int>(stats.completed_iterations)
            << ",\"completedDepth\":" << static_cast<int>(stats.completed_depth)
            << ",\"stoppedByTime\":"

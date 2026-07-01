@@ -91,6 +91,23 @@ deal to_dds_deal(const Position& position) {
     return result;
 }
 
+std::uint8_t declarer_future_tricks(
+    const Position& position,
+    Seat declarer,
+    int side_to_play_tricks) {
+    std::uint16_t remaining_cards = 0;
+    for (const Hand hand : position.deal.hands) {
+        remaining_cards += card_count(hand);
+    }
+    const std::uint8_t remaining_tricks =
+        static_cast<std::uint8_t>((remaining_cards + 3) / 4);
+
+    // DDS scores the side to play. Alpha-mu always scores declarer's side.
+    return same_side(next_to_play(position.current_trick), declarer)
+        ? static_cast<std::uint8_t>(side_to_play_tricks)
+        : static_cast<std::uint8_t>(remaining_tricks - side_to_play_tricks);
+}
+
 void throw_dds_error(int code) {
     char message[80] {};
     ErrorMessage(code, message);
@@ -146,19 +163,41 @@ std::uint8_t double_dummy_future_tricks(const Position& position, Seat declarer)
         throw_dds_error(code);
     }
 
-    std::uint16_t remaining_cards = 0;
-    for (const Hand hand : position.deal.hands) {
-        remaining_cards += card_count(hand);
-    }
-    const std::uint8_t remaining_tricks =
-        static_cast<std::uint8_t>((remaining_cards + 3) / 4);
+    return declarer_future_tricks(position, declarer, future.score[0]);
+}
 
-    // DDS scores the side to play. Alpha-mu always scores declarer's side.
-    const bool declarer_side_to_play =
-        same_side(next_to_play(position.current_trick), declarer);
-    return declarer_side_to_play
-        ? static_cast<std::uint8_t>(future.score[0])
-        : static_cast<std::uint8_t>(remaining_tricks - future.score[0]);
+std::vector<std::uint8_t> double_dummy_future_tricks_batch(
+    const std::vector<Position>& positions,
+    Seat declarer) {
+    if (positions.empty()) return {};
+    if (positions.size() > MAXNOOFBOARDS) {
+        throw std::invalid_argument("DDS batch exceeds MAXNOOFBOARDS");
+    }
+
+    ensure_dds_initialized();
+    boards batch {};
+    batch.noOfBoards = static_cast<int>(positions.size());
+    for (std::size_t index = 0; index < positions.size(); ++index) {
+        if (is_deal_finished(positions[index])) {
+            throw std::invalid_argument("DDS batch cannot contain a finished deal");
+        }
+        batch.deals[index] = to_dds_deal(positions[index]);
+        batch.target[index] = -1;
+        batch.solutions[index] = 1;
+        batch.mode[index] = 1;
+    }
+
+    solvedBoards solved {};
+    const int code = SolveAllBoardsBin(&batch, &solved);
+    if (code != RETURN_NO_FAULT) throw_dds_error(code);
+
+    std::vector<std::uint8_t> result;
+    result.reserve(positions.size());
+    for (std::size_t index = 0; index < positions.size(); ++index) {
+        result.push_back(declarer_future_tricks(
+            positions[index], declarer, solved.solvedBoard[index].score[0]));
+    }
+    return result;
 }
 
 }  // namespace bridge

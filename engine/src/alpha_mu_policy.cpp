@@ -51,6 +51,7 @@ std::shared_ptr<const AlphaMuPolicyNode> build_policy_for_outcome(
         return nullptr;
     }
 
+    const AlphaBounds no_bounds;
     const Seat turn = player_to_act(position);
     if (same_side(turn, context.config.declarer)) {
         const Hand legal_moves = shared_declarer_moves(worlds, active_worlds);
@@ -66,9 +67,10 @@ std::shared_ptr<const AlphaMuPolicyNode> build_policy_for_outcome(
             NodeEvaluation child = alpha_mu_node(
                 child_worlds,
                 active_worlds,
+                active_worlds,
                 static_cast<std::uint8_t>(max_moves_left - 1),
                 context,
-                nullptr,
+                no_bounds,
                 nullptr,
                 0);
             const auto selected = std::find_if(
@@ -125,9 +127,10 @@ std::shared_ptr<const AlphaMuPolicyNode> build_policy_for_outcome(
         branch.child_front = alpha_mu_node(
             branch.child_worlds,
             branch.legal_worlds,
+            branch.legal_worlds,
             max_moves_left,
             context,
-            nullptr,
+            no_bounds,
             nullptr,
             0).front;
         branches.push_back(std::move(branch));
@@ -218,12 +221,14 @@ std::shared_ptr<const AlphaMuPolicyNode> build_trick_policy(
     for (AlphaMuWorld& world : child_worlds) {
         play_card(world.position, root_move);
     }
+    const AlphaBounds no_bounds;
     NodeEvaluation child = alpha_mu_node(
         child_worlds,
         active_worlds,
+        active_worlds,
         static_cast<std::uint8_t>(config.max_declarer_plies - 1),
         context,
-        nullptr,
+        no_bounds,
         nullptr,
         0);
     const OutcomeVector selected = highest_scoring_outcome(child.front);

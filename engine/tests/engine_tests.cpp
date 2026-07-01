@@ -384,9 +384,14 @@ void test_alpha_mu_optimization_controls() {
              bridge::AlphaMuOptimization::MaxEquivalentCards,
              bridge::AlphaMuOptimization::MinEquivalentSuccessors,
              bridge::AlphaMuOptimization::EarlyCut,
+             bridge::AlphaMuOptimization::UsefulWorlds,
+             bridge::AlphaMuOptimization::WorldCuts,
+             bridge::AlphaMuOptimization::EmptyEntry,
+             bridge::AlphaMuOptimization::DeepAlphaCut,
              bridge::AlphaMuOptimization::RootCut,
              bridge::AlphaMuOptimization::WinCut,
-             bridge::AlphaMuOptimization::ForcedTrumpRun}) {
+             bridge::AlphaMuOptimization::ForcedTrumpRun,
+             bridge::AlphaMuOptimization::LeafDdsBatch}) {
         require(!bridge::optimization_enabled(optimizations, optimization),
                 "disabled optimization set should contain no enabled shortcuts");
         bridge::set_optimization_enabled(optimizations, optimization, true);
@@ -806,6 +811,24 @@ void test_double_dummy_wrapper_smoke() {
     require(table.tricks[4][static_cast<std::uint8_t>(Seat::East)] ==
                 bridge::double_dummy_tricks(deal, Seat::East, std::nullopt),
             "double_dummy_tricks should match the table wrapper for notrump");
+
+    const bridge::Position north_to_play {
+        .deal = deal,
+        .current_trick = Trick {.leader = Seat::North},
+    };
+    const bridge::Position east_to_play {
+        .deal = deal,
+        .current_trick = Trick {.leader = Seat::East, .trump_suit = Suit::Spades},
+    };
+    const std::vector<std::uint8_t> batch =
+        bridge::double_dummy_future_tricks_batch(
+            {north_to_play, east_to_play}, Seat::South);
+    require(batch.size() == 2 &&
+                batch[0] == bridge::double_dummy_future_tricks(
+                    north_to_play, Seat::South) &&
+                batch[1] == bridge::double_dummy_future_tricks(
+                    east_to_play, Seat::South),
+            "batched DDS leaves should exactly match scalar DDS results");
 }
 
 std::vector<bridge::AlphaMuWorld> two_way_guess_worlds() {
@@ -1373,6 +1396,8 @@ void test_alpha_mu_exact_four_card_spade_distribution() {
         .max_declarer_plies = 4,
     };
     config.optimizations.root_cut = false;
+    // Search every root card so a win cut cannot masquerade as equivalence.
+    config.optimizations.win_cut = false;
     const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
     const auto score_for = [&](Card card) {
         const auto move = std::find_if(
@@ -1390,6 +1415,9 @@ void test_alpha_mu_exact_four_card_spade_distribution() {
             "SK should win only the layouts resolved without a later entry guess");
     require(score_for(bridge::make_card(Suit::Spades, Rank::Eight)) == 10,
             "S8 should win every queen-West layout");
+    require(result.stats.useful_worlds_removed > 0 &&
+                result.stats.world_cuts > 0,
+            "the mixed-layout ending should remove proven losses and reach world cuts");
 }
 
 void test_alpha_mu_example_one_classic_combination() {
@@ -1441,11 +1469,100 @@ void test_alpha_mu_optimizations_match_reference_search() {
     require(reference.stats.completed_iterations == 1 &&
                 reference.stats.transposition_probes == 0 &&
                 reference.stats.early_cuts == 0 &&
+                reference.stats.useful_worlds_removed == 0 &&
+                reference.stats.world_cuts == 0 &&
+                reference.stats.empty_entry_searches == 0 &&
+                reference.stats.deep_alpha_cuts == 0 &&
                 reference.stats.root_cuts == 0 &&
                 reference.stats.equivalent_moves_skipped == 0 &&
                 reference.stats.forced_trump_run_cuts == 0 &&
-                reference.stats.win_cuts == 0,
+                reference.stats.win_cuts == 0 &&
+                reference.stats.leaf_dds_batches == 0,
             "reference search should execute without optimization shortcuts");
+}
+
+void test_alpha_mu_world_cut_and_leaf_batch_counters() {
+    const auto all_worlds = example_one_worlds();
+    bridge::AlphaMuConfig leaf_config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 4,
+        .max_declarer_plies = 0,
+    };
+    leaf_config.optimizations.iterative_deepening = false;
+    const bridge::AlphaMuResult batched =
+        bridge::alpha_mu_search(all_worlds, leaf_config);
+    require(batched.stats.leaf_dds_batches == 1 &&
+                batched.stats.leaf_dds_worlds == all_worlds.size(),
+            "a multi-world DDS leaf should use one observable DDS batch");
+
+    bridge::AlphaMuConfig scalar_config = leaf_config;
+    scalar_config.optimizations.leaf_dds_batch = false;
+    const bridge::AlphaMuResult scalar =
+        bridge::alpha_mu_search(all_worlds, scalar_config);
+    require(batched.front.vectors.size() == 1 &&
+                scalar.front.vectors.size() == 1 &&
+                batched.front.vectors.front().wins ==
+                    scalar.front.vectors.front().wins &&
+                scalar.stats.leaf_dds_batches == 0,
+            "batched and scalar alpha-mu leaves should have identical outcomes");
+
+    bridge::AlphaMuConfig cut_config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 4,
+        .max_declarer_plies = 2,
+    };
+    cut_config.optimizations.iterative_deepening = false;
+    cut_config.optimizations.forced_trump_run = false;
+    const bridge::AlphaMuResult cut =
+        bridge::alpha_mu_search({all_worlds.front()}, cut_config);
+    require(cut.stats.one_world_cuts > 0 && cut.stats.world_cuts > 0,
+            "one useful world should stop recursion with the paper's DDS world cut");
+}
+
+void test_second_paper_cuts_are_observable() {
+    const bridge::Deal deal {.hands = {
+        *bridge::parse_hand_record("AJ32.A.-.-"),
+        *bridge::parse_hand_record("QT8.2.3.-"),
+        *bridge::parse_hand_record("K954.K.-.-"),
+        *bridge::parse_hand_record("76.-.2.32"),
+    }};
+    bridge::AnalysisSession enabled_session(deal, Seat::North, Suit::Spades);
+    bridge::BotSettings settings = enabled_session.settings();
+    settings.world_count = 8;
+    settings.max_declarer_plies = 6;
+    settings.target_tricks = 4;
+    settings.max_search_seconds = 0.0;
+    settings.optimizations.root_cut = false;
+    settings.optimizations.win_cut = false;
+    enabled_session.set_settings(settings);
+    bridge::AnalysisSession disabled_session(deal, Seat::North, Suit::Spades);
+    settings.optimizations.empty_entry = false;
+    disabled_session.set_settings(settings);
+    const bridge::SessionAnalysis empty_entry_enabled = enabled_session.analyze();
+    const bridge::SessionAnalysis empty_entry_disabled = disabled_session.analyze();
+    require(empty_entry_enabled.search.stats.empty_entry_searches > 0 &&
+                empty_entry_disabled.search.stats.empty_entry_searches == 0,
+            "the empty-entry switch should expose avoided missing-bound searches");
+    require(bridge::best_winning_world_count(empty_entry_enabled.search.front) ==
+                bridge::best_winning_world_count(empty_entry_disabled.search.front),
+            "empty-entry searches must preserve the winning-world score");
+
+    settings.world_count = 4;
+    settings.max_declarer_plies = 4;
+    settings.optimizations.empty_entry = true;
+    settings.optimizations.early_cut = false;
+    bridge::AnalysisSession deep_session(deal, Seat::North, Suit::Spades);
+    deep_session.set_settings(settings);
+    const bridge::OptimizationBenchmark deep_alpha =
+        deep_session.benchmark(bridge::AlphaMuOptimization::DeepAlphaCut);
+    require(deep_alpha.enabled.search.stats.deep_alpha_cuts > 0 &&
+                deep_alpha.disabled.search.stats.deep_alpha_cuts == 0,
+            "the deep-alpha switch should expose dominated interior MIN fronts");
+    require(bridge::best_winning_world_count(deep_alpha.enabled.search.front) ==
+                bridge::best_winning_world_count(deep_alpha.disabled.search.front),
+            "deep alpha cuts must preserve the winning-world score");
 }
 
 void test_alpha_mu_soft_time_limit_stops_between_iterations() {
@@ -1533,6 +1650,8 @@ int main() {
         test_alpha_mu_exact_four_card_spade_distribution();
         test_alpha_mu_example_one_classic_combination();
         test_alpha_mu_optimizations_match_reference_search();
+        test_alpha_mu_world_cut_and_leaf_batch_counters();
+        test_second_paper_cuts_are_observable();
         test_alpha_mu_soft_time_limit_stops_between_iterations();
         test_alpha_mu_supports_full_26_ply_ceiling();
     } catch (const std::exception& error) {

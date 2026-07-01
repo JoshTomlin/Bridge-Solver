@@ -134,17 +134,23 @@ worlds that remain indistinguishable.
 
 ## Recursive Algorithm
 
-`alpha_mu_node` has five conceptual steps:
+`alpha_mu_node` has seven conceptual steps:
 
-1. Return an empty outcome for an empty active-world set.
-2. At a terminal state or when `M == 0`, evaluate every active world with DDS.
-3. Verify that all active worlds agree on the player to act.
-4. Dispatch declarer/dummy positions to `evaluate_max_node`.
-5. Dispatch defender positions to `evaluate_min_node`.
+1. Intersect the useful-world mask with the publicly active-world mask.
+2. Reuse an exact transposition entry or apply a zero/one-world terminal cut.
+3. At a terminal state or when `M == 0`, evaluate every useful world with DDS.
+4. Verify that all active worlds agree on the player to act.
+5. At MIN, build or reuse a shallower optimistic bound, attempt an early cut,
+   and remove worlds already proved lost.
+6. Dispatch declarer/dummy positions to `evaluate_max_node`, carrying upper
+   Pareto fronts as alpha bounds.
+7. Dispatch defender positions to `evaluate_min_node`, narrowing possible
+   worlds per observed card and applying useful-world and deep-alpha cuts.
 
-The leaf returns one outcome vector. For each active world it adds tricks already
+The leaf returns one outcome vector. For each useful world it adds tricks already
 won to the future tricks reported by DDS, then compares the total with
-`target_tricks`.
+`target_tricks`. Multiple nonterminal worlds are submitted through DDS's batch
+API; scalar DDS remains available behind an optimization switch.
 
 ## What Depth M Means
 
@@ -178,6 +184,9 @@ The implementation and tests enforce these invariants:
 - A MAX move is applied identically to every active world.
 - A MIN move retains only worlds where that card is legal.
 - Impossible worlds are neutral during MIN intersection.
+- Useful worlds are always a subset of publicly active worlds.
+- A world removed at MIN is zero in every vector and can never become one.
+- A cut result is never cached as an exact transposition value.
 - Duplicate and dominated outcomes never remain in a Pareto front.
 - DDS leaves are converted to declarer's perspective even when a defender is
   currently on lead.

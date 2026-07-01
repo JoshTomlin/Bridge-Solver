@@ -32,9 +32,14 @@ std::string_view to_string(AlphaMuOptimization optimization) {
         case AlphaMuOptimization::MaxEquivalentCards: return "max-equals";
         case AlphaMuOptimization::MinEquivalentSuccessors: return "min-equals";
         case AlphaMuOptimization::EarlyCut: return "early-cut";
+        case AlphaMuOptimization::UsefulWorlds: return "useful-worlds";
+        case AlphaMuOptimization::WorldCuts: return "world-cuts";
+        case AlphaMuOptimization::EmptyEntry: return "empty-entry";
+        case AlphaMuOptimization::DeepAlphaCut: return "deep-alpha";
         case AlphaMuOptimization::RootCut: return "root-cut";
         case AlphaMuOptimization::WinCut: return "win-cut";
         case AlphaMuOptimization::ForcedTrumpRun: return "forced-trump";
+        case AlphaMuOptimization::LeafDdsBatch: return "leaf-dds-batch";
     }
     throw std::invalid_argument("unknown alpha-mu optimization");
 }
@@ -48,9 +53,14 @@ std::optional<AlphaMuOptimization> parse_alpha_mu_optimization(std::string_view 
              AlphaMuOptimization::MaxEquivalentCards,
              AlphaMuOptimization::MinEquivalentSuccessors,
              AlphaMuOptimization::EarlyCut,
+             AlphaMuOptimization::UsefulWorlds,
+             AlphaMuOptimization::WorldCuts,
+             AlphaMuOptimization::EmptyEntry,
+             AlphaMuOptimization::DeepAlphaCut,
              AlphaMuOptimization::RootCut,
              AlphaMuOptimization::WinCut,
-             AlphaMuOptimization::ForcedTrumpRun}) {
+             AlphaMuOptimization::ForcedTrumpRun,
+             AlphaMuOptimization::LeafDdsBatch}) {
         if (normalized == to_string(optimization)) {
             return optimization;
         }
@@ -74,12 +84,22 @@ bool optimization_enabled(
             return optimizations.min_equivalent_successors;
         case AlphaMuOptimization::EarlyCut:
             return optimizations.early_cut;
+        case AlphaMuOptimization::UsefulWorlds:
+            return optimizations.useful_worlds;
+        case AlphaMuOptimization::WorldCuts:
+            return optimizations.world_cuts;
+        case AlphaMuOptimization::EmptyEntry:
+            return optimizations.empty_entry;
+        case AlphaMuOptimization::DeepAlphaCut:
+            return optimizations.deep_alpha_cut;
         case AlphaMuOptimization::RootCut:
             return optimizations.root_cut;
         case AlphaMuOptimization::WinCut:
             return optimizations.win_cut;
         case AlphaMuOptimization::ForcedTrumpRun:
             return optimizations.forced_trump_run;
+        case AlphaMuOptimization::LeafDdsBatch:
+            return optimizations.leaf_dds_batch;
     }
     return false;
 }
@@ -107,6 +127,18 @@ void set_optimization_enabled(
         case AlphaMuOptimization::EarlyCut:
             optimizations.early_cut = enabled;
             return;
+        case AlphaMuOptimization::UsefulWorlds:
+            optimizations.useful_worlds = enabled;
+            return;
+        case AlphaMuOptimization::WorldCuts:
+            optimizations.world_cuts = enabled;
+            return;
+        case AlphaMuOptimization::EmptyEntry:
+            optimizations.empty_entry = enabled;
+            return;
+        case AlphaMuOptimization::DeepAlphaCut:
+            optimizations.deep_alpha_cut = enabled;
+            return;
         case AlphaMuOptimization::RootCut:
             optimizations.root_cut = enabled;
             return;
@@ -115,6 +147,9 @@ void set_optimization_enabled(
             return;
         case AlphaMuOptimization::ForcedTrumpRun:
             optimizations.forced_trump_run = enabled;
+            return;
+        case AlphaMuOptimization::LeafDdsBatch:
+            optimizations.leaf_dds_batch = enabled;
             return;
     }
 }
@@ -127,9 +162,14 @@ AlphaMuOptimizations disabled_alpha_mu_optimizations() {
         .max_equivalent_cards = false,
         .min_equivalent_successors = false,
         .early_cut = false,
+        .useful_worlds = false,
+        .world_cuts = false,
+        .empty_entry = false,
+        .deep_alpha_cut = false,
         .root_cut = false,
         .win_cut = false,
         .forced_trump_run = false,
+        .leaf_dds_batch = false,
     };
 }
 
@@ -156,6 +196,45 @@ bool front_wins_all_worlds(const ParetoFront& front, WorldMask active_worlds) {
         [&](const OutcomeVector& outcome) {
             return (outcome.wins & active_worlds) == active_worlds;
         });
+}
+
+WorldMask worlds_with_possible_win(const ParetoFront& front) {
+    WorldMask result = 0;
+    for (const OutcomeVector& outcome : front.vectors) result |= outcome.wins;
+    return result;
+}
+
+bool front_is_covered_by_alpha(
+    const ParetoFront& candidate,
+    WorldMask candidate_active_worlds,
+    const AlphaBounds& bounds) {
+    for (const AlphaBound& bound : bounds) {
+        if (bound.front == nullptr || bound.front->vectors.empty()) continue;
+
+        // A world absent from the descendant information set is "x" in the
+        // paper. It is optimistic (1) for this comparison unless an ancestor
+        // had already proved it useless (0).
+        const WorldMask impossible_but_useful =
+            bound.useful_worlds & ~candidate_active_worlds;
+        bool covered = true;
+        for (const OutcomeVector& candidate_vector : candidate.vectors) {
+            const WorldMask optimistic_wins =
+                candidate_vector.wins | impossible_but_useful;
+            const bool vector_covered = std::any_of(
+                bound.front->vectors.begin(),
+                bound.front->vectors.end(),
+                [&](const OutcomeVector& bound_vector) {
+                    return (bound_vector.wins | optimistic_wins) ==
+                        bound_vector.wins;
+                });
+            if (!vector_covered) {
+                covered = false;
+                break;
+            }
+        }
+        if (covered) return true;
+    }
+    return false;
 }
 
 WorldMask all_worlds_mask(std::size_t world_count) {
@@ -243,12 +322,14 @@ void hash_value(NodeKey& key, std::uint64_t value) {
 NodeKey make_node_key(
     const std::vector<AlphaMuWorld>& worlds,
     WorldMask active_worlds,
+    WorldMask useful_worlds,
     bool canonical) {
     NodeKey key {
         .first = 0x243F6A8885A308D3ULL,
         .second = 0x13198A2E03707344ULL,
     };
     hash_value(key, active_worlds);
+    hash_value(key, useful_worlds);
 
     for (std::size_t world = 0; world < worlds.size(); ++world) {
         const WorldMask bit = WorldMask {1} << world;

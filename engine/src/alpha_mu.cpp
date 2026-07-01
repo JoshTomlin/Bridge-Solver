@@ -3,6 +3,7 @@
 #include "bridge/dds_solver.h"
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <optional>
 #include <stdexcept>
@@ -14,26 +15,85 @@ namespace {
 
 ParetoFront evaluate_leaf(
     const std::vector<AlphaMuWorld>& worlds,
-    WorldMask active_worlds,
+    WorldMask useful_worlds,
     SearchContext& context) {
     ++context.stats.leaves;
     OutcomeVector outcome;
+    std::vector<Position> pending_positions;
+    std::vector<std::size_t> pending_worlds;
+    pending_positions.reserve(std::popcount(useful_worlds));
+    pending_worlds.reserve(std::popcount(useful_worlds));
     for (std::size_t world = 0; world < worlds.size(); ++world) {
         const WorldMask world_bit = WorldMask {1} << world;
-        if ((active_worlds & world_bit) == 0) {
-            continue;
-        }
+        if ((useful_worlds & world_bit) == 0) continue;
 
-        ++context.stats.dds_worlds;
         const Position& position = worlds[world].position;
-        const std::uint8_t total_tricks =
-            tricks_won_by_declarer(position, context.config.declarer) +
-            double_dummy_future_tricks(position, context.config.declarer);
-        if (total_tricks >= context.config.target_tricks) {
-            outcome.wins |= world_bit;
+        if (is_deal_finished(position)) {
+            if (tricks_won_by_declarer(position, context.config.declarer) >=
+                context.config.target_tricks) {
+                outcome.wins |= world_bit;
+            }
+        } else {
+            pending_positions.push_back(position);
+            pending_worlds.push_back(world);
+        }
+    }
+
+    context.stats.dds_worlds += pending_positions.size();
+    if (context.config.optimizations.leaf_dds_batch &&
+        pending_positions.size() > 1) {
+        ++context.stats.leaf_dds_batches;
+        context.stats.leaf_dds_worlds += pending_positions.size();
+        const std::vector<std::uint8_t> future =
+            double_dummy_future_tricks_batch(
+                pending_positions, context.config.declarer);
+        for (std::size_t index = 0; index < pending_positions.size(); ++index) {
+            const std::uint8_t total = static_cast<std::uint8_t>(
+                tricks_won_by_declarer(
+                    pending_positions[index], context.config.declarer) +
+                future[index]);
+            if (total >= context.config.target_tricks) {
+                outcome.wins |= WorldMask {1} << pending_worlds[index];
+            }
+        }
+    } else {
+        for (std::size_t index = 0; index < pending_positions.size(); ++index) {
+            const Position& position = pending_positions[index];
+            const std::uint8_t total = static_cast<std::uint8_t>(
+                tricks_won_by_declarer(position, context.config.declarer) +
+                double_dummy_future_tricks(position, context.config.declarer));
+            if (total >= context.config.target_tricks) {
+                outcome.wins |= WorldMask {1} << pending_worlds[index];
+            }
         }
     }
     return ParetoFront {.vectors = {outcome}};
+}
+
+std::optional<ParetoFront> evaluate_world_cut(
+    const std::vector<AlphaMuWorld>& worlds,
+    WorldMask useful_worlds,
+    SearchContext& context,
+    std::size_t search_depth) {
+    if (!context.config.optimizations.world_cuts) return std::nullopt;
+
+    const std::size_t count = std::popcount(useful_worlds);
+    if (count > 1) return std::nullopt;
+
+    ++context.stats.world_cuts;
+    if (count == 0) {
+        ++context.stats.zero_world_cuts;
+        audit_line(context, search_depth, "world-cut", "no useful worlds remain");
+        return zero_front();
+    }
+
+    ++context.stats.one_world_cuts;
+    audit_line(
+        context,
+        search_depth,
+        "world-cut",
+        "one useful world remains; solved it directly with DDS");
+    return evaluate_leaf(worlds, useful_worlds, context);
 }
 
 // This is an exact terminal proof, not a heuristic: the MAX leader has only
@@ -41,6 +101,7 @@ ParetoFront evaluate_leaf(
 std::optional<ParetoFront> evaluate_forced_trump_run(
     const std::vector<AlphaMuWorld>& worlds,
     WorldMask active_worlds,
+    WorldMask useful_worlds,
     SearchContext& context,
     std::size_t search_depth) {
     if (!context.config.optimizations.forced_trump_run) {
@@ -61,9 +122,7 @@ std::optional<ParetoFront> evaluate_forced_trump_run(
     OutcomeVector outcome;
     for (std::size_t world = 0; world < worlds.size(); ++world) {
         const WorldMask bit = WorldMask {1} << world;
-        if ((active_worlds & bit) == 0) {
-            continue;
-        }
+        if ((useful_worlds & bit) == 0) continue;
 
         const Position& position = worlds[world].position;
         const Hand leader_hand = hand_of(position.deal, leader);
@@ -98,19 +157,22 @@ std::optional<ParetoFront> evaluate_forced_trump_run(
 NodeEvaluation evaluate_max_node(
     const std::vector<AlphaMuWorld>& worlds,
     WorldMask active_worlds,
+    WorldMask useful_worlds,
     std::uint8_t max_moves_left,
     SearchContext& context,
     Card preferred_move,
+    const AlphaBounds& alpha_bounds,
     std::ostringstream* trace,
     std::size_t trace_depth) {
     const Hand legal_moves = shared_declarer_moves(worlds, active_worlds);
     if (legal_moves == kEmptyHand) {
-        return NodeEvaluation {.front = evaluate_leaf(worlds, active_worlds, context)};
+        return NodeEvaluation {.front = evaluate_leaf(worlds, useful_worlds, context)};
     }
 
     ParetoFront result;
     Card best_move = kNoCard;
     std::size_t best_score = 0;
+    bool pruned = false;
     const Position& public_position = worlds[first_world(active_worlds)].position;
     for (const Card move : representative_cards(
              public_position,
@@ -126,15 +188,23 @@ NodeEvaluation evaluate_max_node(
             }
         }
 
-        const ParetoFront* child_alpha = result.vectors.empty() ? nullptr : &result;
+        AlphaBounds child_bounds = alpha_bounds;
+        if (!result.vectors.empty()) {
+            child_bounds.push_back(AlphaBound {
+                .front = &result,
+                .useful_worlds = useful_worlds,
+            });
+        }
         NodeEvaluation child = alpha_mu_node(
             child_worlds,
             active_worlds,
+            useful_worlds,
             static_cast<std::uint8_t>(max_moves_left - 1),
             context,
-            child_alpha,
+            child_bounds,
             trace,
             trace_depth + 2);
+        pruned = pruned || child.pruned;
         const std::size_t score = best_winning_world_count(child.front);
         if (best_move == kNoCard || score > best_score) {
             best_move = move;
@@ -149,7 +219,7 @@ NodeEvaluation evaluate_max_node(
 
         // A binary vector cannot improve beyond winning every active world.
         if (context.config.optimizations.win_cut &&
-            front_wins_all_worlds(result, active_worlds)) {
+            front_wins_all_worlds(result, useful_worlds)) {
             ++context.stats.win_cuts;
             trace_line(trace, trace_depth + 1, "cut on win");
             audit_line(
@@ -165,30 +235,40 @@ NodeEvaluation evaluate_max_node(
         result = zero_front();
     }
     trace_line(trace, trace_depth, "MAX result " + format_front(result, worlds.size()));
-    return NodeEvaluation {.front = std::move(result), .best_move = best_move};
+    return NodeEvaluation {
+        .front = std::move(result),
+        .best_move = best_move,
+        .pruned = pruned,
+    };
 }
 
 NodeEvaluation evaluate_min_node(
     const std::vector<AlphaMuWorld>& worlds,
     WorldMask active_worlds,
+    WorldMask useful_worlds,
     std::uint8_t max_moves_left,
     SearchContext& context,
     Card preferred_move,
+    const AlphaBounds& alpha_bounds,
     std::ostringstream* trace,
     std::size_t trace_depth) {
-    const Hand possible_moves = union_of_defender_moves(worlds, active_worlds);
+    const Hand possible_moves = union_of_defender_moves(worlds, useful_worlds);
     if (possible_moves == kEmptyHand) {
-        return NodeEvaluation {.front = evaluate_leaf(worlds, active_worlds, context)};
+        return NodeEvaluation {.front = evaluate_leaf(worlds, useful_worlds, context)};
     }
 
     // A defender move constrains only worlds where it is legal. Impossible
-    // worlds are neutral 1 bits while defender alternatives are intersected.
-    ParetoFront result {.vectors = {OutcomeVector {.wins = active_worlds}}};
+    // useful worlds are neutral 1 bits while alternatives are intersected.
+    // Proven-useless worlds stay zero and no longer generate defender moves.
+    WorldMask current_useful = useful_worlds;
+    ParetoFront result {.vectors = {OutcomeVector {.wins = current_useful}}};
     Card first_move = kNoCard;
+    bool pruned = false;
     std::unordered_set<NodeKey, NodeKeyHash> equivalent_children;
     for (const Card move : ordered_cards(possible_moves, preferred_move)) {
         auto child_worlds = worlds;
-        WorldMask legal_worlds = 0;
+        WorldMask legal_active_worlds = 0;
+        WorldMask legal_useful_worlds = 0;
         for (std::size_t world = 0; world < child_worlds.size(); ++world) {
             const WorldMask world_bit = WorldMask {1} << world;
             if ((active_worlds & world_bit) == 0) {
@@ -199,17 +279,21 @@ NodeEvaluation evaluate_min_node(
             const Seat player = player_to_act(position);
             if (is_legal_play(position.current_trick, hand_of(position.deal, player), move)) {
                 play_card(position, move);
-                legal_worlds |= world_bit;
+                legal_active_worlds |= world_bit;
+                if ((current_useful & world_bit) != 0) {
+                    legal_useful_worlds |= world_bit;
+                }
             }
         }
 
-        if (legal_worlds == 0) {
+        if (legal_useful_worlds == 0) {
             continue;
         }
         if (context.config.optimizations.min_equivalent_successors) {
             const NodeKey child_key = make_node_key(
                 child_worlds,
-                legal_worlds,
+                legal_active_worlds,
+                legal_useful_worlds,
                 context.config.optimizations.canonical_transposition_keys);
             if (!equivalent_children.insert(child_key).second) {
                 ++context.stats.equivalent_moves_skipped;
@@ -231,17 +315,20 @@ NodeEvaluation evaluate_min_node(
             trace,
             trace_depth + 1,
             "move " + to_string(move) +
-                " legal=" + format_world_mask(legal_worlds, worlds.size()));
+                " legal=" + format_world_mask(legal_active_worlds, worlds.size()) +
+                " useful=" + format_world_mask(legal_useful_worlds, worlds.size()));
         NodeEvaluation child = alpha_mu_node(
             child_worlds,
-            legal_worlds,
+            legal_active_worlds,
+            legal_useful_worlds,
             max_moves_left,
             context,
-            nullptr,
+            alpha_bounds,
             trace,
             trace_depth + 2);
+        pruned = pruned || child.pruned;
 
-        const WorldMask impossible_worlds = active_worlds & ~legal_worlds;
+        const WorldMask impossible_worlds = current_useful & ~legal_active_worlds;
         for (OutcomeVector& vector : child.front.vectors) {
             vector.wins |= impossible_worlds;
         }
@@ -250,10 +337,52 @@ NodeEvaluation evaluate_min_node(
             trace,
             trace_depth + 1,
             "combined " + format_front(result, worlds.size()));
+
+        if (context.config.optimizations.useful_worlds) {
+            const WorldMask reduced =
+                current_useful & worlds_with_possible_win(result);
+            const std::uint64_t removed = std::popcount(current_useful) -
+                std::popcount(reduced);
+            if (removed > 0) {
+                context.stats.useful_worlds_removed += removed;
+                audit_line(
+                    context,
+                    trace_depth,
+                    "useful-worlds",
+                    "removed " + std::to_string(removed) +
+                        " world(s) proved lost by the current MIN front");
+            }
+            current_useful = reduced;
+        }
+
+        if (context.config.optimizations.deep_alpha_cut &&
+            front_is_covered_by_alpha(result, active_worlds, alpha_bounds)) {
+            ++context.stats.deep_alpha_cuts;
+            audit_line(
+                context,
+                trace_depth,
+                "deep-alpha",
+                "current MIN front is covered by an ancestor MAX front");
+            return NodeEvaluation {
+                .front = zero_front(),
+                .best_move = first_move,
+                .pruned = true,
+            };
+        }
+
+        if (const std::optional<ParetoFront> cut =
+                evaluate_world_cut(worlds, current_useful, context, trace_depth);
+            cut.has_value()) {
+            return NodeEvaluation {.front = *cut, .best_move = first_move};
+        }
     }
 
     trace_line(trace, trace_depth, "MIN result " + format_front(result, worlds.size()));
-    return NodeEvaluation {.front = std::move(result), .best_move = first_move};
+    return NodeEvaluation {
+        .front = std::move(result),
+        .best_move = first_move,
+        .pruned = pruned,
+    };
 }
 
 struct RootIteration {
@@ -268,12 +397,20 @@ RootIteration search_root_iteration(
     std::optional<std::size_t> previous_score,
     SearchContext& context) {
     const WorldMask active_worlds = all_worlds_mask(worlds.size());
+    const AlphaBounds no_bounds;
     const Position& root = worlds.front().position;
     const Seat turn = player_to_act(root);
     if (!same_side(turn, context.config.declarer)) {
         return RootIteration {
             .evaluation = alpha_mu_node(
-                worlds, active_worlds, depth, context, nullptr, nullptr, 0),
+                worlds,
+                active_worlds,
+                active_worlds,
+                depth,
+                context,
+                no_bounds,
+                nullptr,
+                0),
         };
     }
 
@@ -288,7 +425,8 @@ RootIteration search_root_iteration(
     }
 
     if (const std::optional<ParetoFront> forced =
-            evaluate_forced_trump_run(worlds, active_worlds, context, 0);
+            evaluate_forced_trump_run(
+                worlds, active_worlds, active_worlds, context, 0);
         forced.has_value()) {
         const Card move = representative_cards(
             root, legal_moves, kNoCard, context).front();
@@ -306,6 +444,7 @@ RootIteration search_root_iteration(
     const std::optional<NodeKey> root_key = use_table
         ? std::optional<NodeKey> {make_node_key(
               worlds,
+              active_worlds,
               active_worlds,
               context.config.optimizations.canonical_transposition_keys)}
         : std::nullopt;
@@ -330,13 +469,20 @@ RootIteration search_root_iteration(
             play_card(world.position, move);
         }
 
-        const ParetoFront* alpha = root_front.vectors.empty() ? nullptr : &root_front;
+        AlphaBounds child_bounds;
+        if (!root_front.vectors.empty()) {
+            child_bounds.push_back(AlphaBound {
+                .front = &root_front,
+                .useful_worlds = active_worlds,
+            });
+        }
         NodeEvaluation child = alpha_mu_node(
             child_worlds,
             active_worlds,
+            active_worlds,
             static_cast<std::uint8_t>(depth - 1),
             context,
-            alpha,
+            child_bounds,
             nullptr,
             0);
         const std::size_t score = best_winning_world_count(child.front);
@@ -408,15 +554,17 @@ RootIteration search_root_iteration(
 NodeEvaluation alpha_mu_node(
     const std::vector<AlphaMuWorld>& worlds,
     WorldMask active_worlds,
+    WorldMask useful_worlds,
     std::uint8_t max_moves_left,
     SearchContext& context,
-    const ParetoFront* alpha,
+    const AlphaBounds& alpha_bounds,
     std::ostringstream* trace,
     std::size_t trace_depth) {
     ++context.stats.nodes;
     if (active_worlds == 0) {
         return NodeEvaluation {.front = zero_front()};
     }
+    useful_worlds &= active_worlds;
 
     std::optional<NodeKey> key;
     Card preferred_move = kNoCard;
@@ -425,6 +573,7 @@ NodeEvaluation alpha_mu_node(
         key = make_node_key(
             worlds,
             active_worlds,
+            useful_worlds,
             context.config.optimizations.canonical_transposition_keys);
         ++context.stats.transposition_probes;
         const auto found = context.table.find(*key);
@@ -449,13 +598,23 @@ NodeEvaluation alpha_mu_node(
     }
 
     const Position& position = worlds[first_world(active_worlds)].position;
+    if (const std::optional<ParetoFront> cut =
+            evaluate_world_cut(worlds, useful_worlds, context, trace_depth);
+        cut.has_value()) {
+        if (key.has_value()) {
+            context.table[*key].by_depth[max_moves_left] = CachedNode {.front = *cut};
+            ++context.stats.transposition_stores;
+        }
+        return NodeEvaluation {.front = *cut};
+    }
     if (const std::optional<ParetoFront> forced =
-            evaluate_forced_trump_run(worlds, active_worlds, context, trace_depth);
+            evaluate_forced_trump_run(
+                worlds, active_worlds, useful_worlds, context, trace_depth);
         forced.has_value()) {
         return NodeEvaluation {.front = *forced};
     }
     if (is_deal_finished(position) || max_moves_left == 0) {
-        ParetoFront leaf = evaluate_leaf(worlds, active_worlds, context);
+        ParetoFront leaf = evaluate_leaf(worlds, useful_worlds, context);
         trace_line(
             trace,
             trace_depth,
@@ -476,26 +635,89 @@ NodeEvaluation alpha_mu_node(
             throw std::invalid_argument("active alpha-mu worlds disagree on player to act");
         }
     }
-
     const bool is_max = same_side(turn, context.config.declarer);
+
+    // Empty Entry exists to manufacture a missing optimistic MIN bound for an
+    // alpha test. Filling every missing interior entry would be correct but
+    // usually slower than the search it is intended to avoid.
+    if (!is_max &&
+        !alpha_bounds.empty() &&
+        context.config.optimizations.empty_entry &&
+        key.has_value() &&
+        max_moves_left > 0 &&
+        (cached_entry == nullptr ||
+         shallow_cached_node(*cached_entry, max_moves_left) == nullptr)) {
+        ++context.stats.empty_entry_searches;
+        audit_line(
+            context,
+            trace_depth,
+            "empty-entry",
+            "filled missing depth-" + std::to_string(max_moves_left - 1) +
+                " interior front");
+        const AlphaBounds no_bounds;
+        (void) alpha_mu_node(
+            worlds,
+            active_worlds,
+            useful_worlds,
+            static_cast<std::uint8_t>(max_moves_left - 1),
+            context,
+            no_bounds,
+            nullptr,
+            trace_depth);
+        const auto refreshed = context.table.find(*key);
+        cached_entry = refreshed == context.table.end() ? nullptr : &refreshed->second;
+        if (cached_entry != nullptr) preferred_move = cached_entry->move_hint;
+    }
     if (!is_max &&
         context.config.optimizations.early_cut &&
-        alpha != nullptr &&
-        !alpha->vectors.empty() &&
+        !alpha_bounds.empty() &&
         cached_entry != nullptr) {
         const CachedNode* upper_bound =
             shallow_cached_node(*cached_entry, max_moves_left);
         if (upper_bound != nullptr &&
-            pareto_front_is_covered_by(upper_bound->front, *alpha)) {
+            front_is_covered_by_alpha(
+                upper_bound->front, active_worlds, alpha_bounds)) {
             ++context.stats.early_cuts;
             trace_line(trace, trace_depth, "MIN early cut");
             audit_line(
                 context,
                 trace_depth,
                 "early-cut",
-                "shallower MIN upper bound is covered by MAX alpha");
-            return NodeEvaluation {.front = zero_front()};
+                "shallower MIN upper bound is covered by an ancestor MAX front");
+            return NodeEvaluation {.front = zero_front(), .pruned = true};
         }
+    }
+
+    if (!is_max &&
+        context.config.optimizations.useful_worlds &&
+        cached_entry != nullptr) {
+        const CachedNode* upper_bound =
+            shallow_cached_node(*cached_entry, max_moves_left);
+        if (upper_bound != nullptr) {
+            const WorldMask reduced =
+                useful_worlds & worlds_with_possible_win(upper_bound->front);
+            const std::uint64_t removed = std::popcount(useful_worlds) -
+                std::popcount(reduced);
+            if (removed > 0) {
+                context.stats.useful_worlds_removed += removed;
+                audit_line(
+                    context,
+                    trace_depth,
+                    "useful-worlds",
+                    "removed " + std::to_string(removed) +
+                        " world(s) proved lost by a shallower MIN front");
+            }
+            useful_worlds = reduced;
+        }
+    }
+    if (const std::optional<ParetoFront> cut =
+            evaluate_world_cut(worlds, useful_worlds, context, trace_depth);
+        cut.has_value()) {
+        if (key.has_value()) {
+            context.table[*key].by_depth[max_moves_left] = CachedNode {.front = *cut};
+            ++context.stats.transposition_stores;
+        }
+        return NodeEvaluation {.front = *cut};
     }
 
     trace_line(
@@ -503,27 +725,32 @@ NodeEvaluation alpha_mu_node(
         trace_depth,
         std::string(is_max ? "MAX " : "MIN ") + to_string(turn) +
             " active=" + format_world_mask(active_worlds, worlds.size()) +
+            " useful=" + format_world_mask(useful_worlds, worlds.size()) +
             " max-moves-left=" + std::to_string(max_moves_left));
 
     NodeEvaluation result = is_max
         ? evaluate_max_node(
               worlds,
               active_worlds,
+              useful_worlds,
               max_moves_left,
               context,
               preferred_move,
+              alpha_bounds,
               trace,
               trace_depth)
         : evaluate_min_node(
               worlds,
               active_worlds,
+              useful_worlds,
               max_moves_left,
               context,
               preferred_move,
+              alpha_bounds,
               trace,
               trace_depth);
 
-    if (key.has_value()) {
+    if (key.has_value() && (alpha_bounds.empty() || !result.pruned)) {
         TranspositionEntry& entry = context.table[*key];
         entry.by_depth[max_moves_left] = CachedNode {
             .front = result.front,
@@ -667,12 +894,16 @@ std::string alpha_mu_debug_tree(
 
     alpha_mu_detail::SearchContext context {.config = config};
     std::ostringstream trace;
+    const WorldMask active_worlds =
+        alpha_mu_detail::all_worlds_mask(worlds.size());
+    const alpha_mu_detail::AlphaBounds no_bounds;
     const alpha_mu_detail::NodeEvaluation evaluation = alpha_mu_detail::alpha_mu_node(
         worlds,
-        alpha_mu_detail::all_worlds_mask(worlds.size()),
+        active_worlds,
+        active_worlds,
         config.max_declarer_plies,
         context,
-        nullptr,
+        no_bounds,
         &trace,
         0);
     trace << "root "

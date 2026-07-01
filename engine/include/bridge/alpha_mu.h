@@ -66,9 +66,14 @@ enum class AlphaMuOptimization : std::uint8_t {
     MaxEquivalentCards,
     MinEquivalentSuccessors,
     EarlyCut,
+    UsefulWorlds,
+    WorldCuts,
+    EmptyEntry,
+    DeepAlphaCut,
     RootCut,
     WinCut,
     ForcedTrumpRun,
+    LeafDdsBatch,
 };
 
 struct AlphaMuOptimizations {
@@ -78,9 +83,14 @@ struct AlphaMuOptimizations {
     bool max_equivalent_cards {true};
     bool min_equivalent_successors {true};
     bool early_cut {true};
+    bool useful_worlds {true};
+    bool world_cuts {true};
+    bool empty_entry {true};
+    bool deep_alpha_cut {true};
     bool root_cut {true};
     bool win_cut {true};
     bool forced_trump_run {true};
+    bool leaf_dds_batch {true};
 };
 
 std::string_view to_string(AlphaMuOptimization optimization);
@@ -124,12 +134,20 @@ struct AlphaMuSearchStats {
     std::uint64_t transposition_hits {};
     std::uint64_t transposition_stores {};
     std::uint64_t early_cuts {};
+    std::uint64_t useful_worlds_removed {};
+    std::uint64_t world_cuts {};
+    std::uint64_t zero_world_cuts {};
+    std::uint64_t one_world_cuts {};
+    std::uint64_t empty_entry_searches {};
+    std::uint64_t deep_alpha_cuts {};
     std::uint64_t root_cuts {};
     std::uint64_t equivalent_moves_skipped {};
     std::uint64_t max_equivalent_moves_skipped {};
     std::uint64_t min_equivalent_moves_skipped {};
     std::uint64_t forced_trump_run_cuts {};
     std::uint64_t win_cuts {};
+    std::uint64_t leaf_dds_batches {};
+    std::uint64_t leaf_dds_worlds {};
     std::uint8_t completed_iterations {};
     std::uint8_t completed_depth {};
     bool stopped_by_time_limit {};

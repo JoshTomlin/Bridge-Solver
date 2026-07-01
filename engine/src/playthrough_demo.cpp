@@ -280,12 +280,17 @@ AlphaMuResult choose_alpha_mu_strategy(
               << " DDS-worlds=" << result.stats.dds_worlds
               << " TT-hits=" << result.stats.transposition_hits
               << " early-cuts=" << result.stats.early_cuts
+              << " deep-alpha-cuts=" << result.stats.deep_alpha_cuts
+              << " useful-removed=" << result.stats.useful_worlds_removed
+              << " world-cuts=" << result.stats.world_cuts
+              << " empty-entry=" << result.stats.empty_entry_searches
               << " root-cuts=" << result.stats.root_cuts
               << " equals-skipped=" << result.stats.equivalent_moves_skipped
               << " (MAX=" << result.stats.max_equivalent_moves_skipped
               << ", MIN=" << result.stats.min_equivalent_moves_skipped << ')'
               << " forced-trump-cuts=" << result.stats.forced_trump_run_cuts
               << " win-cuts=" << result.stats.win_cuts
+              << " DDS-batches=" << result.stats.leaf_dds_batches
               << " completed-M=" << static_cast<int>(result.stats.completed_depth);
     if (result.stats.stopped_by_time_limit) {
         std::cout << " (soft time limit reached)";
@@ -304,12 +309,20 @@ void accumulate_search_stats(
     total.transposition_hits += current.transposition_hits;
     total.transposition_stores += current.transposition_stores;
     total.early_cuts += current.early_cuts;
+    total.useful_worlds_removed += current.useful_worlds_removed;
+    total.world_cuts += current.world_cuts;
+    total.zero_world_cuts += current.zero_world_cuts;
+    total.one_world_cuts += current.one_world_cuts;
+    total.empty_entry_searches += current.empty_entry_searches;
+    total.deep_alpha_cuts += current.deep_alpha_cuts;
     total.root_cuts += current.root_cuts;
     total.equivalent_moves_skipped += current.equivalent_moves_skipped;
     total.max_equivalent_moves_skipped += current.max_equivalent_moves_skipped;
     total.min_equivalent_moves_skipped += current.min_equivalent_moves_skipped;
     total.forced_trump_run_cuts += current.forced_trump_run_cuts;
     total.win_cuts += current.win_cuts;
+    total.leaf_dds_batches += current.leaf_dds_batches;
+    total.leaf_dds_worlds += current.leaf_dds_worlds;
     total.tree_search_ms += current.tree_search_ms;
     total.policy_build_ms += current.policy_build_ms;
 }
@@ -420,8 +433,10 @@ void run_alpha_mu_playthrough_with_seed(
     std::array<std::uint64_t, kMaxDeclarerPlies + 1> completed_depth_counts {};
     std::size_t search_count = 0;
     double sampling_milliseconds = 0.0;
+    const std::string contract = target_tricks == 13 ? "7NT" : "6NT";
 
-    std::cout << "Example 2: 6NT, declarer needs 12 tricks\n";
+    std::cout << "Example 2: " << contract << ", declarer needs "
+              << static_cast<int>(target_tricks) << " tricks\n";
     std::cout << "True defender deal seed: " << true_deal_seed
               << " (hidden until the end)\n";
     std::cout << "North: " << format_hand(hand_of(true_deal, Seat::North)) << "\n";
@@ -539,9 +554,10 @@ void run_alpha_mu_playthrough_with_seed(
     std::cout << "\n========================================\n";
     std::cout << "Final score: NS " << static_cast<int>(actual_position.score.north_south)
               << " - EW " << static_cast<int>(actual_position.score.east_west) << "\n";
-    std::cout << (actual_position.score.north_south >= kContractTricks
-                      ? "6NT made.\n"
-                      : "6NT defeated.\n");
+    std::cout << contract
+              << (actual_position.score.north_south >= target_tricks
+                      ? " made.\n"
+                      : " defeated.\n");
     std::cout << "Alpha-mu target " << static_cast<int>(target_tricks)
               << (actual_position.score.north_south >= target_tricks
                       ? " was reached.\n"
@@ -557,11 +573,17 @@ void run_alpha_mu_playthrough_with_seed(
               << " DDS-worlds=" << search_totals.dds_worlds
               << " TT-hits=" << search_totals.transposition_hits
               << " early-cuts=" << search_totals.early_cuts
+              << " deep-alpha-cuts=" << search_totals.deep_alpha_cuts
+              << " useful-removed=" << search_totals.useful_worlds_removed
+              << " world-cuts=" << search_totals.world_cuts
+              << " empty-entry=" << search_totals.empty_entry_searches
               << " root-cuts=" << search_totals.root_cuts
               << " equals-skipped=" << search_totals.equivalent_moves_skipped
               << " (MAX=" << search_totals.max_equivalent_moves_skipped
               << ", MIN=" << search_totals.min_equivalent_moves_skipped << ')'
-              << " win-cuts=" << search_totals.win_cuts << "\n";
+              << " win-cuts=" << search_totals.win_cuts
+              << " DDS-batches=" << search_totals.leaf_dds_batches
+              << " (" << search_totals.leaf_dds_worlds << " worlds)\n";
     std::cout << "Completed-M histogram:";
     for (std::size_t depth = 0; depth < completed_depth_counts.size(); ++depth) {
         if (completed_depth_counts[depth] != 0) {

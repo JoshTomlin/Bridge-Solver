@@ -580,8 +580,13 @@ void print_alpha_mu_spade_64_world_demo() {
               << " DDS-worlds=" << result.stats.dds_worlds
               << " TT-hits=" << result.stats.transposition_hits
               << " early-cuts=" << result.stats.early_cuts
+              << " deep-alpha-cuts=" << result.stats.deep_alpha_cuts
+              << " useful-removed=" << result.stats.useful_worlds_removed
+              << " world-cuts=" << result.stats.world_cuts
+              << " empty-entry=" << result.stats.empty_entry_searches
               << " root-cuts=" << result.stats.root_cuts
               << " equals-skipped=" << result.stats.equivalent_moves_skipped
+              << " DDS-batches=" << result.stats.leaf_dds_batches
               << " completed-M=" << static_cast<int>(result.stats.completed_depth)
               << "\n";
 }
@@ -1075,7 +1080,12 @@ void print_example_one_demo() {
                   << " DDS-worlds=" << result.stats.dds_worlds
                   << " TT-hits=" << result.stats.transposition_hits
                   << " early-cuts=" << result.stats.early_cuts
+                  << " deep-alpha-cuts=" << result.stats.deep_alpha_cuts
+                  << " useful-removed=" << result.stats.useful_worlds_removed
+                  << " world-cuts=" << result.stats.world_cuts
+                  << " empty-entry=" << result.stats.empty_entry_searches
                   << " root-cuts=" << result.stats.root_cuts
+                  << " DDS-batches=" << result.stats.leaf_dds_batches
                   << " iterations=" << static_cast<int>(result.stats.completed_iterations)
                   << "\n";
     }

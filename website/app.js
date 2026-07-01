@@ -277,7 +277,13 @@ function analysisMarkup(analysis) {
       <div><dt>DDS worlds</dt><dd>${formatNumber(analysis.stats.ddsWorlds)}</dd></div>
       <div><dt>Equals skipped</dt><dd>${formatNumber(analysis.stats.equivalentMoves)}</dd></div>
       <div><dt>TT hits</dt><dd>${formatNumber(analysis.stats.ttHits)}</dd></div>
-      <div><dt>Cuts</dt><dd>${formatNumber(analysis.stats.earlyCuts + analysis.stats.rootCuts + analysis.stats.winCuts)}</dd></div>
+      <div><dt>Paper cuts</dt><dd>${formatNumber(
+        (analysis.stats.earlyCuts ?? 0) +
+        (analysis.stats.deepAlphaCuts ?? 0) +
+        (analysis.stats.worldCuts ?? 0) +
+        (analysis.stats.rootCuts ?? 0) +
+        (analysis.stats.winCuts ?? 0)
+      )}</dd></div>
     </dl>`;
 }
 
