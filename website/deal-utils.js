@@ -24,7 +24,7 @@ export function parseHandRecord(record) {
   return { count: cards.length, cards };
 }
 
-function handRecord(cards) {
+export function handRecordFromCards(cards) {
   const cardSet = new Set(cards);
   return SUITS.map((suit) => {
     const holding = [...RANKS].filter((rank) => cardSet.has(`${suit}${rank}`)).join("");
@@ -84,7 +84,7 @@ export function fourthHandCompletion(hands) {
   return {
     ready: true,
     seat: missingSeat,
-    record: handRecord(remaining),
+    record: handRecordFromCards(remaining),
     message: `Fill ${missingSeat} from the 13 remaining cards`
   };
 }

@@ -141,20 +141,35 @@
         <div class="dialog-body deal-dialog-grid">
           <section class="editor-fields">
             <label class="field"><span>Name</span><input id="deal-name" value="7NT spade guess" autocomplete="off"></label>
-            <div class="deal-compass" aria-label="Deal in compass order">
-              <label class="field deal-hand north"><span>North</span><input id="north-hand" value="AJT9.AKQ.AKQ.432" spellcheck="false"></label>
-              <label class="field deal-hand west"><span>West</span><input id="west-hand" value="432.J987.J97.T76" spellcheck="false"></label>
-              <div class="deal-compass-centre">
-                <span class="micro-label">SHDC</span>
-                <button class="button secondary compact" id="complete-fourth-hand" type="button">Fill fourth hand</button>
-                <small id="complete-hand-status">All four hands are entered</small>
+            <div class="deal-entry">
+              <input id="north-hand" type="hidden" value="AJT9.AKQ.AKQ.432">
+              <input id="east-hand" type="hidden" value="Q5.T65.T865.J985">
+              <input id="south-hand" type="hidden" value="K876.432.432.AKQ">
+              <input id="west-hand" type="hidden" value="432.J987.J97.T76">
+              <div class="deal-compass" id="deal-compass" aria-label="Choose a hand to edit">
+                <button class="deal-seat north is-active" data-edit-seat="North" type="button" aria-pressed="true"><span>N</span><strong>North</strong><small data-seat-summary="North"></small></button>
+                <button class="deal-seat west" data-edit-seat="West" type="button" aria-pressed="false"><span>W</span><strong>West</strong><small data-seat-summary="West"></small></button>
+                <div class="deal-compass-centre">
+                  <span class="micro-label">SHDC</span>
+                  <button class="button secondary compact" id="complete-fourth-hand" type="button">Fill fourth hand</button>
+                  <small id="complete-hand-status">All four hands are entered</small>
+                </div>
+                <button class="deal-seat east" data-edit-seat="East" type="button" aria-pressed="false"><span>E</span><strong>East</strong><small data-seat-summary="East"></small></button>
+                <button class="deal-seat south" data-edit-seat="South" type="button" aria-pressed="false"><span>S</span><strong>South</strong><small data-seat-summary="South"></small></button>
               </div>
-              <label class="field deal-hand east"><span>East</span><input id="east-hand" value="Q5.T65.T865.J985" spellcheck="false"></label>
-              <label class="field deal-hand south"><span>South</span><input id="south-hand" value="K876.432.432.AKQ" spellcheck="false"></label>
+              <section class="card-picker" aria-label="Card selector">
+                <div class="card-picker-heading">
+                  <div><span class="micro-label">Editing</span><strong id="picker-seat-name">North</strong></div>
+                  <span id="picker-seat-count">13 / 13 cards</span>
+                </div>
+                <div class="card-palette" id="card-palette"></div>
+                <p>Click an unassigned card to add it. Click one already in this hand to remove it. Cards held elsewhere are disabled.</p>
+              </section>
             </div>
-            <div class="two-up">
+            <div class="contract-grid">
               <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>
               <label class="field"><span>Trump</span><select id="trump"><option selected>NT</option><option>S</option><option>H</option><option>D</option><option>C</option></select></label>
+              <label class="field"><span>Target tricks</span><input id="target-tricks" type="number" min="1" max="13" value="13"></label>
             </div>
             <label class="field">
               <span>Play already made</span>
@@ -197,7 +212,7 @@
                 </div>
               </section>
             </details>
-            <p class="field-help">Hands use SHDC order, for example <code>AJT9.AKQ.AKQ.432</code>.</p>
+            <p class="field-help">The selector stores hands in SHDC order, for example <code>AJT9.AKQ.AKQ.432</code>.</p>
           </section>
 
           <aside class="saved-block">
@@ -223,7 +238,6 @@
           <div class="settings-grid">
             <label class="field"><span>Worlds</span><input id="world-count" type="number" min="1" max="64" value="64"></label>
             <label class="field"><span>Maximum M</span><input id="max-depth" type="number" min="1" max="26" value="26"></label>
-            <label class="field"><span>Target tricks</span><input id="target-tricks" type="number" min="1" max="13" value="13"></label>
             <label class="field"><span>Time limit</span><div class="input-suffix"><input id="time-limit" type="number" min="0" step="0.5" value="5"><span>s</span></div></label>
           </div>
           <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>

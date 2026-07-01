@@ -1,5 +1,5 @@
 import { EngineClient } from "./engine-client.js";
-import { fourthHandCompletion } from "./deal-utils.js";
+import { fourthHandCompletion, handRecordFromCards, parseHandRecord } from "./deal-utils.js";
 import { clearRuns, deleteDeal, loadDeals, loadRuns, saveDeal, saveRun } from "./storage.js";
 
 const byId = (id) => document.getElementById(id);
@@ -25,6 +25,10 @@ const elements = {
   dealCount: byId("deal-count"),
   tableStage: byId("table"),
   legalSummary: byId("legal-summary"),
+  dealCompass: byId("deal-compass"),
+  cardPalette: byId("card-palette"),
+  pickerSeatName: byId("picker-seat-name"),
+  pickerSeatCount: byId("picker-seat-count"),
   completeFourthHand: byId("complete-fourth-hand"),
   completeHandStatus: byId("complete-hand-status"),
   turnLabel: byId("turn-label"),
@@ -71,6 +75,8 @@ let activeStrategyIndex = 0;
 let activeWorldIndex = null;
 let activeFullResult = null;
 let activeDecisionIndex = 0;
+let activeEditSeat = "North";
+let retainedTrick = [];
 
 function defaultSeatRestrictions() {
   return {
@@ -130,6 +136,7 @@ const engine = new EngineClient({
   },
   onProgress(progress) {
     liveState = progress.state;
+    retainTrickAfterPlay(progress.state, progress.play);
     renderTable(progress.state);
     elements.progressLabel.textContent = progress.label;
     elements.progressValue.textContent = `${progress.percent}%`;
@@ -164,6 +171,7 @@ function collectDeal() {
     west: elements.west.value.trim(),
     leader: elements.leader.value,
     trump: elements.trump.value,
+    target: Number(elements.target.value),
     playPrefix: elements.playPrefix.value.trim().toUpperCase(),
     notes: elements.notes.value.trim(),
     restrictions: {
@@ -182,6 +190,7 @@ function populateDealForm(deal) {
   elements.west.value = deal.west || "-.-.-.-";
   elements.leader.value = deal.leader || "South";
   elements.trump.value = deal.trump || "NT";
+  elements.target.value = deal.target || 13;
   elements.playPrefix.value = deal.playPrefix || "";
   elements.notes.value = deal.notes || "";
   applySeatRestrictions("east", deal.restrictions?.east);
@@ -191,7 +200,7 @@ function populateDealForm(deal) {
     hasSeatRestrictions(deal.restrictions?.west)
   );
   elements.restrictionStatus.textContent = "Load to count";
-  updateFourthHandControl();
+  renderDealEditor();
 }
 
 function analysisSettings() {
@@ -207,7 +216,7 @@ function analysisSettings() {
 function renderSettingsSummary() {
   const settings = analysisSettings();
   elements.settingsSummary.textContent =
-    `${settings.worlds} worlds | M ${settings.depth} | target ${settings.target} | ${settings.timeLimit}s`;
+    `${settings.worlds} worlds | M ${settings.depth} | ${settings.timeLimit}s`;
 }
 
 function parsePlayPrefix(text) {
@@ -231,6 +240,11 @@ const suitDisplay = {
   C: { symbol: "&clubs;", className: "clubs", name: "clubs" }
 };
 
+function cardFaceMarkup(card) {
+  const suit = suitDisplay[card[0]];
+  return `<b>${escapeHtml(card[1])}</b><i>${suit.symbol}</i>`;
+}
+
 function holdingMarkup(hand, legalCards, interactive) {
   const legal = new Set(legalCards);
   return Object.entries(suitDisplay).map(([suit, display]) => {
@@ -238,9 +252,9 @@ function holdingMarkup(hand, legalCards, interactive) {
     const cards = [...holding].map((rank) => {
       const card = `${suit}${rank}`;
       if (interactive && legal.has(card)) {
-        return `<button class="hand-card is-legal" data-card="${card}" type="button" aria-label="Play ${display.name} ${rank}" title="Play ${card}">${rank}</button>`;
+        return `<button class="mini-card suit-${display.className}" data-card="${card}" type="button" aria-label="Play ${display.name} ${rank}" title="Play ${card}">${cardFaceMarkup(card)}</button>`;
       }
-      return `<span class="hand-card">${escapeHtml(rank)}</span>`;
+      return `<span class="mini-card suit-${display.className}">${cardFaceMarkup(card)}</span>`;
     }).join("");
     return `
       <div class="suit-line suit-${display.className}">
@@ -255,7 +269,7 @@ function trickCardMarkup(play) {
   return `
     <span class="trick-card suit-${suit.className}" data-trick-seat="${escapeHtml(play.seat)}" title="${escapeHtml(play.seat)} played ${escapeHtml(play.card)}">
       <small>${escapeHtml(play.seat[0])}</small>
-      <b>${escapeHtml(play.card[1])}${suit.symbol}</b>
+      ${cardFaceMarkup(play.card)}
     </span>`;
 }
 
@@ -288,6 +302,41 @@ function displayedState(override) {
   return currentFrame()?.state || liveState || previewState();
 }
 
+function completedTrickForFrame(index) {
+  const frame = timelineFrames[index];
+  if (frame?.completedTrick?.length === 4) return frame.completedTrick;
+  if (index < 4) return [];
+  const previous = timelineFrames[index - 1];
+  if (!frame || frame.state.trick.length ||
+      frame.state.completedTricks <= (previous?.state.completedTricks ?? 0)) return [];
+
+  const plays = timelineFrames.slice(index - 3, index + 1).map((candidate) => candidate.play);
+  return plays.length === 4 && plays.every(Boolean) ? plays : [];
+}
+
+function retainTrickAfterPlay(state, play) {
+  if (state.trick.length) {
+    retainedTrick = state.trick;
+  } else if (play && retainedTrick.length === 3) {
+    retainedTrick = [...retainedTrick, play];
+  } else if (!play || state.completedTricks === 0) {
+    retainedTrick = [];
+  }
+}
+
+function trickForDisplay(state, hasOverride) {
+  if (state.trick.length) {
+    retainedTrick = state.trick;
+    return state.trick;
+  }
+  if (!hasOverride) {
+    const completed = completedTrickForFrame(timelineIndex);
+    retainedTrick = completed;
+    return completed;
+  }
+  return retainedTrick.length === 4 ? retainedTrick : [];
+}
+
 function frameLabel(frame, index) {
   if (!frame?.play) return frame?.label || "Opening position";
   const live = index === timelineFrames.length - 1 && !reviewOnly ? " | live" : "";
@@ -298,7 +347,8 @@ function renderDealSummary() {
   const deal = currentDeal || collectDeal();
   const status = liveState ? `${timelineFrames.length - 1} cards played` : "not loaded";
   elements.currentDealName.textContent = deal.name || "Untitled deal";
-  elements.currentDealSummary.textContent = `${deal.leader} leads | ${deal.trump} | ${status}`;
+  elements.currentDealSummary.textContent =
+    `${deal.leader} leads | ${deal.trump} | target ${deal.target || elements.target.value} | ${status}`;
 }
 
 function renderTable(override) {
@@ -315,8 +365,10 @@ function renderTable(override) {
   elements.turnLabel.textContent = state.finished
     ? `Deal complete | ${state.score.ns}-${state.score.ew}`
     : state.turn ? `${state.turn} to play` : "Put this deal on the table";
-  elements.currentTrick.innerHTML = state.trick.length
-    ? state.trick.map(trickCardMarkup).join("")
+  const displayedTrick = trickForDisplay(state, Boolean(override));
+  elements.currentTrick.classList.toggle("is-retained", !state.trick.length && displayedTrick.length === 4);
+  elements.currentTrick.innerHTML = displayedTrick.length
+    ? displayedTrick.map(trickCardMarkup).join("")
     : "<em>New trick</em>";
 
   elements.legalSummary.textContent = !interactive && timelineFrames.length
@@ -336,6 +388,7 @@ function renderTable(override) {
 
 function resetTimeline(state) {
   liveState = state;
+  retainedTrick = state.trick;
   timelineFrames = [{ state, play: null }];
   timelineIndex = 0;
   reviewOnly = false;
@@ -343,7 +396,14 @@ function resetTimeline(state) {
 
 function appendTimelineFrame(state, play) {
   liveState = state;
-  timelineFrames.push({ state, play });
+  retainTrickAfterPlay(state, play);
+  timelineFrames.push({
+    state,
+    play,
+    completedTrick: !state.trick.length && retainedTrick.length === 4
+      ? retainedTrick
+      : null
+  });
   timelineIndex = timelineFrames.length - 1;
 }
 
@@ -594,11 +654,68 @@ function handFormValues() {
   };
 }
 
+function editorHandState() {
+  const values = handFormValues();
+  const parsed = {};
+  for (const seat of ["North", "East", "South", "West"]) {
+    try {
+      parsed[seat] = parseHandRecord(values[seat]);
+    } catch {
+      parsed[seat] = { count: 0, cards: [] };
+    }
+  }
+  return parsed;
+}
+
 function updateFourthHandControl() {
   const completion = fourthHandCompletion(handFormValues());
   elements.completeFourthHand.disabled = !completion.ready;
   elements.completeHandStatus.textContent = completion.message;
   return completion;
+}
+
+function renderDealEditor() {
+  const hands = editorHandState();
+  const owners = new Map();
+  for (const seat of ["North", "East", "South", "West"]) {
+    for (const card of hands[seat].cards) owners.set(card, seat);
+    const summary = document.querySelector(`[data-seat-summary="${seat}"]`);
+    summary.textContent = `${hands[seat].count} cards | ${elements[seat.toLowerCase()].value || "-.-.-.-"}`;
+  }
+
+  for (const button of elements.dealCompass.querySelectorAll("[data-edit-seat]")) {
+    const selected = button.dataset.editSeat === activeEditSeat;
+    button.classList.toggle("is-active", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  }
+
+  elements.pickerSeatName.textContent = activeEditSeat;
+  elements.pickerSeatCount.textContent = `${hands[activeEditSeat].count} / 13 cards`;
+  const ranks = "AKQJT98765432";
+  elements.cardPalette.innerHTML = Object.entries(suitDisplay).map(([suit, display]) => `
+    <div class="palette-row suit-${display.className}">
+      <span class="palette-suit">${display.symbol}</span>
+      <div class="palette-cards">
+        ${[...ranks].map((rank) => {
+          const card = `${suit}${rank}`;
+          const owner = owners.get(card);
+          const selected = owner === activeEditSeat;
+          const unavailable = Boolean(owner && !selected);
+          const title = selected
+            ? `Remove ${card} from ${activeEditSeat}`
+            : unavailable ? `${card} is held by ${owner}` : `Add ${card} to ${activeEditSeat}`;
+          return `<button class="picker-card ${selected ? "is-selected" : ""} ${unavailable ? "is-unavailable" : ""}" data-picker-card="${card}" type="button" title="${title}" ${unavailable ? "disabled" : ""}>
+            ${cardFaceMarkup(card)}${owner ? `<small>${owner[0]}</small>` : ""}
+          </button>`;
+        }).join("")}
+      </div>
+    </div>`).join("");
+  updateFourthHandControl();
+}
+
+function updateEditorHand(seat, cards) {
+  elements[seat.toLowerCase()].value = handRecordFromCards(cards);
+  renderDealEditor();
 }
 
 function fillFourthHand(showToast = true) {
@@ -608,7 +725,7 @@ function fillFourthHand(showToast = true) {
     return false;
   }
   elements[completion.seat.toLowerCase()].value = completion.record;
-  updateFourthHandControl();
+  renderDealEditor();
   if (showToast) toast(`${completion.seat} filled from the remaining deck`, "success");
   return true;
 }
@@ -709,7 +826,10 @@ function openDialog(dialog) {
   if (!dialog.open) dialog.showModal();
 }
 
-byId("edit-deal").addEventListener("click", () => openDialog(elements.dealDialog));
+byId("edit-deal").addEventListener("click", () => {
+  renderDealEditor();
+  openDialog(elements.dealDialog);
+});
 byId("edit-settings").addEventListener("click", () => openDialog(elements.settingsDialog));
 for (const button of document.querySelectorAll("[data-close-dialog]")) {
   button.addEventListener("click", () => byId(button.dataset.closeDialog).close());
@@ -743,6 +863,7 @@ byId("new-deal").addEventListener("click", () => {
     west: "-.-.-.-",
     leader: "South",
     trump: "NT",
+    target: 13,
     playPrefix: "",
     notes: "",
     restrictions: {}
@@ -779,9 +900,27 @@ elements.tableStage.addEventListener("click", safely(async (event) => {
 }));
 
 elements.completeFourthHand.addEventListener("click", () => fillFourthHand(true));
-for (const input of [elements.north, elements.east, elements.south, elements.west]) {
-  input.addEventListener("input", updateFourthHandControl);
-}
+elements.dealCompass.addEventListener("click", (event) => {
+  const seatButton = event.target.closest("[data-edit-seat]");
+  if (!seatButton) return;
+  activeEditSeat = seatButton.dataset.editSeat;
+  renderDealEditor();
+});
+elements.cardPalette.addEventListener("click", (event) => {
+  const cardButton = event.target.closest("[data-picker-card]");
+  if (!cardButton || cardButton.disabled) return;
+  const card = cardButton.dataset.pickerCard;
+  const hand = editorHandState()[activeEditSeat];
+  const selected = hand.cards.includes(card);
+  if (!selected && hand.count >= 13) {
+    toast(`${activeEditSeat} already has 13 cards`, "error");
+    return;
+  }
+  const cards = selected
+    ? hand.cards.filter((held) => held !== card)
+    : [...hand.cards, card];
+  updateEditorHand(activeEditSeat, cards);
+});
 
 byId("undo").addEventListener("click", safely(async () => {
   if (!isAtLivePosition() || timelineFrames.length <= 1) return;
@@ -924,5 +1063,5 @@ function syncAnalysisToTimeline() {
 renderSettingsSummary();
 renderSavedDeals();
 renderRuns();
-updateFourthHandControl();
+renderDealEditor();
 renderTable();

@@ -21,6 +21,8 @@ for (const required of [
   "settings-dialog",
   "play-prefix",
   "complete-fourth-hand",
+  "card-palette",
+  "target-tricks",
   "history-prev",
   "history-next",
   "analysis-result"
@@ -37,8 +39,14 @@ assert.ok(runFull.includes("frames.push"), "bot continuation must retain playbac
 assert.ok(app.includes("data-world-index"), "analysis must expose sampled-world drill-down");
 assert.ok(app.includes("syncAnalysisToTimeline"), "playback must synchronize analysis decisions");
 assert.ok(app.includes("data-trick-seat"), "played cards must retain compass positions");
+assert.ok(app.includes("completedTrickForFrame"), "the completed trick must remain until the next lead");
 assert.ok(!html.includes("id=\"legal-cards\""), "legal cards must be played directly from hands");
 assert.ok(html.includes("class=\"deal-compass\""), "deal entry must use compass order");
+assert.ok(app.includes("data-picker-card"), "deal entry must expose a duplicate-safe card picker");
+assert.ok(
+  html.indexOf("id=\"target-tricks\"") < html.indexOf("id=\"settings-dialog\""),
+  "target tricks belongs to the contract editor, not search settings"
+);
 
 const completion = fourthHandCompletion({
   North: "AJT9.AKQ.AKQ.432",
