@@ -41,14 +41,31 @@ function analyze(settings) {
 }
 
 async function runFull(settings) {
-  parseResult(engine.replay());
   const analyses = [];
   const plays = [];
+  const frames = [];
+  const startState = parseResult(engine.state()).state;
   const startedAt = performance.now();
+  let currentAnalysisIndex = -1;
+  const alreadyPlayed = startState.completedTricks * 4 + startState.trick.length;
+  const remainingCards = Object.values(startState.hands).reduce(
+    (total, hand) => total + hand.record.replace(/[-\s]/g, "").length,
+    0
+  );
+  if (settings.priorAnalysis &&
+      (startState.turn === "North" || startState.turn === "South")) {
+    analyses.push({
+      ...settings.priorAnalysis,
+      atCard: alreadyPlayed + 1,
+      turn: startState.turn
+    });
+    currentAnalysisIndex = 0;
+  }
 
-  for (let cardNumber = 0; cardNumber < 52; cardNumber += 1) {
+  for (let step = 0; step < remainingCards; step += 1) {
     const current = parseResult(engine.state()).state;
     if (current.finished) break;
+    const cardNumber = alreadyPlayed + step + 1;
 
     const declarerSide = current.turn === "North" || current.turn === "South";
     let card;
@@ -60,7 +77,8 @@ async function runFull(settings) {
         source = "policy";
       } else {
         const result = analyze(settings);
-        analyses.push({ ...result.analysis, atCard: cardNumber + 1, turn: current.turn });
+        analyses.push({ ...result.analysis, atCard: cardNumber, turn: current.turn });
+        currentAnalysisIndex = analyses.length - 1;
         card = result.analysis.bestMove;
         source = "alpha-mu";
       }
@@ -70,20 +88,29 @@ async function runFull(settings) {
     }
 
     const played = parseResult(engine.play(card));
-    plays.push({ number: cardNumber + 1, seat: current.turn, card, source });
+    const play = {
+      number: cardNumber,
+      seat: current.turn,
+      card,
+      source,
+      analysisIndex: declarerSide ? currentAnalysisIndex : null
+    };
+    plays.push(play);
+    frames.push({ state: played.state, play });
     self.postMessage({
       type: "progress",
       progress: {
-        cardNumber: cardNumber + 1,
-        percent: Math.round(((cardNumber + 1) / 52) * 100),
+        cardNumber,
+        percent: Math.round(((step + 1) / remainingCards) * 100),
         label: `${current.turn} played ${card}`,
-        state: played.state
+        state: played.state,
+        play
       }
     });
   }
 
   const state = parseResult(engine.state()).state;
-  return { state, analyses, plays, totalMs: performance.now() - startedAt };
+  return { startState, state, analyses, plays, frames, totalMs: performance.now() - startedAt };
 }
 
 self.addEventListener("message", async (event) => {

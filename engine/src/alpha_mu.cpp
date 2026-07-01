@@ -436,6 +436,7 @@ RootIteration search_root_iteration(
                 .move = move,
                 .winning_worlds = best_winning_world_count(*forced),
                 .pareto_vectors = forced->vectors.size(),
+                .front = *forced,
             }},
         };
     }
@@ -470,7 +471,8 @@ RootIteration search_root_iteration(
         }
 
         AlphaBounds child_bounds;
-        if (!root_front.vectors.empty()) {
+        if (!context.config.compare_all_root_moves &&
+            !root_front.vectors.empty()) {
             child_bounds.push_back(AlphaBound {
                 .front = &root_front,
                 .useful_worlds = active_worlds,
@@ -490,6 +492,7 @@ RootIteration search_root_iteration(
             .move = move,
             .winning_worlds = score,
             .pareto_vectors = child.front.vectors.size(),
+            .front = child.front,
         });
         if (best_move == kNoCard || score > best_score) {
             best_move = move;
@@ -497,7 +500,8 @@ RootIteration search_root_iteration(
         }
         merge_max_front(root_front, child.front);
 
-        if (context.config.optimizations.win_cut &&
+        if (!context.config.compare_all_root_moves &&
+            context.config.optimizations.win_cut &&
             front_wins_all_worlds(root_front, active_worlds)) {
             ++context.stats.win_cuts;
             audit_line(
@@ -508,7 +512,8 @@ RootIteration search_root_iteration(
             break;
         }
 
-        if (context.config.optimizations.root_cut &&
+        if (!context.config.compare_all_root_moves &&
+            context.config.optimizations.root_cut &&
             previous_score.has_value() &&
             best_winning_world_count(root_front) >= *previous_score) {
             ++context.stats.root_cuts;

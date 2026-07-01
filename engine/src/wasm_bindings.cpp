@@ -167,6 +167,20 @@ std::string cards_json(Hand cards) {
     return output.str();
 }
 
+std::string world_indices_json(WorldMask worlds, std::size_t world_count) {
+    std::ostringstream output;
+    output << '[';
+    bool first = true;
+    for (std::size_t world = 0; world < world_count; ++world) {
+        if ((worlds & (WorldMask {1} << world)) == 0) continue;
+        if (!first) output << ',';
+        output << world;
+        first = false;
+    }
+    output << ']';
+    return output.str();
+}
+
 std::string state_json(const AnalysisSession& session) {
     const Position& position = session.position();
     const bool finished = is_deal_finished(position);
@@ -253,7 +267,22 @@ std::string analysis_json(const SessionAnalysis& analysis) {
         const AlphaMuRootMove& move = analysis.search.root_moves[index];
         output << "{\"card\":" << json_quote(to_string(move.move))
                << ",\"winningWorlds\":" << move.winning_worlds
-               << ",\"paretoVectors\":" << move.pareto_vectors << '}';
+               << ",\"paretoVectors\":" << move.pareto_vectors
+               << ",\"outcomes\":[";
+        for (std::size_t vector = 0; vector < move.front.vectors.size(); ++vector) {
+            if (vector != 0) output << ',';
+            output << world_indices_json(
+                move.front.vectors[vector].wins, analysis.worlds.size());
+        }
+        output << "]}";
+    }
+    output << "],\"sampledWorlds\":[";
+    for (std::size_t index = 0; index < analysis.worlds.size(); ++index) {
+        if (index != 0) output << ',';
+        const Deal& deal = analysis.worlds[index].position.deal;
+        output << "{\"index\":" << index
+               << ",\"east\":" << hand_json(hand_of(deal, Seat::East))
+               << ",\"west\":" << hand_json(hand_of(deal, Seat::West)) << '}';
     }
     output << "],\"stats\":" << stats_json(analysis.search.stats) << '}';
     return output.str();
@@ -361,6 +390,7 @@ public:
             settings.target_tricks = target;
             settings.random_seed = std::stoull(seed);
             settings.max_search_seconds = max_seconds;
+            settings.compare_all_root_moves = true;
             session_->set_settings(settings);
             const SessionAnalysis result = session_->analyze();
             return "{\"ok\":true,\"analysis\":" + analysis_json(result) +

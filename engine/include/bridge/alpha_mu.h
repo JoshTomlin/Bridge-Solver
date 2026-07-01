@@ -116,6 +116,11 @@ struct AlphaMuConfig {
     AlphaMuOptimizations optimizations {};
     bool build_trick_policy {false};
 
+    // Search every representative root card without using another root card
+    // as an alpha bound. This is slower, but makes each displayed move front
+    // exact and comparable in analysis interfaces.
+    bool compare_all_root_moves {false};
+
     // Records human-readable optimization events. This is intentionally off
     // by default because detailed logs can be large during a deep search.
     bool collect_audit_log {false};
@@ -161,6 +166,7 @@ struct AlphaMuRootMove {
     Card move {kNoCard};
     std::size_t winning_worlds {};
     std::size_t pareto_vectors {};
+    ParetoFront front;
 };
 
 struct AlphaMuPolicyNode;

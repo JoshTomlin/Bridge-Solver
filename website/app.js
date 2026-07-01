@@ -5,6 +5,11 @@ const byId = (id) => document.getElementById(id);
 const elements = {
   enginePill: byId("engine-pill"),
   engineLabel: byId("engine-label"),
+  dealDialog: byId("deal-dialog"),
+  settingsDialog: byId("settings-dialog"),
+  currentDealName: byId("current-deal-name"),
+  currentDealSummary: byId("current-deal-summary"),
+  settingsSummary: byId("settings-summary"),
   name: byId("deal-name"),
   north: byId("north-hand"),
   east: byId("east-hand"),
@@ -12,6 +17,7 @@ const elements = {
   west: byId("west-hand"),
   leader: byId("leader"),
   trump: byId("trump"),
+  playPrefix: byId("play-prefix"),
   notes: byId("deal-notes"),
   restrictionStatus: byId("restriction-status"),
   savedDeals: byId("saved-deals"),
@@ -22,6 +28,10 @@ const elements = {
   currentTrick: byId("current-trick"),
   scoreNs: byId("score-ns"),
   scoreEw: byId("score-ew"),
+  historyPrev: byId("history-prev"),
+  historyNext: byId("history-next"),
+  historyLive: byId("history-live"),
+  historyPosition: byId("history-position"),
   worlds: byId("world-count"),
   depth: byId("max-depth"),
   target: byId("target-tricks"),
@@ -40,12 +50,24 @@ const elements = {
   toastRegion: byId("toast-region")
 };
 
+const restrictionSuits = ["S", "H", "D", "C"];
+
 let currentDeal = null;
-let currentState = null;
+let draftDealId = null;
+let liveState = null;
+let timelineFrames = [];
+let timelineIndex = -1;
+let reviewOnly = false;
 let busy = false;
 let engineReady = false;
-
-const restrictionSuits = ["S", "H", "D", "C"];
+let initialLoadStarted = false;
+let activeAnalysis = null;
+let activeAnalysisIsLive = false;
+let activeMoveCard = null;
+let activeStrategyIndex = 0;
+let activeWorldIndex = null;
+let activeFullResult = null;
+let activeDecisionIndex = 0;
 
 function defaultSeatRestrictions() {
   return {
@@ -98,10 +120,14 @@ const engine = new EngineClient({
     elements.enginePill.className = `engine-pill is-${status}`;
     elements.engineLabel.textContent = message;
     updateActionState();
+    if (engineReady && !initialLoadStarted) {
+      initialLoadStarted = true;
+      putDealOnTable(true).catch((error) => toast(error.message || String(error), "error"));
+    }
   },
   onProgress(progress) {
-    currentState = progress.state;
-    renderTable();
+    liveState = progress.state;
+    renderTable(progress.state);
     elements.progressLabel.textContent = progress.label;
     elements.progressValue.textContent = `${progress.percent}%`;
     elements.progressBar.style.width = `${progress.percent}%`;
@@ -127,7 +153,7 @@ function toast(message, tone = "info") {
 
 function collectDeal() {
   return {
-    id: currentDeal?.id,
+    id: draftDealId,
     name: elements.name.value.trim() || "Untitled deal",
     north: elements.north.value.trim(),
     east: elements.east.value.trim(),
@@ -135,6 +161,7 @@ function collectDeal() {
     west: elements.west.value.trim(),
     leader: elements.leader.value,
     trump: elements.trump.value,
+    playPrefix: elements.playPrefix.value.trim().toUpperCase(),
     notes: elements.notes.value.trim(),
     restrictions: {
       east: collectSeatRestrictions("east"),
@@ -143,8 +170,8 @@ function collectDeal() {
   };
 }
 
-function applyDeal(deal) {
-  currentDeal = deal;
+function populateDealForm(deal) {
+  draftDealId = deal.id || null;
   elements.name.value = deal.name || "Untitled deal";
   elements.north.value = deal.north || "-.-.-.-";
   elements.east.value = deal.east || "-.-.-.-";
@@ -152,14 +179,15 @@ function applyDeal(deal) {
   elements.west.value = deal.west || "-.-.-.-";
   elements.leader.value = deal.leader || "South";
   elements.trump.value = deal.trump || "NT";
+  elements.playPrefix.value = deal.playPrefix || "";
   elements.notes.value = deal.notes || "";
   applySeatRestrictions("east", deal.restrictions?.east);
   applySeatRestrictions("west", deal.restrictions?.west);
-  byId("defender-knowledge").open =
-    Boolean(hasSeatRestrictions(deal.restrictions?.east) || hasSeatRestrictions(deal.restrictions?.west));
+  byId("defender-knowledge").open = Boolean(
+    hasSeatRestrictions(deal.restrictions?.east) ||
+    hasSeatRestrictions(deal.restrictions?.west)
+  );
   elements.restrictionStatus.textContent = "Load to count";
-  currentState = null;
-  renderTable();
 }
 
 function analysisSettings() {
@@ -172,6 +200,20 @@ function analysisSettings() {
   };
 }
 
+function renderSettingsSummary() {
+  const settings = analysisSettings();
+  elements.settingsSummary.textContent =
+    `${settings.worlds} worlds | M ${settings.depth} | target ${settings.target} | ${settings.timeLimit}s`;
+}
+
+function parsePlayPrefix(text) {
+  if (!text.trim()) return [];
+  const cards = text.toUpperCase().split(/[\s,;]+/).filter(Boolean);
+  const invalid = cards.find((card) => !/^[SHDC](?:[2-9TJQKA])$/.test(card));
+  if (invalid) throw new Error(`Invalid card '${invalid}' in the entered play`);
+  return cards;
+}
+
 function parsePreviewHand(record) {
   const fields = record.trim().split(/[.\s]+/);
   if (fields.length !== 4) return { S: "?", H: "?", D: "?", C: "?" };
@@ -180,10 +222,10 @@ function parsePreviewHand(record) {
 
 function holdingMarkup(hand) {
   const suits = [
-    ["S", "♠"],
-    ["H", "♥"],
-    ["D", "♦"],
-    ["C", "♣"]
+    ["S", "&spades;"],
+    ["H", "&hearts;"],
+    ["D", "&diams;"],
+    ["C", "&clubs;"]
   ];
   return suits.map(([key, symbol]) => `
     <div class="suit-line ${key === "H" || key === "D" ? "red" : ""}">
@@ -207,8 +249,35 @@ function previewState() {
   };
 }
 
-function renderTable() {
-  const state = currentState || previewState();
+function currentFrame() {
+  return timelineIndex >= 0 ? timelineFrames[timelineIndex] : null;
+}
+
+function isAtLivePosition() {
+  return !reviewOnly && timelineFrames.length > 0 && timelineIndex === timelineFrames.length - 1;
+}
+
+function displayedState(override) {
+  if (override) return override;
+  return currentFrame()?.state || liveState || previewState();
+}
+
+function frameLabel(frame, index) {
+  if (!frame?.play) return frame?.label || "Opening position";
+  const live = index === timelineFrames.length - 1 && !reviewOnly ? " | live" : "";
+  return `Card ${index}: ${frame.play.seat} ${frame.play.card}${live}`;
+}
+
+function renderDealSummary() {
+  const deal = currentDeal || collectDeal();
+  const status = liveState ? `${timelineFrames.length - 1} cards played` : "not loaded";
+  elements.currentDealName.textContent = deal.name || "Untitled deal";
+  elements.currentDealSummary.textContent = `${deal.leader} leads | ${deal.trump} | ${status}`;
+}
+
+function renderTable(override) {
+  const state = displayedState(override);
+  const interactive = isAtLivePosition() && !busy;
   for (const seat of ["North", "East", "South", "West"]) {
     document.querySelector(`[data-holding="${seat}"]`).innerHTML = holdingMarkup(state.hands[seat]);
     document.querySelector(`[data-seat="${seat}"]`).classList.toggle("is-turn", state.turn === seat);
@@ -216,19 +285,43 @@ function renderTable() {
   elements.scoreNs.textContent = state.score.ns;
   elements.scoreEw.textContent = state.score.ew;
   elements.turnLabel.textContent = state.finished
-    ? `Deal complete · ${state.score.ns}–${state.score.ew}`
+    ? `Deal complete | ${state.score.ns}-${state.score.ew}`
     : state.turn ? `${state.turn} to play` : "Put this deal on the table";
   elements.currentTrick.innerHTML = state.trick.length
     ? state.trick.map((play) => `<span><small>${escapeHtml(play.seat[0])}</small>${escapeHtml(play.card)}</span>`).join("")
-    : '<em>New trick</em>';
-  elements.legalSummary.textContent = state.legalCards.length
-    ? `${state.legalCards.length} choice${state.legalCards.length === 1 ? "" : "s"}`
-    : state.finished ? "Deal complete" : "No active deal";
-  elements.legalCards.innerHTML = state.legalCards.map((card) => {
+    : "<em>New trick</em>";
+
+  const legalCards = state.legalCards || [];
+  elements.legalSummary.textContent = !interactive && timelineFrames.length
+    ? "Reviewing history"
+    : legalCards.length
+      ? `${legalCards.length} choice${legalCards.length === 1 ? "" : "s"}`
+      : state.finished ? "Deal complete" : "No active deal";
+  elements.legalCards.innerHTML = legalCards.map((card) => {
     const red = card.startsWith("H") || card.startsWith("D");
     return `<button class="playing-card ${red ? "red" : ""}" data-card="${card}" type="button"><span>${card[1]}</span><small>${card[0]}</small></button>`;
   }).join("");
+
+  const frame = currentFrame();
+  elements.historyPosition.textContent = frameLabel(frame, timelineIndex);
+  elements.historyPrev.disabled = busy || timelineIndex <= 0;
+  elements.historyNext.disabled = busy || timelineIndex < 0 || timelineIndex >= timelineFrames.length - 1;
+  elements.historyLive.classList.toggle("is-hidden", timelineIndex < 0 || timelineIndex === timelineFrames.length - 1);
+  renderDealSummary();
   updateActionState();
+}
+
+function resetTimeline(state) {
+  liveState = state;
+  timelineFrames = [{ state, play: null }];
+  timelineIndex = 0;
+  reviewOnly = false;
+}
+
+function appendTimelineFrame(state, play) {
+  liveState = state;
+  timelineFrames.push({ state, play });
+  timelineIndex = timelineFrames.length - 1;
 }
 
 function renderSavedDeals() {
@@ -238,10 +331,10 @@ function renderSavedDeals() {
     <article class="saved-deal">
       <button class="saved-main" data-load-deal="${deal.id}" type="button">
         <strong>${escapeHtml(deal.name)}</strong>
-        <span>${escapeHtml(deal.south)} · ${escapeHtml(deal.trump)}</span>
+        <span>${escapeHtml(deal.south)} | ${escapeHtml(deal.trump)}</span>
       </button>
-      <button class="saved-delete" data-delete-deal="${deal.id}" type="button" aria-label="Delete ${escapeHtml(deal.name)}">×</button>
-    </article>`).join("") : '<p class="muted-copy">Your saved deals will live here on this device.</p>';
+      <button class="saved-delete" data-delete-deal="${deal.id}" type="button" aria-label="Delete ${escapeHtml(deal.name)}">&times;</button>
+    </article>`).join("") : "<p class=\"muted-copy\">Saved deals stay on this device.</p>";
 }
 
 function formatNumber(value) {
@@ -253,100 +346,195 @@ function formatMs(value) {
   return `${Number(value || 0).toFixed(1)} ms`;
 }
 
+function bestOutcomeIndex(move) {
+  const outcomes = move?.outcomes || [];
+  let selected = 0;
+  for (let index = 1; index < outcomes.length; index += 1) {
+    if (outcomes[index].length > outcomes[selected].length) selected = index;
+  }
+  return selected;
+}
+
+function moveStatus(move, analysis) {
+  const bestScore = Math.max(0, ...analysis.rootMoves.map((candidate) => candidate.winningWorlds));
+  if (move.card === analysis.bestMove) return { label: "Chosen", className: "best" };
+  if (move.winningWorlds === bestScore) return { label: "Tied best", className: "tie" };
+  return null;
+}
+
+function worldLayoutMarkup(analysis, worldIndex, winningSet) {
+  const world = (analysis.sampledWorlds || []).find((candidate) => candidate.index === worldIndex);
+  if (!world) return "<p class=\"muted-copy\">Sampled layouts require the current WebAssembly build.</p>";
+  return `
+    <div class="world-layout">
+      <div class="world-hand"><span>World ${worldIndex + 1} | East</span><strong>${escapeHtml(world.east.record)}</strong></div>
+      <div class="world-hand"><span>${winningSet.has(worldIndex) ? "Makes target" : "Fails target"} | West</span><strong>${escapeHtml(world.west.record)}</strong></div>
+    </div>`;
+}
+
+function moveDetailMarkup(analysis, move) {
+  const outcomes = move.outcomes || [];
+  if (!outcomes.length) {
+    return `<div class="move-detail"><p class="muted-copy">Detailed outcome vectors are unavailable in this saved result. Re-run it with the current engine build.</p></div>`;
+  }
+  activeStrategyIndex = Math.min(activeStrategyIndex, outcomes.length - 1);
+  const outcome = outcomes[activeStrategyIndex];
+  const winningSet = new Set(outcome);
+  const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
+  if (activeWorldIndex === null || activeWorldIndex >= worldCount) {
+    activeWorldIndex = outcome[0] ?? 0;
+  }
+  const bestScore = Math.max(0, ...analysis.rootMoves.map((candidate) => candidate.winningWorlds));
+  const tied = analysis.rootMoves.filter((candidate) => candidate.winningWorlds === bestScore);
+  let explanation;
+  if (move.card === analysis.bestMove && tied.length > 1) {
+    explanation = `This card is one of ${tied.length} equally strong options. The deterministic card order selected it.`;
+  } else if (move.winningWorlds === bestScore) {
+    explanation = `This card is equally strong: it reaches the target in the same number of sampled worlds as ${analysis.bestMove}.`;
+  } else {
+    explanation = `This card loses ${bestScore - move.winningWorlds} more sampled world${bestScore - move.winningWorlds === 1 ? "" : "s"} than the best option.`;
+  }
+  return `
+    <section class="move-detail">
+      <div class="move-detail-heading">
+        <div><h3>${escapeHtml(move.card)} at M=${analysis.stats.completedDepth}</h3><p>${escapeHtml(explanation)}</p></div>
+        <b>${outcome.length}/${worldCount}</b>
+      </div>
+      ${outcomes.length > 1 ? `<div class="strategy-tabs">${outcomes.map((vector, index) => `
+        <button class="strategy-tab ${index === activeStrategyIndex ? "is-selected" : ""}" data-strategy-index="${index}" type="button">Strategy ${index + 1} | ${vector.length}</button>`).join("")}</div>` : ""}
+      <div class="world-key"><span>Target made</span><span class="lost">Target failed</span></div>
+      <div class="world-grid" aria-label="Sampled world outcomes">
+        ${Array.from({ length: worldCount }, (_, index) => `
+          <button class="world-cell ${winningSet.has(index) ? "" : "is-lost"} ${activeWorldIndex === index ? "is-selected" : ""}" data-world-index="${index}" type="button" title="World ${index + 1}">${index + 1}</button>`).join("")}
+      </div>
+      ${worldLayoutMarkup(analysis, activeWorldIndex, winningSet)}
+    </section>`;
+}
+
 function analysisMarkup(analysis) {
-  const maximum = Math.max(1, ...analysis.rootMoves.map((move) => move.winningWorlds));
+  const rootMoves = analysis.rootMoves || [];
+  const bestScore = Math.max(0, ...rootMoves.map((move) => move.winningWorlds));
+  const selected = rootMoves.find((move) => move.card === activeMoveCard) ||
+    rootMoves.find((move) => move.card === analysis.bestMove) || rootMoves[0];
+  activeMoveCard = selected?.card || null;
+  const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
   return `
     <div class="recommendation">
       <span>Recommended card</span>
       <strong>${escapeHtml(analysis.bestMove)}</strong>
-      <p>${analysis.winningWorlds}/${elements.worlds.value} sampled worlds</p>
+      <p>${analysis.winningWorlds}/${worldCount} sampled worlds | ${rootMoves.filter((move) => move.winningWorlds === bestScore).length} best option${rootMoves.filter((move) => move.winningWorlds === bestScore).length === 1 ? "" : "s"}</p>
     </div>
-    <div class="move-bars">
-      ${analysis.rootMoves.map((move) => `
-        <div class="move-row">
-          <strong>${escapeHtml(move.card)}</strong>
-          <div><span style="width:${(move.winningWorlds / maximum) * 100}%"></span></div>
-          <small>${move.winningWorlds}</small>
-        </div>`).join("")}
+    <div class="analysis-meta">
+      <span>M reached ${analysis.stats.completedDepth}</span>
+      <span>${formatMs(analysis.searchMs)} search</span>
+      <span>${formatMs(analysis.samplingMs)} sampling</span>
+      <span>${formatNumber(analysis.possibleDeals)} possible deals</span>
     </div>
+    <div class="analysis-subhead"><h3>Root cards</h3><small>Open a card for world details</small></div>
+    <div class="move-list">
+      ${rootMoves.map((move) => {
+        const status = moveStatus(move, analysis);
+        const red = move.card?.startsWith("H") || move.card?.startsWith("D");
+        return `<button class="move-option ${move.card === activeMoveCard ? "is-selected" : ""}" data-analysis-move="${escapeHtml(move.card)}" type="button">
+          <span class="move-card ${red ? "red" : ""}">${escapeHtml(move.card)}</span>
+          <span class="move-score"><strong>${move.winningWorlds}/${worldCount} worlds</strong><small>${move.paretoVectors} Pareto strateg${move.paretoVectors === 1 ? "y" : "ies"}</small><span class="move-bar"><span style="width:${worldCount ? (move.winningWorlds / worldCount) * 100 : 0}%"></span></span></span>
+          ${status ? `<span class="status-chip ${status.className}">${status.label}</span>` : `<b>-${bestScore - move.winningWorlds}</b>`}
+        </button>`;
+      }).join("")}
+    </div>
+    ${selected ? moveDetailMarkup(analysis, selected) : ""}
     <dl class="stat-grid">
-      <div><dt>Search</dt><dd>${formatMs(analysis.searchMs)}</dd></div>
-      <div><dt>Sampling</dt><dd>${formatMs(analysis.samplingMs)}</dd></div>
-      <div><dt>Completed M</dt><dd>${analysis.stats.completedDepth}</dd></div>
       <div><dt>Nodes</dt><dd>${formatNumber(analysis.stats.nodes)}</dd></div>
       <div><dt>DDS worlds</dt><dd>${formatNumber(analysis.stats.ddsWorlds)}</dd></div>
-      <div><dt>Equals skipped</dt><dd>${formatNumber(analysis.stats.equivalentMoves)}</dd></div>
       <div><dt>TT hits</dt><dd>${formatNumber(analysis.stats.ttHits)}</dd></div>
-      <div><dt>Paper cuts</dt><dd>${formatNumber(
-        (analysis.stats.earlyCuts ?? 0) +
-        (analysis.stats.deepAlphaCuts ?? 0) +
-        (analysis.stats.worldCuts ?? 0) +
-        (analysis.stats.rootCuts ?? 0) +
-        (analysis.stats.winCuts ?? 0)
-      )}</dd></div>
+      <div><dt>Equals skipped</dt><dd>${formatNumber(analysis.stats.equivalentMoves)}</dd></div>
+      <div><dt>Useful removed</dt><dd>${formatNumber(analysis.stats.usefulWorldsRemoved)}</dd></div>
+      <div><dt>Paper cuts</dt><dd>${formatNumber((analysis.stats.earlyCuts || 0) + (analysis.stats.deepAlphaCuts || 0) + (analysis.stats.worldCuts || 0) + (analysis.stats.winCuts || 0))}</dd></div>
     </dl>`;
 }
 
-function showAnalysis(analysis) {
+function showAnalysis(analysis, liveContext = false) {
+  activeFullResult = null;
+  activeAnalysis = analysis;
+  activeAnalysisIsLive = liveContext;
+  activeMoveCard = analysis.bestMove;
+  activeStrategyIndex = bestOutcomeIndex(analysis.rootMoves?.find((move) => move.card === analysis.bestMove));
+  activeWorldIndex = null;
   elements.resultEmpty.classList.add("is-hidden");
   elements.result.classList.remove("is-hidden");
   elements.result.innerHTML = analysisMarkup(analysis);
 }
 
 function aggregateFull(result) {
-  const totals = result.analyses.reduce((sum, analysis) => {
-    sum.searchMs += analysis.searchMs;
-    sum.samplingMs += analysis.samplingMs;
-    sum.nodes += analysis.stats.nodes;
-    sum.ddsWorlds += analysis.stats.ddsWorlds;
-    sum.equivalentMoves += analysis.stats.equivalentMoves;
-    sum.ttHits += analysis.stats.ttHits;
-    sum.maxDepth = Math.max(sum.maxDepth, analysis.stats.completedDepth);
+  return (result.analyses || []).reduce((sum, analysis) => {
+    sum.searchMs += analysis.searchMs || 0;
+    sum.samplingMs += analysis.samplingMs || 0;
+    sum.nodes += analysis.stats?.nodes || 0;
+    sum.ddsWorlds += analysis.stats?.ddsWorlds || 0;
+    sum.maxDepth = Math.max(sum.maxDepth, analysis.stats?.completedDepth || 0);
     return sum;
-  }, { searchMs: 0, samplingMs: 0, nodes: 0, ddsWorlds: 0, equivalentMoves: 0, ttHits: 0, maxDepth: 0 });
-  return totals;
+  }, { searchMs: 0, samplingMs: 0, nodes: 0, ddsWorlds: 0, maxDepth: 0 });
 }
 
-function showFullResult(result) {
+function renderFullResult() {
+  const result = activeFullResult;
+  if (!result) return;
   const totals = aggregateFull(result);
-  elements.resultEmpty.classList.add("is-hidden");
-  elements.result.classList.remove("is-hidden");
+  const analyses = result.analyses || [];
+  activeDecisionIndex = Math.min(activeDecisionIndex, Math.max(0, analyses.length - 1));
+  const selected = analyses[activeDecisionIndex];
+  activeAnalysis = selected || null;
+  activeAnalysisIsLive = false;
   elements.result.innerHTML = `
     <div class="recommendation full-result">
-      <span>Full deal complete</span>
-      <strong>${result.state.score.ns}<i>–</i>${result.state.score.ew}</strong>
-      <p>${result.analyses.length} alpha-mu decisions · ${result.plays.length} cards</p>
+      <span>Bot continuation complete</span>
+      <strong>${result.state.score.ns}-${result.state.score.ew}</strong>
+      <p>${analyses.length} alpha-mu decisions | ${result.plays.length} cards continued | ${formatMs(result.totalMs)}</p>
     </div>
     <dl class="stat-grid">
-      <div><dt>Total runtime</dt><dd>${formatMs(result.totalMs)}</dd></div>
       <div><dt>Search time</dt><dd>${formatMs(totals.searchMs)}</dd></div>
       <div><dt>Deepest M</dt><dd>${totals.maxDepth}</dd></div>
       <div><dt>Nodes</dt><dd>${formatNumber(totals.nodes)}</dd></div>
       <div><dt>DDS worlds</dt><dd>${formatNumber(totals.ddsWorlds)}</dd></div>
-      <div><dt>Equals skipped</dt><dd>${formatNumber(totals.equivalentMoves)}</dd></div>
-    </dl>`;
+    </dl>
+    ${analyses.length ? `
+      <div class="analysis-subhead"><h3>Decisions</h3><small>Select a decision to inspect it</small></div>
+      <div class="decision-list">${analyses.map((analysis, index) => `<button class="decision-chip ${index === activeDecisionIndex ? "is-selected" : ""}" data-decision-index="${index}" type="button">${index + 1}. ${escapeHtml(analysis.turn)} ${escapeHtml(analysis.bestMove)}</button>`).join("")}</div>
+      ${analysisMarkup(selected)}` : "<p class=\"muted-copy\">No declarer decisions remained in this continuation.</p>"}`;
+}
+
+function showFullResult(result) {
+  activeFullResult = result;
+  activeDecisionIndex = 0;
+  activeMoveCard = result.analyses?.[0]?.bestMove || null;
+  activeStrategyIndex = 0;
+  activeWorldIndex = null;
+  elements.resultEmpty.classList.add("is-hidden");
+  elements.result.classList.remove("is-hidden");
+  renderFullResult();
 }
 
 function runSummary(run) {
   const date = new Date(run.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
   const full = run.mode === "full";
-  const headline = full
-    ? `${run.result.state.score.ns}–${run.result.state.score.ew}`
-    : run.result.analysis.bestMove;
+  const headline = full ? `${run.result.state.score.ns}-${run.result.state.score.ew}` : run.result.analysis.bestMove;
   const detail = full
-    ? `${run.result.analyses.length} decisions · ${formatMs(run.result.totalMs)}`
-    : `${run.result.analysis.winningWorlds}/${run.settings.worlds} worlds · ${formatMs(run.result.analysis.searchMs)}`;
+    ? `${run.result.analyses.length} decisions | ${formatMs(run.result.totalMs)}`
+    : `${run.result.analysis.winningWorlds}/${run.settings.worlds} worlds | ${formatMs(run.result.analysis.searchMs)}`;
   return `
     <details class="run-card">
       <summary>
         <span class="run-mode">${full ? "Full deal" : "Decision"}</span>
         <strong>${escapeHtml(run.deal.name)}</strong>
         <b>${escapeHtml(headline)}</b>
-        <small>${escapeHtml(detail)} · ${date}</small>
+        <small>${escapeHtml(detail)} | ${date}</small>
       </summary>
       <div class="run-detail">
         <p><strong>Settings:</strong> ${run.settings.worlds} worlds, max M=${run.settings.depth}, target ${run.settings.target}, ${run.settings.timeLimit}s.</p>
-        ${full ? `<ol class="play-record">${run.result.plays.map((play) => `<li>${play.seat} ${play.card} <small>${play.source}</small></li>`).join("")}</ol>` : analysisMarkup(run.result.analysis)}
+        <div class="run-actions">
+          ${full ? `<button class="button secondary compact" data-review-run="${run.id}" type="button">Review on table</button>` : `<button class="button secondary compact" data-open-analysis-run="${run.id}" type="button">Open analysis</button>`}
+        </div>
+        ${full ? `<ol class="play-record">${run.result.plays.map((play) => `<li>${escapeHtml(play.seat)} ${escapeHtml(play.card)} <small>${escapeHtml(play.source)}</small></li>`).join("")}</ol>` : ""}
       </div>
     </details>`;
 }
@@ -355,17 +543,23 @@ function renderRuns() {
   const runs = loadRuns();
   elements.runList.innerHTML = runs.length
     ? runs.map(runSummary).join("")
-    : '<div class="empty-runs"><strong>No recorded runs yet.</strong><span>Analysis timing and search statistics will be saved automatically.</span></div>';
+    : "<div class=\"empty-runs\"><strong>No recorded runs yet.</strong><span>Analysis timing, sampled worlds, and play records are saved automatically.</span></div>";
 }
 
 function updateActionState() {
-  const hasSession = Boolean(currentState);
-  elements.analyze.disabled = busy || !engineReady || !hasSession || currentState?.finished;
-  elements.analyzeFull.disabled = busy || !engineReady || !hasSession;
+  const hasSession = Boolean(liveState);
+  const live = isAtLivePosition();
+  const declarerTurn = liveState?.turn === "North" || liveState?.turn === "South";
+  elements.analyze.disabled = busy || !engineReady || !hasSession || !live || !declarerTurn || liveState?.finished;
+  elements.analyzeFull.disabled = busy || !engineReady || !hasSession || !live || liveState?.finished;
   byId("load-deal").disabled = busy || !engineReady;
-  byId("undo").disabled = busy || !hasSession;
-  byId("replay").disabled = busy || !hasSession;
-  elements.legalCards.querySelectorAll("button").forEach((button) => { button.disabled = busy; });
+  byId("undo").disabled = busy || !hasSession || !live || timelineFrames.length <= 1;
+  byId("replay").disabled = busy || !currentDeal;
+  byId("edit-deal").disabled = busy;
+  byId("edit-settings").disabled = busy;
+  elements.legalCards.querySelectorAll("button").forEach((button) => {
+    button.disabled = busy || !live || reviewOnly;
+  });
 }
 
 function setBusy(value, full = false) {
@@ -376,14 +570,29 @@ function setBusy(value, full = false) {
   updateActionState();
 }
 
-async function putDealOnTable() {
+async function putDealOnTable(quiet = false) {
   const deal = collectDeal();
   const response = await engine.createSession(deal);
+  resetTimeline(response.state);
+  let state = response.state;
+  for (const card of parsePlayPrefix(deal.playPrefix)) {
+    const seat = state.turn;
+    const played = await engine.play(card);
+    state = played.state;
+    appendTimelineFrame(state, { seat, card, source: "entered" });
+  }
   currentDeal = deal;
-  currentState = response.state;
+  liveState = state;
+  reviewOnly = false;
+  activeAnalysis = null;
+  activeAnalysisIsLive = false;
+  activeFullResult = null;
+  elements.result.classList.add("is-hidden");
+  elements.resultEmpty.classList.remove("is-hidden");
   elements.restrictionStatus.textContent = `${formatNumber(response.possibleDeals)} deal${response.possibleDeals === 1 ? "" : "s"}`;
   renderTable();
-  toast("Deal loaded", "success");
+  if (elements.dealDialog.open) elements.dealDialog.close();
+  if (!quiet) toast("Deal loaded", "success");
 }
 
 async function analyzePosition() {
@@ -391,14 +600,15 @@ async function analyzePosition() {
   try {
     const settings = analysisSettings();
     const result = await engine.analyze(settings);
-    currentState = result.state;
+    liveState = result.state;
     elements.restrictionStatus.textContent = `${formatNumber(result.analysis.possibleDeals)} deal${result.analysis.possibleDeals === 1 ? "" : "s"}`;
-    showAnalysis(result.analysis);
-    saveRun({ mode: "decision", deal: collectDeal(), settings, result });
+    showAnalysis(result.analysis, true);
+    saveRun({ mode: "decision", deal: currentDeal, settings, result });
     renderRuns();
     toast(`Alpha-mu recommends ${result.analysis.bestMove}`, "success");
   } finally {
     setBusy(false);
+    renderTable();
   }
 }
 
@@ -406,18 +616,28 @@ async function analyzeFullDeal() {
   setBusy(true, true);
   elements.progressBar.style.width = "0%";
   elements.progressValue.textContent = "0%";
-  elements.progressLabel.textContent = "Starting full-deal analysis";
+  elements.progressLabel.textContent = "Continuing from the current card";
+  const existingFrames = timelineFrames.slice(0, timelineIndex + 1);
   try {
     const settings = analysisSettings();
-    const result = await engine.runFull(settings);
-    currentState = result.state;
+    const result = await engine.runFull({
+      ...settings,
+      priorAnalysis: activeAnalysisIsLive ? activeAnalysis : null
+    });
+    liveState = result.state;
+    const continuationFrames = result.frames || result.plays.map((play) => ({ play, state: play.state })).filter((frame) => frame.state);
+    timelineFrames = existingFrames.concat(continuationFrames);
+    timelineIndex = timelineFrames.length - 1;
+    reviewOnly = false;
+    const completeResult = { ...result, timelineFrames };
     renderTable();
-    showFullResult(result);
-    saveRun({ mode: "full", deal: collectDeal(), settings, result });
+    showFullResult(completeResult);
+    saveRun({ mode: "full", deal: currentDeal, settings, result: completeResult });
     renderRuns();
-    toast("Full-deal analysis saved", "success");
+    toast("Bot continuation saved", "success");
   } finally {
     setBusy(false);
+    renderTable();
   }
 }
 
@@ -428,27 +648,64 @@ function safely(action) {
     } catch (error) {
       toast(error.message || String(error), "error");
       setBusy(false);
+      renderTable();
     }
   };
 }
 
-byId("load-deal").addEventListener("click", safely(putDealOnTable));
+function openDialog(dialog) {
+  if (!dialog.open) dialog.showModal();
+}
+
+byId("edit-deal").addEventListener("click", () => openDialog(elements.dealDialog));
+byId("edit-settings").addEventListener("click", () => openDialog(elements.settingsDialog));
+for (const button of document.querySelectorAll("[data-close-dialog]")) {
+  button.addEventListener("click", () => byId(button.dataset.closeDialog).close());
+}
+for (const dialog of [elements.dealDialog, elements.settingsDialog]) {
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+}
+
+byId("apply-settings").addEventListener("click", () => {
+  renderSettingsSummary();
+  elements.settingsDialog.close();
+  toast("Analysis settings updated");
+});
+
+byId("load-deal").addEventListener("click", safely(() => putDealOnTable(false)));
 byId("save-deal").addEventListener("click", () => {
-  currentDeal = saveDeal(collectDeal());
+  const stored = saveDeal(collectDeal());
+  populateDealForm(stored);
   renderSavedDeals();
+  renderDealSummary();
   toast("Deal saved on this device", "success");
 });
 byId("new-deal").addEventListener("click", () => {
-  applyDeal({ name: "Untitled deal", north: "-.-.-.-", east: "-.-.-.-", south: "-.-.-.-", west: "-.-.-.-", leader: "South", trump: "NT", notes: "", restrictions: {} });
+  populateDealForm({
+    name: "Untitled deal",
+    north: "-.-.-.-",
+    east: "-.-.-.-",
+    south: "-.-.-.-",
+    west: "-.-.-.-",
+    leader: "South",
+    trump: "NT",
+    playPrefix: "",
+    notes: "",
+    restrictions: {}
+  });
 });
+
 elements.savedDeals.addEventListener("click", safely(async (event) => {
   const loadButton = event.target.closest("[data-load-deal]");
   const deleteButton = event.target.closest("[data-delete-deal]");
   if (loadButton) {
     const deal = loadDeals().find((candidate) => candidate.id === loadButton.dataset.loadDeal);
     if (deal) {
-      applyDeal(deal);
-      await putDealOnTable();
+      currentDeal = deal;
+      populateDealForm(deal);
+      await putDealOnTable(false);
     }
   }
   if (deleteButton) {
@@ -456,67 +713,158 @@ elements.savedDeals.addEventListener("click", safely(async (event) => {
     renderSavedDeals();
   }
 }));
+
 elements.legalCards.addEventListener("click", safely(async (event) => {
   const button = event.target.closest("[data-card]");
-  if (!button) return;
-  const result = await engine.play(button.dataset.card);
-  currentState = result.state;
+  if (!button || !isAtLivePosition()) return;
+  const seat = liveState.turn;
+  const card = button.dataset.card;
+  const result = await engine.play(card);
+  appendTimelineFrame(result.state, { seat, card, source: "manual" });
+  activeAnalysis = null;
+  activeAnalysisIsLive = false;
   renderTable();
 }));
+
 byId("undo").addEventListener("click", safely(async () => {
+  if (!isAtLivePosition() || timelineFrames.length <= 1) return;
   const result = await engine.undo();
-  currentState = result.state;
+  if (result.changed !== false) timelineFrames.pop();
+  liveState = result.state;
+  timelineIndex = timelineFrames.length - 1;
+  activeAnalysis = null;
+  activeAnalysisIsLive = false;
   renderTable();
 }));
-byId("replay").addEventListener("click", safely(async () => {
-  const result = await engine.replay();
-  currentState = result.state;
+
+byId("replay").addEventListener("click", safely(() => putDealOnTable(false)));
+elements.historyPrev.addEventListener("click", () => {
+  if (timelineIndex > 0) timelineIndex -= 1;
   renderTable();
-}));
+  syncAnalysisToTimeline();
+});
+elements.historyNext.addEventListener("click", () => {
+  if (timelineIndex < timelineFrames.length - 1) timelineIndex += 1;
+  renderTable();
+  syncAnalysisToTimeline();
+});
+elements.historyLive.addEventListener("click", () => {
+  timelineIndex = timelineFrames.length - 1;
+  renderTable();
+});
+
 elements.analyze.addEventListener("click", safely(analyzePosition));
 elements.analyzeFull.addEventListener("click", safely(analyzeFullDeal));
 elements.cancel.addEventListener("click", safely(async () => {
   engine.cancel();
   setBusy(false);
-  if (currentDeal) {
-    const result = await engine.createSession(currentDeal);
-    currentState = result.state;
-    renderTable();
-  }
+  if (currentDeal) await putDealOnTable(true);
   toast("Analysis stopped");
 }));
+
+elements.result.addEventListener("click", (event) => {
+  const move = event.target.closest("[data-analysis-move]");
+  const strategy = event.target.closest("[data-strategy-index]");
+  const world = event.target.closest("[data-world-index]");
+  const decision = event.target.closest("[data-decision-index]");
+  if (decision && activeFullResult) {
+    activeDecisionIndex = Number(decision.dataset.decisionIndex);
+    activeMoveCard = activeFullResult.analyses[activeDecisionIndex].bestMove;
+    activeStrategyIndex = bestOutcomeIndex(
+      activeFullResult.analyses[activeDecisionIndex].rootMoves.find(
+        (candidate) => candidate.card === activeMoveCard
+      )
+    );
+    activeWorldIndex = null;
+    const matchingFrame = timelineFrames.findIndex(
+      (frame) => frame.play?.analysisIndex === activeDecisionIndex
+    );
+    if (matchingFrame >= 0) {
+      timelineIndex = matchingFrame;
+      renderTable();
+    }
+    renderFullResult();
+    return;
+  }
+  if (move && activeAnalysis) {
+    activeMoveCard = move.dataset.analysisMove;
+    activeStrategyIndex = bestOutcomeIndex(activeAnalysis.rootMoves.find((candidate) => candidate.card === activeMoveCard));
+    activeWorldIndex = null;
+  } else if (strategy) {
+    activeStrategyIndex = Number(strategy.dataset.strategyIndex);
+    activeWorldIndex = null;
+  } else if (world) {
+    activeWorldIndex = Number(world.dataset.worldIndex);
+  } else {
+    return;
+  }
+  if (activeFullResult) renderFullResult();
+  else elements.result.innerHTML = analysisMarkup(activeAnalysis);
+});
+
+elements.runList.addEventListener("click", (event) => {
+  const analysisButton = event.target.closest("[data-open-analysis-run]");
+  const reviewButton = event.target.closest("[data-review-run]");
+  if (!analysisButton && !reviewButton) return;
+  const id = analysisButton?.dataset.openAnalysisRun || reviewButton?.dataset.reviewRun;
+  const run = loadRuns().find((candidate) => candidate.id === id);
+  if (!run) return;
+  if (analysisButton) {
+    showAnalysis(run.result.analysis, false);
+  } else {
+    currentDeal = run.deal;
+    populateDealForm(run.deal);
+    liveState = run.result.state;
+    timelineFrames = run.result.timelineFrames || [
+      ...(run.result.startState ? [{ state: run.result.startState, play: null, label: "Bot continuation start" }] : []),
+      ...(run.result.frames || [])
+    ];
+    if (!timelineFrames.length) timelineFrames = [{ state: run.result.state, play: null }];
+    timelineIndex = 0;
+    reviewOnly = true;
+    renderTable();
+    showFullResult(run.result);
+  }
+  byId("analysis").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
 byId("clear-runs").addEventListener("click", () => {
   clearRuns();
   renderRuns();
 });
-function invalidateSession() {
-  currentState = null;
-  elements.restrictionStatus.textContent = "Reload to apply";
-  renderTable();
+
+document.addEventListener("keydown", (event) => {
+  if (event.target.matches("input, textarea, select") || elements.dealDialog.open || elements.settingsDialog.open) return;
+  if (event.key === "ArrowLeft" && timelineIndex > 0) {
+    timelineIndex -= 1;
+    renderTable();
+    syncAnalysisToTimeline();
+  }
+  if (event.key === "ArrowRight" && timelineIndex < timelineFrames.length - 1) {
+    timelineIndex += 1;
+    renderTable();
+    syncAnalysisToTimeline();
+  }
+});
+
+function syncAnalysisToTimeline() {
+  if (!activeFullResult) return;
+  const analysisIndex = currentFrame()?.play?.analysisIndex;
+  if (!Number.isInteger(analysisIndex) || analysisIndex < 0 ||
+      analysisIndex >= activeFullResult.analyses.length ||
+      analysisIndex === activeDecisionIndex) return;
+  activeDecisionIndex = analysisIndex;
+  activeMoveCard = activeFullResult.analyses[analysisIndex].bestMove;
+  activeStrategyIndex = bestOutcomeIndex(
+    activeFullResult.analyses[analysisIndex].rootMoves.find(
+      (candidate) => candidate.card === activeMoveCard
+    )
+  );
+  activeWorldIndex = null;
+  renderFullResult();
 }
 
-const restrictionFields = ["east", "west"].flatMap((seat) => [
-  byId(`${seat}-required`),
-  byId(`${seat}-forbidden`),
-  ...restrictionSuits.flatMap((suit) => [
-    byId(`${seat}-min-${suit.toLowerCase()}`),
-    byId(`${seat}-max-${suit.toLowerCase()}`)
-  ]),
-  byId(`${seat}-min-hcp`),
-  byId(`${seat}-max-hcp`)
-]);
-for (const input of [
-  elements.north,
-  elements.east,
-  elements.south,
-  elements.west,
-  elements.leader,
-  elements.trump,
-  ...restrictionFields
-]) {
-  input.addEventListener("input", invalidateSession);
-}
-
+renderSettingsSummary();
 renderSavedDeals();
 renderRuns();
 renderTable();

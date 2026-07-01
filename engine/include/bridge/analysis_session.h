@@ -24,6 +24,7 @@ struct BotSettings {
     double max_search_seconds {30.0};
     AlphaMuOptimizations optimizations {};
     bool collect_audit_log {false};
+    bool compare_all_root_moves {false};
 };
 
 struct SeatRestrictions {
@@ -39,6 +40,7 @@ struct DefenderRestrictions {
 
 struct SessionAnalysis {
     AlphaMuResult search;
+    std::vector<AlphaMuWorld> worlds;
     std::uint64_t possible_deals {};
     std::size_t unique_worlds {};
     double sampling_ms {};

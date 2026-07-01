@@ -85,12 +85,17 @@ cd website
 npm start
 ```
 
-The browser app supports deal entry, local save/load, card-by-card play,
-single-decision alpha-mu analysis, full-deal simulation, and persistent timing
-history. The optional **Defender knowledge** panel adds hard East/West known
-cards, forbidden cards, suit-length ranges, and HCP ranges. Compatible-layout
-counts and contradictions are reported when the deal is loaded. The C++ engine
-and DDS run as WebAssembly in a dedicated Web Worker.
+The browser keeps the table and analysis visible while deal entry and search
+settings live in modal editors. A play prefix such as `D6 DA D7 D4` can be
+entered with the deal, or cards can be played manually before asking the bot to
+finish from that exact position. Arrow controls review every card without
+changing the live engine state.
+
+Each analyzed root card exposes its reached M, Pareto strategies, sampled-world
+win/loss grid, and the East/West holding in a selected world. Equal options are
+shown explicitly. Deals, complete play timelines, analysis details, and timing
+statistics are stored locally. The optional **Defender knowledge** editor adds
+hard cards, forbidden cards, suit-length ranges, and HCP ranges.
 
 Build the complete browser version after activating Emscripten:
 

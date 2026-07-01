@@ -13,11 +13,11 @@
   <body>
     <header class="site-header">
       <a class="brand" href="#top" aria-label="Bridge Lab home">
-        <span class="brand-mark">♠</span>
+        <span class="brand-mark">&spades;</span>
         <span>Bridge Lab</span>
       </a>
       <nav aria-label="Page sections">
-        <a href="#deal">Deal</a>
+        <a href="#table">Table</a>
         <a href="#analysis">Analysis</a>
         <a href="#runs">Runs</a>
       </nav>
@@ -31,100 +31,44 @@
       <section class="intro reveal">
         <div>
           <p class="eyebrow">Imperfect-information declarer play</p>
-          <h1>Put the deal on the table.</h1>
+          <h1>Read the play, not the cards.</h1>
         </div>
         <p class="intro-copy">
-          Sample hidden worlds, inspect every candidate card, and keep the
-          timing trail. The solver runs locally in your browser.
+          Build a position, continue it with alpha-mu, and inspect the sampled
+          worlds behind every decision. The solver runs locally in your browser.
         </p>
       </section>
 
-      <section class="workbench reveal" id="deal">
-        <aside class="control-panel deal-editor">
-          <div class="panel-heading">
-            <div>
-              <p class="section-number">01</p>
-              <h2>Deal</h2>
-            </div>
-            <button class="text-button" id="new-deal" type="button">New</button>
+      <section class="session-bar reveal" id="deal">
+        <div class="session-identity">
+          <span class="session-kicker">Current deal</span>
+          <strong id="current-deal-name">7NT spade guess</strong>
+          <small id="current-deal-summary">South leads &middot; NT &middot; not loaded</small>
+        </div>
+        <div class="session-actions">
+          <button class="button secondary compact" id="edit-deal" type="button">Edit deal</button>
+          <div class="settings-summary">
+            <span>Analysis</span>
+            <strong id="settings-summary">64 worlds &middot; M 26 &middot; target 13</strong>
           </div>
+          <button class="button secondary compact" id="edit-settings" type="button">Settings</button>
+        </div>
+      </section>
 
-          <label class="field">
-            <span>Name</span>
-            <input id="deal-name" value="7NT spade guess" autocomplete="off">
-          </label>
-
-          <div class="hand-inputs">
-            <label class="field"><span>North</span><input id="north-hand" value="AJT9.AKQ.AKQ.432" spellcheck="false"></label>
-            <label class="field"><span>East</span><input id="east-hand" value="Q5.T65.T865.J985" spellcheck="false"></label>
-            <label class="field"><span>South</span><input id="south-hand" value="K876.432.432.AKQ" spellcheck="false"></label>
-            <label class="field"><span>West</span><input id="west-hand" value="432.J987.J97.T76" spellcheck="false"></label>
-          </div>
-
-          <details class="knowledge-panel" id="defender-knowledge">
-            <summary>
-              <span>Defender knowledge</span>
-              <small id="restriction-status">Unrestricted</small>
-            </summary>
-            <p class="field-help">Hard public constraints used when sampling worlds. Card names use suit first, such as <code>SQ HK</code>.</p>
-
-            <section class="restriction-seat" data-restriction-seat="east">
-              <h3>East</h3>
-              <div class="two-up restriction-cards">
-                <label class="field"><span>Known cards</span><input id="east-required" placeholder="SQ HK" spellcheck="false"></label>
-                <label class="field"><span>Cannot hold</span><input id="east-forbidden" placeholder="CQ" spellcheck="false"></label>
-              </div>
-              <div class="range-grid">
-                <span>Suit</span><span>Min</span><span>Max</span>
-                <b>S</b><input id="east-min-s" type="number" min="0" max="13" value="0" aria-label="East minimum spades"><input id="east-max-s" type="number" min="0" max="13" value="13" aria-label="East maximum spades">
-                <b>H</b><input id="east-min-h" type="number" min="0" max="13" value="0" aria-label="East minimum hearts"><input id="east-max-h" type="number" min="0" max="13" value="13" aria-label="East maximum hearts">
-                <b>D</b><input id="east-min-d" type="number" min="0" max="13" value="0" aria-label="East minimum diamonds"><input id="east-max-d" type="number" min="0" max="13" value="13" aria-label="East maximum diamonds">
-                <b>C</b><input id="east-min-c" type="number" min="0" max="13" value="0" aria-label="East minimum clubs"><input id="east-max-c" type="number" min="0" max="13" value="13" aria-label="East maximum clubs">
-                <b>HCP</b><input id="east-min-hcp" type="number" min="0" max="37" value="0" aria-label="East minimum HCP"><input id="east-max-hcp" type="number" min="0" max="37" value="37" aria-label="East maximum HCP">
-              </div>
-            </section>
-
-            <section class="restriction-seat" data-restriction-seat="west">
-              <h3>West</h3>
-              <div class="two-up restriction-cards">
-                <label class="field"><span>Known cards</span><input id="west-required" placeholder="SQ HK" spellcheck="false"></label>
-                <label class="field"><span>Cannot hold</span><input id="west-forbidden" placeholder="CQ" spellcheck="false"></label>
-              </div>
-              <div class="range-grid">
-                <span>Suit</span><span>Min</span><span>Max</span>
-                <b>S</b><input id="west-min-s" type="number" min="0" max="13" value="0" aria-label="West minimum spades"><input id="west-max-s" type="number" min="0" max="13" value="13" aria-label="West maximum spades">
-                <b>H</b><input id="west-min-h" type="number" min="0" max="13" value="0" aria-label="West minimum hearts"><input id="west-max-h" type="number" min="0" max="13" value="13" aria-label="West maximum hearts">
-                <b>D</b><input id="west-min-d" type="number" min="0" max="13" value="0" aria-label="West minimum diamonds"><input id="west-max-d" type="number" min="0" max="13" value="13" aria-label="West maximum diamonds">
-                <b>C</b><input id="west-min-c" type="number" min="0" max="13" value="0" aria-label="West minimum clubs"><input id="west-max-c" type="number" min="0" max="13" value="13" aria-label="West maximum clubs">
-                <b>HCP</b><input id="west-min-hcp" type="number" min="0" max="37" value="0" aria-label="West minimum HCP"><input id="west-max-hcp" type="number" min="0" max="37" value="37" aria-label="West maximum HCP">
-              </div>
-            </section>
-          </details>
-
-          <div class="two-up">
-            <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>
-            <label class="field"><span>Trump</span><select id="trump"><option selected>NT</option><option>S</option><option>H</option><option>D</option><option>C</option></select></label>
-          </div>
-
-          <label class="field">
-            <span>Notes</span>
-            <textarea id="deal-notes" rows="3" placeholder="Auction, inference, or question to investigate"></textarea>
-          </label>
-
-          <div class="button-row">
-            <button class="button primary" id="load-deal" type="button">Put on table</button>
-            <button class="button secondary" id="save-deal" type="button">Save deal</button>
-          </div>
-          <p class="field-help">Hands use SHDC order, for example <code>AJT9.AKQ.AKQ.432</code>.</p>
-
-          <div class="saved-block">
-            <div class="subheading"><h3>Saved deals</h3><span id="deal-count">0</span></div>
-            <div class="saved-list" id="saved-deals"></div>
-          </div>
-        </aside>
-
-        <section class="table-stage" aria-label="Bridge table">
+      <section class="workbench reveal">
+        <section class="table-stage" id="table" aria-label="Bridge table">
           <div class="felt-grain"></div>
+
+          <div class="history-strip" aria-label="Play history controls">
+            <button class="history-arrow" id="history-prev" type="button" aria-label="Previous card">&larr;</button>
+            <div>
+              <span class="micro-label">Position</span>
+              <strong id="history-position">Opening position</strong>
+            </div>
+            <button class="history-arrow" id="history-next" type="button" aria-label="Next card">&rarr;</button>
+            <button class="text-button is-hidden" id="history-live" type="button">Return live</button>
+          </div>
+
           <article class="seat north" data-seat="North">
             <p>North</p><div class="holding" data-holding="North"></div>
           </article>
@@ -148,31 +92,24 @@
             <div class="play-heading">
               <div><span class="micro-label">Legal cards</span><strong id="legal-summary">No active deal</strong></div>
               <div class="compact-actions">
-                <button class="icon-button" id="undo" type="button" title="Undo last card">Undo</button>
-                <button class="icon-button" id="replay" type="button" title="Replay deal">Replay</button>
+                <button class="icon-button" id="undo" type="button">Undo play</button>
+                <button class="icon-button" id="replay" type="button">Restart</button>
               </div>
             </div>
             <div class="card-actions" id="legal-cards"></div>
           </div>
         </section>
 
-        <aside class="control-panel analysis-panel" id="analysis">
+        <aside class="analysis-panel" id="analysis">
           <div class="panel-heading">
-            <div><p class="section-number">02</p><h2>Analysis</h2></div>
+            <div><p class="section-number">Analysis</p><h2>What works?</h2></div>
             <span class="mode-chip">Alpha-mu</span>
           </div>
+          <p class="panel-copy">Compare every legal root card, then open a move to inspect its Pareto strategies and sampled worlds.</p>
 
-          <div class="settings-grid">
-            <label class="field"><span>Worlds</span><input id="world-count" type="number" min="1" max="64" value="64"></label>
-            <label class="field"><span>Maximum M</span><input id="max-depth" type="number" min="1" max="26" value="26"></label>
-            <label class="field"><span>Target tricks</span><input id="target-tricks" type="number" min="1" max="13" value="13"></label>
-            <label class="field"><span>Time limit</span><div class="input-suffix"><input id="time-limit" type="number" min="0" step="0.5" value="5"><span>s</span></div></label>
-          </div>
-          <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>
-
-          <div class="button-stack">
+          <div class="analysis-actions">
             <button class="button primary" id="analyze-position" type="button">Analyze this decision</button>
-            <button class="button dark" id="analyze-full" type="button">Play and analyze full deal</button>
+            <button class="button dark" id="analyze-full" type="button">Let bot finish from here</button>
             <button class="button danger is-hidden" id="cancel-analysis" type="button">Stop analysis</button>
           </div>
 
@@ -182,8 +119,8 @@
           </div>
 
           <div class="result-empty" id="result-empty">
-            <span class="result-glyph">μ</span>
-            <p>Run an analysis to see the recommended card, world count, Pareto result, and optimization statistics.</p>
+            <span class="result-glyph">&mu;</span>
+            <p>Run an analysis to compare legal cards. The result will show depth, timing, Pareto strategies, and the exact sampled layouts won or lost.</p>
           </div>
           <div class="analysis-result is-hidden" id="analysis-result"></div>
         </aside>
@@ -191,12 +128,110 @@
 
       <section class="run-section reveal" id="runs">
         <div class="run-heading">
-          <div><p class="section-number">03</p><h2>Saved runs</h2></div>
+          <div><p class="section-number">History</p><h2>Saved runs</h2></div>
           <button class="text-button" id="clear-runs" type="button">Clear history</button>
         </div>
         <div class="run-list" id="run-list"></div>
       </section>
     </main>
+
+    <dialog class="editor-dialog deal-dialog" id="deal-dialog">
+      <div class="dialog-shell">
+        <header class="dialog-header">
+          <div><p class="section-number">Position editor</p><h2>Put a deal on the table</h2></div>
+          <button class="dialog-close" data-close-dialog="deal-dialog" type="button" aria-label="Close deal editor">&times;</button>
+        </header>
+        <div class="dialog-body deal-dialog-grid">
+          <section class="editor-fields">
+            <label class="field"><span>Name</span><input id="deal-name" value="7NT spade guess" autocomplete="off"></label>
+            <div class="hand-inputs">
+              <label class="field"><span>North</span><input id="north-hand" value="AJT9.AKQ.AKQ.432" spellcheck="false"></label>
+              <label class="field"><span>East</span><input id="east-hand" value="Q5.T65.T865.J985" spellcheck="false"></label>
+              <label class="field"><span>South</span><input id="south-hand" value="K876.432.432.AKQ" spellcheck="false"></label>
+              <label class="field"><span>West</span><input id="west-hand" value="432.J987.J97.T76" spellcheck="false"></label>
+            </div>
+            <div class="two-up">
+              <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>
+              <label class="field"><span>Trump</span><select id="trump"><option selected>NT</option><option>S</option><option>H</option><option>D</option><option>C</option></select></label>
+            </div>
+            <label class="field">
+              <span>Play already made</span>
+              <input id="play-prefix" placeholder="D6 DA D7 D4" spellcheck="false">
+              <small>Optional cards in play order, written suit first. The bot will continue from this exact position.</small>
+            </label>
+            <label class="field"><span>Notes</span><textarea id="deal-notes" rows="3" placeholder="Auction, inference, or question to investigate"></textarea></label>
+
+            <details class="knowledge-panel" id="defender-knowledge">
+              <summary><span>Defender knowledge</span><small id="restriction-status">Unrestricted</small></summary>
+              <p class="field-help">Hard public constraints for sampled East/West layouts. Card names use suit first, such as <code>SQ HK</code>.</p>
+              <section class="restriction-seat" data-restriction-seat="east">
+                <h3>East</h3>
+                <div class="two-up restriction-cards">
+                  <label class="field"><span>Known cards</span><input id="east-required" placeholder="SQ HK" spellcheck="false"></label>
+                  <label class="field"><span>Cannot hold</span><input id="east-forbidden" placeholder="CQ" spellcheck="false"></label>
+                </div>
+                <div class="range-grid">
+                  <span>Suit</span><span>Min</span><span>Max</span>
+                  <b>S</b><input id="east-min-s" type="number" min="0" max="13" value="0" aria-label="East minimum spades"><input id="east-max-s" type="number" min="0" max="13" value="13" aria-label="East maximum spades">
+                  <b>H</b><input id="east-min-h" type="number" min="0" max="13" value="0" aria-label="East minimum hearts"><input id="east-max-h" type="number" min="0" max="13" value="13" aria-label="East maximum hearts">
+                  <b>D</b><input id="east-min-d" type="number" min="0" max="13" value="0" aria-label="East minimum diamonds"><input id="east-max-d" type="number" min="0" max="13" value="13" aria-label="East maximum diamonds">
+                  <b>C</b><input id="east-min-c" type="number" min="0" max="13" value="0" aria-label="East minimum clubs"><input id="east-max-c" type="number" min="0" max="13" value="13" aria-label="East maximum clubs">
+                  <b>HCP</b><input id="east-min-hcp" type="number" min="0" max="37" value="0" aria-label="East minimum HCP"><input id="east-max-hcp" type="number" min="0" max="37" value="37" aria-label="East maximum HCP">
+                </div>
+              </section>
+              <section class="restriction-seat" data-restriction-seat="west">
+                <h3>West</h3>
+                <div class="two-up restriction-cards">
+                  <label class="field"><span>Known cards</span><input id="west-required" placeholder="SQ HK" spellcheck="false"></label>
+                  <label class="field"><span>Cannot hold</span><input id="west-forbidden" placeholder="CQ" spellcheck="false"></label>
+                </div>
+                <div class="range-grid">
+                  <span>Suit</span><span>Min</span><span>Max</span>
+                  <b>S</b><input id="west-min-s" type="number" min="0" max="13" value="0" aria-label="West minimum spades"><input id="west-max-s" type="number" min="0" max="13" value="13" aria-label="West maximum spades">
+                  <b>H</b><input id="west-min-h" type="number" min="0" max="13" value="0" aria-label="West minimum hearts"><input id="west-max-h" type="number" min="0" max="13" value="13" aria-label="West maximum hearts">
+                  <b>D</b><input id="west-min-d" type="number" min="0" max="13" value="0" aria-label="West minimum diamonds"><input id="west-max-d" type="number" min="0" max="13" value="13" aria-label="West maximum diamonds">
+                  <b>C</b><input id="west-min-c" type="number" min="0" max="13" value="0" aria-label="West minimum clubs"><input id="west-max-c" type="number" min="0" max="13" value="13" aria-label="West maximum clubs">
+                  <b>HCP</b><input id="west-min-hcp" type="number" min="0" max="37" value="0" aria-label="West minimum HCP"><input id="west-max-hcp" type="number" min="0" max="37" value="37" aria-label="West maximum HCP">
+                </div>
+              </section>
+            </details>
+            <p class="field-help">Hands use SHDC order, for example <code>AJT9.AKQ.AKQ.432</code>.</p>
+          </section>
+
+          <aside class="saved-block">
+            <div class="subheading"><h3>Saved deals</h3><span id="deal-count">0</span></div>
+            <div class="saved-list" id="saved-deals"></div>
+          </aside>
+        </div>
+        <footer class="dialog-footer">
+          <button class="button secondary" id="new-deal" type="button">Clear</button>
+          <button class="button secondary" id="save-deal" type="button">Save deal</button>
+          <button class="button primary" id="load-deal" type="button">Put on table</button>
+        </footer>
+      </div>
+    </dialog>
+
+    <dialog class="editor-dialog settings-dialog" id="settings-dialog">
+      <div class="dialog-shell compact-dialog">
+        <header class="dialog-header">
+          <div><p class="section-number">Search controls</p><h2>Analysis settings</h2></div>
+          <button class="dialog-close" data-close-dialog="settings-dialog" type="button" aria-label="Close settings">&times;</button>
+        </header>
+        <div class="dialog-body">
+          <div class="settings-grid">
+            <label class="field"><span>Worlds</span><input id="world-count" type="number" min="1" max="64" value="64"></label>
+            <label class="field"><span>Maximum M</span><input id="max-depth" type="number" min="1" max="26" value="26"></label>
+            <label class="field"><span>Target tricks</span><input id="target-tricks" type="number" min="1" max="13" value="13"></label>
+            <label class="field"><span>Time limit</span><div class="input-suffix"><input id="time-limit" type="number" min="0" step="0.5" value="5"><span>s</span></div></label>
+          </div>
+          <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>
+          <p class="settings-note">Web analysis compares every representative root card exactly. Equivalent touching cards may still be collapsed into one candidate.</p>
+        </div>
+        <footer class="dialog-footer">
+          <button class="button primary" id="apply-settings" type="button">Use these settings</button>
+        </footer>
+      </div>
+    </dialog>
 
     <div class="toast-region" id="toast-region" aria-live="polite"></div>
     <script type="module" src="./app.js"></script>

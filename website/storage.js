@@ -45,7 +45,15 @@ export function loadRuns() {
 
 export function saveRun(run) {
   const runs = [{ ...run, id: identifier(), createdAt: new Date().toISOString() }, ...loadRuns()];
-  write(RUN_KEY, runs.slice(0, 100));
+  const retained = runs.slice(0, 24);
+  while (retained.length) {
+    try {
+      write(RUN_KEY, retained);
+      break;
+    } catch {
+      retained.pop();
+    }
+  }
   return runs[0];
 }
 

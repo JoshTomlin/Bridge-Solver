@@ -191,6 +191,8 @@ void test_analysis_session_tracks_public_play() {
     const bridge::SessionAnalysis analysis = session.analyze();
     require(analysis.possible_deals == 6,
             "four hidden defender cards should have six two-card East layouts");
+    require(analysis.worlds.size() == settings.world_count,
+            "session analysis should retain the sampled worlds for explanation UIs");
     require(analysis.search.best_move != bridge::kNoCard,
             "interactive analysis should recommend a card");
     const bridge::OptimizationBenchmark benchmark =
@@ -1435,6 +1437,18 @@ void test_alpha_mu_example_one_classic_combination() {
     require(result.front.vectors.size() == 1 &&
                 result.front.vectors.front().wins == 0b1111,
             "Example 1 should preserve four tricks in all four worlds");
+
+    bridge::AlphaMuConfig comparison_config = config;
+    comparison_config.compare_all_root_moves = true;
+    const auto comparison = bridge::alpha_mu_search(worlds, comparison_config);
+    require(comparison.root_moves.size() > 1 &&
+                std::all_of(
+                    comparison.root_moves.begin(),
+                    comparison.root_moves.end(),
+                    [](const bridge::AlphaMuRootMove& move) {
+                        return !move.front.vectors.empty();
+                    }),
+            "full root comparison should retain an exact front for every candidate card");
 }
 
 void test_alpha_mu_optimizations_match_reference_search() {

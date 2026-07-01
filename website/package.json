@@ -7,6 +7,7 @@
     "start": "node server.js",
     "build": "node build.js",
     "preview": "node server.js dist",
+    "test:ui": "node ui-smoke.mjs",
     "test:wasm": "node wasm-smoke.mjs"
   }
 }

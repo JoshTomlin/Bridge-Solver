@@ -37,6 +37,11 @@ try {
   assert.equal(result.analysis.uniqueWorlds, 8);
   assert.ok(result.analysis.bestMove);
   assert.ok(result.analysis.stats.ddsWorlds > 0);
+  assert.equal(result.analysis.sampledWorlds.length, 8);
+  assert.ok(result.analysis.rootMoves.length > 1);
+  assert.ok(result.analysis.rootMoves.every(
+    (move) => Array.isArray(move.outcomes) && move.outcomes.length > 0
+  ));
 
   console.log(
     `WASM smoke passed: ${result.analysis.bestMove}, ` +

@@ -375,6 +375,7 @@ AlphaMuConfig AnalysisSession::search_config(bool build_policy) const {
         .max_declarer_plies = settings_.max_declarer_plies,
         .optimizations = settings_.optimizations,
         .build_trick_policy = build_policy,
+        .compare_all_root_moves = settings_.compare_all_root_moves,
         .collect_audit_log = settings_.collect_audit_log,
         .max_search_seconds = settings_.max_search_seconds,
     };
@@ -399,6 +400,7 @@ SessionAnalysis AnalysisSession::analyze() {
     analysis.search = alpha_mu_search(sampled.worlds, search_config(true));
     analysis.search_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - search_start).count();
+    analysis.worlds = std::move(sampled.worlds);
     policy_ = analysis.search.trick_policy;
     return analysis;
 }
