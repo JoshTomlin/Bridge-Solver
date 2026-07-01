@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import { fourthHandCompletion } from "./deal-utils.js";
 
 const [html, app, worker] = await Promise.all([
   fs.readFile(new URL("./index.html", import.meta.url), "utf8"),
@@ -19,6 +20,7 @@ for (const required of [
   "deal-dialog",
   "settings-dialog",
   "play-prefix",
+  "complete-fourth-hand",
   "history-prev",
   "history-next",
   "analysis-result"
@@ -34,5 +36,18 @@ assert.ok(!runFull.includes("engine.replay()"), "bot continuation must not repla
 assert.ok(runFull.includes("frames.push"), "bot continuation must retain playback frames");
 assert.ok(app.includes("data-world-index"), "analysis must expose sampled-world drill-down");
 assert.ok(app.includes("syncAnalysisToTimeline"), "playback must synchronize analysis decisions");
+assert.ok(app.includes("data-trick-seat"), "played cards must retain compass positions");
+assert.ok(!html.includes("id=\"legal-cards\""), "legal cards must be played directly from hands");
+assert.ok(html.includes("class=\"deal-compass\""), "deal entry must use compass order");
+
+const completion = fourthHandCompletion({
+  North: "AJT9.AKQ.AKQ.432",
+  East: "Q5.T65.T865.J985",
+  South: "K876.432.432.AKQ",
+  West: "-.-.-.-"
+});
+assert.equal(completion.ready, true);
+assert.equal(completion.seat, "West");
+assert.equal(completion.record, "432.J987.J97.T76");
 
 console.log(`UI smoke passed: ${ids.length} elements, modal editors, timeline, and world drill-down.`);

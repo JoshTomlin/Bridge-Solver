@@ -1,4 +1,5 @@
 import { EngineClient } from "./engine-client.js";
+import { fourthHandCompletion } from "./deal-utils.js";
 import { clearRuns, deleteDeal, loadDeals, loadRuns, saveDeal, saveRun } from "./storage.js";
 
 const byId = (id) => document.getElementById(id);
@@ -22,8 +23,10 @@ const elements = {
   restrictionStatus: byId("restriction-status"),
   savedDeals: byId("saved-deals"),
   dealCount: byId("deal-count"),
-  legalCards: byId("legal-cards"),
+  tableStage: byId("table"),
   legalSummary: byId("legal-summary"),
+  completeFourthHand: byId("complete-fourth-hand"),
+  completeHandStatus: byId("complete-hand-status"),
   turnLabel: byId("turn-label"),
   currentTrick: byId("current-trick"),
   scoreNs: byId("score-ns"),
@@ -188,6 +191,7 @@ function populateDealForm(deal) {
     hasSeatRestrictions(deal.restrictions?.west)
   );
   elements.restrictionStatus.textContent = "Load to count";
+  updateFourthHandControl();
 }
 
 function analysisSettings() {
@@ -220,17 +224,39 @@ function parsePreviewHand(record) {
   return { S: fields[0], H: fields[1], D: fields[2], C: fields[3] };
 }
 
-function holdingMarkup(hand) {
-  const suits = [
-    ["S", "&spades;"],
-    ["H", "&hearts;"],
-    ["D", "&diams;"],
-    ["C", "&clubs;"]
-  ];
-  return suits.map(([key, symbol]) => `
-    <div class="suit-line ${key === "H" || key === "D" ? "red" : ""}">
-      <span>${symbol}</span><strong>${escapeHtml(hand?.[key] || "-")}</strong>
-    </div>`).join("");
+const suitDisplay = {
+  S: { symbol: "&spades;", className: "spades", name: "spades" },
+  H: { symbol: "&hearts;", className: "hearts", name: "hearts" },
+  D: { symbol: "&diams;", className: "diamonds", name: "diamonds" },
+  C: { symbol: "&clubs;", className: "clubs", name: "clubs" }
+};
+
+function holdingMarkup(hand, legalCards, interactive) {
+  const legal = new Set(legalCards);
+  return Object.entries(suitDisplay).map(([suit, display]) => {
+    const holding = hand?.[suit] && hand[suit] !== "-" ? hand[suit] : "";
+    const cards = [...holding].map((rank) => {
+      const card = `${suit}${rank}`;
+      if (interactive && legal.has(card)) {
+        return `<button class="hand-card is-legal" data-card="${card}" type="button" aria-label="Play ${display.name} ${rank}" title="Play ${card}">${rank}</button>`;
+      }
+      return `<span class="hand-card">${escapeHtml(rank)}</span>`;
+    }).join("");
+    return `
+      <div class="suit-line suit-${display.className}">
+        <span class="suit-symbol">${display.symbol}</span>
+        <div class="suit-cards">${cards || "<span class=\"void\">-</span>"}</div>
+      </div>`;
+  }).join("");
+}
+
+function trickCardMarkup(play) {
+  const suit = suitDisplay[play.card[0]];
+  return `
+    <span class="trick-card suit-${suit.className}" data-trick-seat="${escapeHtml(play.seat)}" title="${escapeHtml(play.seat)} played ${escapeHtml(play.card)}">
+      <small>${escapeHtml(play.seat[0])}</small>
+      <b>${escapeHtml(play.card[1])}${suit.symbol}</b>
+    </span>`;
 }
 
 function previewState() {
@@ -278,8 +304,10 @@ function renderDealSummary() {
 function renderTable(override) {
   const state = displayedState(override);
   const interactive = isAtLivePosition() && !busy;
+  const legalCards = state.legalCards || [];
   for (const seat of ["North", "East", "South", "West"]) {
-    document.querySelector(`[data-holding="${seat}"]`).innerHTML = holdingMarkup(state.hands[seat]);
+    document.querySelector(`[data-holding="${seat}"]`).innerHTML =
+      holdingMarkup(state.hands[seat], legalCards, interactive);
     document.querySelector(`[data-seat="${seat}"]`).classList.toggle("is-turn", state.turn === seat);
   }
   elements.scoreNs.textContent = state.score.ns;
@@ -288,19 +316,14 @@ function renderTable(override) {
     ? `Deal complete | ${state.score.ns}-${state.score.ew}`
     : state.turn ? `${state.turn} to play` : "Put this deal on the table";
   elements.currentTrick.innerHTML = state.trick.length
-    ? state.trick.map((play) => `<span><small>${escapeHtml(play.seat[0])}</small>${escapeHtml(play.card)}</span>`).join("")
+    ? state.trick.map(trickCardMarkup).join("")
     : "<em>New trick</em>";
 
-  const legalCards = state.legalCards || [];
   elements.legalSummary.textContent = !interactive && timelineFrames.length
     ? "Reviewing history"
     : legalCards.length
-      ? `${legalCards.length} choice${legalCards.length === 1 ? "" : "s"}`
+      ? `${legalCards.length} clickable card${legalCards.length === 1 ? "" : "s"}`
       : state.finished ? "Deal complete" : "No active deal";
-  elements.legalCards.innerHTML = legalCards.map((card) => {
-    const red = card.startsWith("H") || card.startsWith("D");
-    return `<button class="playing-card ${red ? "red" : ""}" data-card="${card}" type="button"><span>${card[1]}</span><small>${card[0]}</small></button>`;
-  }).join("");
 
   const frame = currentFrame();
   elements.historyPosition.textContent = frameLabel(frame, timelineIndex);
@@ -557,9 +580,37 @@ function updateActionState() {
   byId("replay").disabled = busy || !currentDeal;
   byId("edit-deal").disabled = busy;
   byId("edit-settings").disabled = busy;
-  elements.legalCards.querySelectorAll("button").forEach((button) => {
+  elements.tableStage.querySelectorAll("[data-card]").forEach((button) => {
     button.disabled = busy || !live || reviewOnly;
   });
+}
+
+function handFormValues() {
+  return {
+    North: elements.north.value,
+    East: elements.east.value,
+    South: elements.south.value,
+    West: elements.west.value
+  };
+}
+
+function updateFourthHandControl() {
+  const completion = fourthHandCompletion(handFormValues());
+  elements.completeFourthHand.disabled = !completion.ready;
+  elements.completeHandStatus.textContent = completion.message;
+  return completion;
+}
+
+function fillFourthHand(showToast = true) {
+  const completion = updateFourthHandControl();
+  if (!completion.ready) {
+    if (showToast) toast(completion.message, "error");
+    return false;
+  }
+  elements[completion.seat.toLowerCase()].value = completion.record;
+  updateFourthHandControl();
+  if (showToast) toast(`${completion.seat} filled from the remaining deck`, "success");
+  return true;
 }
 
 function setBusy(value, full = false) {
@@ -571,6 +622,7 @@ function setBusy(value, full = false) {
 }
 
 async function putDealOnTable(quiet = false) {
+  fillFourthHand(false);
   const deal = collectDeal();
   const response = await engine.createSession(deal);
   resetTimeline(response.state);
@@ -714,9 +766,9 @@ elements.savedDeals.addEventListener("click", safely(async (event) => {
   }
 }));
 
-elements.legalCards.addEventListener("click", safely(async (event) => {
+elements.tableStage.addEventListener("click", safely(async (event) => {
   const button = event.target.closest("[data-card]");
-  if (!button || !isAtLivePosition()) return;
+  if (!button || button.disabled || !isAtLivePosition()) return;
   const seat = liveState.turn;
   const card = button.dataset.card;
   const result = await engine.play(card);
@@ -725,6 +777,11 @@ elements.legalCards.addEventListener("click", safely(async (event) => {
   activeAnalysisIsLive = false;
   renderTable();
 }));
+
+elements.completeFourthHand.addEventListener("click", () => fillFourthHand(true));
+for (const input of [elements.north, elements.east, elements.south, elements.west]) {
+  input.addEventListener("input", updateFourthHandControl);
+}
 
 byId("undo").addEventListener("click", safely(async () => {
   if (!isAtLivePosition() || timelineFrames.length <= 1) return;
@@ -867,4 +924,5 @@ function syncAnalysisToTimeline() {
 renderSettingsSummary();
 renderSavedDeals();
 renderRuns();
+updateFourthHandControl();
 renderTable();

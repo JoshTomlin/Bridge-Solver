@@ -88,15 +88,12 @@
             <div class="current-trick" id="current-trick"></div>
           </div>
 
-          <div class="play-dock">
-            <div class="play-heading">
-              <div><span class="micro-label">Legal cards</span><strong id="legal-summary">No active deal</strong></div>
-              <div class="compact-actions">
-                <button class="icon-button" id="undo" type="button">Undo play</button>
-                <button class="icon-button" id="replay" type="button">Restart</button>
-              </div>
+          <div class="table-actions">
+            <div><span class="micro-label">At the table</span><strong id="legal-summary">No active deal</strong></div>
+            <div class="compact-actions">
+              <button class="icon-button" id="undo" type="button">Undo</button>
+              <button class="icon-button" id="replay" type="button">Restart</button>
             </div>
-            <div class="card-actions" id="legal-cards"></div>
           </div>
         </section>
 
@@ -144,11 +141,16 @@
         <div class="dialog-body deal-dialog-grid">
           <section class="editor-fields">
             <label class="field"><span>Name</span><input id="deal-name" value="7NT spade guess" autocomplete="off"></label>
-            <div class="hand-inputs">
-              <label class="field"><span>North</span><input id="north-hand" value="AJT9.AKQ.AKQ.432" spellcheck="false"></label>
-              <label class="field"><span>East</span><input id="east-hand" value="Q5.T65.T865.J985" spellcheck="false"></label>
-              <label class="field"><span>South</span><input id="south-hand" value="K876.432.432.AKQ" spellcheck="false"></label>
-              <label class="field"><span>West</span><input id="west-hand" value="432.J987.J97.T76" spellcheck="false"></label>
+            <div class="deal-compass" aria-label="Deal in compass order">
+              <label class="field deal-hand north"><span>North</span><input id="north-hand" value="AJT9.AKQ.AKQ.432" spellcheck="false"></label>
+              <label class="field deal-hand west"><span>West</span><input id="west-hand" value="432.J987.J97.T76" spellcheck="false"></label>
+              <div class="deal-compass-centre">
+                <span class="micro-label">SHDC</span>
+                <button class="button secondary compact" id="complete-fourth-hand" type="button">Fill fourth hand</button>
+                <small id="complete-hand-status">All four hands are entered</small>
+              </div>
+              <label class="field deal-hand east"><span>East</span><input id="east-hand" value="Q5.T65.T865.J985" spellcheck="false"></label>
+              <label class="field deal-hand south"><span>South</span><input id="south-hand" value="K876.432.432.AKQ" spellcheck="false"></label>
             </div>
             <div class="two-up">
               <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>

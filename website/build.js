@@ -9,6 +9,7 @@ const staticFiles = [
   "index.html",
   "styles.css",
   "app.js",
+  "deal-utils.js",
   "storage.js",
   "engine-client.js",
   "engine-worker.js"
