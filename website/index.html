@@ -16,11 +16,6 @@
         <span class="brand-mark">&spades;</span>
         <span>Bridge Lab</span>
       </a>
-      <nav aria-label="Page sections">
-        <a href="#table">Table</a>
-        <a href="#analysis">Analysis</a>
-        <a href="#runs">Runs</a>
-      </nav>
       <div class="engine-pill is-loading" id="engine-pill">
         <span class="status-light"></span>
         <span id="engine-label">Loading engine</span>
@@ -28,45 +23,12 @@
     </header>
 
     <main id="top">
-      <section class="intro reveal">
-        <div>
-          <p class="eyebrow">Imperfect-information declarer play</p>
-          <h1>Read the play, not the cards.</h1>
-        </div>
-        <p class="intro-copy">
-          Build a position, continue it with alpha-mu, and inspect the sampled
-          worlds behind every decision. The solver runs locally in your browser.
-        </p>
-      </section>
-
-      <section class="session-bar reveal" id="deal">
-        <div class="session-identity">
-          <span class="session-kicker">Current deal</span>
-          <strong id="current-deal-name">7NT spade guess</strong>
-          <small id="current-deal-summary">South leads &middot; NT &middot; not loaded</small>
-        </div>
-        <div class="session-actions">
-          <button class="button secondary compact" id="edit-deal" type="button">Edit deal</button>
-          <div class="settings-summary">
-            <span>Analysis</span>
-            <strong id="settings-summary">64 worlds &middot; M 26 &middot; target 13</strong>
-          </div>
-          <button class="button secondary compact" id="edit-settings" type="button">Settings</button>
-        </div>
-      </section>
-
       <section class="workbench reveal">
         <section class="table-stage" id="table" aria-label="Bridge table">
           <div class="felt-grain"></div>
-
-          <div class="history-strip" aria-label="Play history controls">
-            <button class="history-arrow" id="history-prev" type="button" aria-label="Previous card">&larr;</button>
-            <div>
-              <span class="micro-label">Position</span>
-              <strong id="history-position">Opening position</strong>
-            </div>
-            <button class="history-arrow" id="history-next" type="button" aria-label="Next card">&rarr;</button>
-            <button class="text-button is-hidden" id="history-live" type="button">Return live</button>
+          <div class="table-meta">
+            <strong id="current-deal-name">7NT spade guess</strong>
+            <small id="current-deal-summary">South &middot; NT &middot; target 13</small>
           </div>
 
           <article class="seat north" data-seat="North">
@@ -88,21 +50,28 @@
             <div class="current-trick" id="current-trick"></div>
           </div>
 
-          <div class="table-actions">
-            <div><span class="micro-label">At the table</span><strong id="legal-summary">No active deal</strong></div>
-            <div class="compact-actions">
-              <button class="icon-button" id="undo" type="button">Undo</button>
-              <button class="icon-button" id="replay" type="button">Restart</button>
-            </div>
+          <div class="table-controls table-controls-left">
+            <button class="table-icon" id="edit-deal" type="button" aria-label="Edit deal" title="Edit deal">&#9998;</button>
+            <button class="table-icon" id="replay" type="button" aria-label="Restart deal" title="Restart deal">&#8635;</button>
           </div>
+          <div class="table-controls table-controls-right" aria-label="Play controls">
+            <button class="table-icon" id="undo" type="button" aria-label="Undo last card" title="Undo last card">&#8630;</button>
+            <button class="table-icon" id="history-prev" type="button" aria-label="Previous card">&#8249;</button>
+            <button class="table-icon" id="history-next" type="button" aria-label="Next card">&#8250;</button>
+          </div>
+          <strong class="sr-only" id="legal-summary">No active deal</strong>
+          <strong class="sr-only" id="history-position">Opening position</strong>
+          <button class="is-hidden" id="history-live" type="button">Return live</button>
         </section>
 
         <aside class="analysis-panel" id="analysis">
           <div class="panel-heading">
-            <div><p class="section-number">Analysis</p><h2>What works?</h2></div>
-            <span class="mode-chip">Alpha-mu</span>
+            <h2>Analysis</h2>
+            <div class="analysis-settings-inline">
+              <small id="settings-summary">64 worlds &middot; M 26 &middot; 5s</small>
+              <button class="icon-button" id="edit-settings" type="button" aria-label="Analysis settings" title="Analysis settings">&#9881;</button>
+            </div>
           </div>
-          <p class="panel-copy">Compare every legal root card, then open a move to inspect its Pareto strategies and sampled worlds.</p>
 
           <div class="analysis-actions">
             <button class="button primary" id="analyze-position" type="button">Analyze this decision</button>
@@ -117,7 +86,7 @@
 
           <div class="result-empty" id="result-empty">
             <span class="result-glyph">&mu;</span>
-            <p>Run an analysis to compare legal cards. The result will show depth, timing, Pareto strategies, and the exact sampled layouts won or lost.</p>
+            <p>No analysis yet</p>
           </div>
           <div class="analysis-result is-hidden" id="analysis-result"></div>
         </aside>
@@ -125,8 +94,8 @@
 
       <section class="run-section reveal" id="runs">
         <div class="run-heading">
-          <div><p class="section-number">History</p><h2>Saved runs</h2></div>
-          <button class="text-button" id="clear-runs" type="button">Clear history</button>
+          <h2>Saved runs</h2>
+          <button class="text-button" id="clear-runs" type="button">Clear</button>
         </div>
         <div class="run-list" id="run-list"></div>
       </section>
@@ -135,7 +104,7 @@
     <dialog class="editor-dialog deal-dialog" id="deal-dialog">
       <div class="dialog-shell">
         <header class="dialog-header">
-          <div><p class="section-number">Position editor</p><h2>Put a deal on the table</h2></div>
+          <h2>Edit deal</h2>
           <button class="dialog-close" data-close-dialog="deal-dialog" type="button" aria-label="Close deal editor">&times;</button>
         </header>
         <div class="dialog-body deal-dialog-grid">
@@ -163,7 +132,6 @@
                   <span id="picker-seat-count">13 / 13 cards</span>
                 </div>
                 <div class="card-palette" id="card-palette"></div>
-                <p>Click an unassigned card to add it. Click one already in this hand to remove it. Cards held elsewhere are disabled.</p>
               </section>
             </div>
             <div class="contract-grid">
@@ -174,13 +142,10 @@
             <label class="field">
               <span>Play already made</span>
               <input id="play-prefix" placeholder="D6 DA D7 D4" spellcheck="false">
-              <small>Optional cards in play order, written suit first. The bot will continue from this exact position.</small>
             </label>
-            <label class="field"><span>Notes</span><textarea id="deal-notes" rows="3" placeholder="Auction, inference, or question to investigate"></textarea></label>
 
             <details class="knowledge-panel" id="defender-knowledge">
               <summary><span>Defender knowledge</span><small id="restriction-status">Unrestricted</small></summary>
-              <p class="field-help">Hard public constraints for sampled East/West layouts. Card names use suit first, such as <code>SQ HK</code>.</p>
               <section class="restriction-seat" data-restriction-seat="east">
                 <h3>East</h3>
                 <div class="two-up restriction-cards">
@@ -212,7 +177,6 @@
                 </div>
               </section>
             </details>
-            <p class="field-help">The selector stores hands in SHDC order, for example <code>AJT9.AKQ.AKQ.432</code>.</p>
           </section>
 
           <aside class="saved-block">
@@ -241,7 +205,6 @@
             <label class="field"><span>Time limit</span><div class="input-suffix"><input id="time-limit" type="number" min="0" step="0.5" value="5"><span>s</span></div></label>
           </div>
           <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>
-          <p class="settings-note">Web analysis compares every representative root card exactly. Equivalent touching cards may still be collapsed into one candidate.</p>
         </div>
         <footer class="dialog-footer">
           <button class="button primary" id="apply-settings" type="button">Use these settings</button>

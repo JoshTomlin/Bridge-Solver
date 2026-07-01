@@ -43,6 +43,11 @@ assert.ok(app.includes("completedTrickForFrame"), "the completed trick must rema
 assert.ok(!html.includes("id=\"legal-cards\""), "legal cards must be played directly from hands");
 assert.ok(html.includes("class=\"deal-compass\""), "deal entry must use compass order");
 assert.ok(app.includes("data-picker-card"), "deal entry must expose a duplicate-safe card picker");
+assert.ok(html.includes("table-controls-left"), "table must expose compact edit controls");
+assert.ok(html.includes("table-controls-right"), "table must expose compact playback controls");
+assert.ok(!html.includes("Read the play"), "introductory marketing copy must stay out of the mobile workspace");
+assert.ok(!html.includes("Imperfect-information"), "the deal must remain the page's primary focus");
+assert.ok(!ids.includes("deal-notes"), "the compact deal editor must not include notes");
 assert.ok(
   html.indexOf("id=\"target-tricks\"") < html.indexOf("id=\"settings-dialog\""),
   "target tricks belongs to the contract editor, not search settings"

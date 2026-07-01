@@ -19,7 +19,6 @@ const elements = {
   leader: byId("leader"),
   trump: byId("trump"),
   playPrefix: byId("play-prefix"),
-  notes: byId("deal-notes"),
   restrictionStatus: byId("restriction-status"),
   savedDeals: byId("saved-deals"),
   dealCount: byId("deal-count"),
@@ -173,7 +172,6 @@ function collectDeal() {
     trump: elements.trump.value,
     target: Number(elements.target.value),
     playPrefix: elements.playPrefix.value.trim().toUpperCase(),
-    notes: elements.notes.value.trim(),
     restrictions: {
       east: collectSeatRestrictions("east"),
       west: collectSeatRestrictions("west")
@@ -192,7 +190,6 @@ function populateDealForm(deal) {
   elements.trump.value = deal.trump || "NT";
   elements.target.value = deal.target || 13;
   elements.playPrefix.value = deal.playPrefix || "";
-  elements.notes.value = deal.notes || "";
   applySeatRestrictions("east", deal.restrictions?.east);
   applySeatRestrictions("west", deal.restrictions?.west);
   byId("defender-knowledge").open = Boolean(
@@ -345,10 +342,9 @@ function frameLabel(frame, index) {
 
 function renderDealSummary() {
   const deal = currentDeal || collectDeal();
-  const status = liveState ? `${timelineFrames.length - 1} cards played` : "not loaded";
   elements.currentDealName.textContent = deal.name || "Untitled deal";
   elements.currentDealSummary.textContent =
-    `${deal.leader} leads | ${deal.trump} | target ${deal.target || elements.target.value} | ${status}`;
+    `${deal.leader} lead | ${deal.trump} | target ${deal.target || elements.target.value}`;
 }
 
 function renderTable(override) {
@@ -865,7 +861,6 @@ byId("new-deal").addEventListener("click", () => {
     trump: "NT",
     target: 13,
     playPrefix: "",
-    notes: "",
     restrictions: {}
   });
 });
