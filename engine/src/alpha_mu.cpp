@@ -435,6 +435,7 @@ struct RootIteration {
     NodeEvaluation evaluation;
     std::vector<AlphaMuRootMove> root_moves;
     bool cut {};
+    bool terminal_target_bound {};
 };
 
 RootIteration search_root_iteration(
@@ -492,6 +493,7 @@ RootIteration search_root_iteration(
                 .best_move = moves.front(),
             },
             .root_moves = std::move(root_moves),
+            .terminal_target_bound = true,
         };
     }
 
@@ -872,6 +874,7 @@ AlphaMuResult run_search(
             "starting M=" + std::to_string(depth));
         RootIteration iteration =
             search_root_iteration(worlds, depth, previous_score, context);
+        const bool terminal_target_bound = iteration.terminal_target_bound;
         final_evaluation = std::move(iteration.evaluation);
         final_root_moves = std::move(iteration.root_moves);
         previous_score = best_winning_world_count(final_evaluation.front);
@@ -886,6 +889,14 @@ AlphaMuResult run_search(
             "iteration",
             "completed M=" + std::to_string(depth) +
                 " with best score " + std::to_string(*previous_score));
+        if (terminal_target_bound) {
+            audit_line(
+                context,
+                0,
+                "iteration",
+                "target bound is depth-independent; stopped iterative deepening");
+            break;
+        }
         if (depth == config.max_declarer_plies) {
             break;
         }

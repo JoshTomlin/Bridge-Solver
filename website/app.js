@@ -256,7 +256,7 @@ function holdingMarkup(hand, legalCards, interactive) {
       return `<span class="mini-card suit-${display.className}">${cardFaceMarkup(card)}</span>`;
     }).join("");
     return `<div class="suit-line suit-${display.className} ${cards ? "" : "is-void"}" aria-label="${display.name}">
-      <div class="suit-cards">${cards || "<span class=\"void\">&nbsp;</span>"}</div>
+      <div class="suit-cards cards-${holding.length}">${cards || "<span class=\"void\">&nbsp;</span>"}</div>
     </div>`;
   }).join("");
 }

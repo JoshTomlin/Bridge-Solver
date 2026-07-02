@@ -75,6 +75,7 @@ intended for short endings and regression tests.
 | `deep-alpha` | `deep_alpha_cut` | `evaluate_min_node`, `front_is_covered_by_alpha` | A partial MIN front can only stay equal or worsen; if any upper MAX front already covers it, that branch cannot affect the root front | `deep_alpha_cuts` |
 | `root-cut` | `root_cut` | `search_root_iteration` | The previous iteration's root score is an upper bound; reaching it proves the current best score | `root_cuts` |
 | `win-cut` | `win_cut` | `evaluate_max_node`, `search_root_iteration` | A binary vector winning every active world cannot be improved | `win_cuts` |
+| `target-bounds` | `target_bounds` | `evaluate_target_bound` | If the target is already reached every continuation succeeds; if tricks won plus all remaining tricks is below target, no continuation can succeed | `target_reached_cuts`, `target_impossible_cuts` |
 | `forced-trump` | `forced_trump_run` | `evaluate_forced_trump_run` | With only trumps in the MAX leader and no opposing trumps, every remaining trick is proven | `forced_trump_run_cuts` |
 | `leaf-dds-batch` | `leaf_dds_batch` | `evaluate_leaf`, `double_dummy_future_tricks_batch` | DDS solves the same independent world positions; only their scheduling changes | `leaf_dds_batches`, `leaf_dds_worlds` |
 
@@ -85,6 +86,35 @@ optional retained-trick-policy reconstruction.
 Policy reconstruction reuses the search's transposition table. It requests the
 same exact fronts in order to recover one concrete contingent strategy, so a
 fresh table would needlessly repeat the completed search depth.
+
+`target-bounds` counts remaining tricks from all cards still in hands plus the
+cards already committed to the partial trick. This makes the proof exact for
+full deals and shortened endings. For example, after one trick is lost, a
+13-trick target is rejected at M=1 before any DDS call because at most 12 tricks
+remain. The proof is depth-independent, so iterative deepening stops immediately.
+
+## Cache Lifetime And Repeatable Simulations
+
+`SearchContext` owns the alpha-mu transposition table, and `run_search` creates
+one context per analysis. The table is shared by iterative-deepening passes and
+by policy reconstruction for that same sampled world set, then discarded. It
+must not be reused across tricks or independent true layouts: outcome-vector
+bits refer to the world indices of one particular sample, so carrying entries
+to a differently sampled ensemble would silently change their meaning.
+
+`AnalysisSession` retains the reconstructed contingent policy only until the
+current trick finishes. It then resets the policy and the next analysis creates
+a fresh search context and TT. This is intentional; a future persistent cache
+would need a key that includes a stable world-ensemble identity, not just the
+card position.
+
+For a repeatable multi-layout test harness, store each concrete true defender
+layout together with one inference seed and the complete analysis settings.
+Create a fresh `AnalysisSession` for every true layout, but use the same seed so
+the deterministic sampling sequence is comparable between runs. Saving TT
+contents is neither required nor currently safe. If exact replay of a run is
+important, save the sampled worlds (or their seeds) at each decision alongside
+the observed play record.
 
 ## Active And Useful Worlds
 

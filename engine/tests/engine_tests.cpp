@@ -392,6 +392,7 @@ void test_alpha_mu_optimization_controls() {
              bridge::AlphaMuOptimization::DeepAlphaCut,
              bridge::AlphaMuOptimization::RootCut,
              bridge::AlphaMuOptimization::WinCut,
+             bridge::AlphaMuOptimization::TargetBounds,
              bridge::AlphaMuOptimization::ForcedTrumpRun,
              bridge::AlphaMuOptimization::LeafDdsBatch}) {
         require(!bridge::optimization_enabled(optimizations, optimization),
@@ -1599,6 +1600,61 @@ void test_alpha_mu_soft_time_limit_stops_between_iterations() {
             "the last completed iteration must still return a move");
 }
 
+void test_alpha_mu_target_bounds_cut_impossible_contract() {
+    const bridge::Deal deal {.hands = {
+        bridge::remove_card(
+            bridge::suit_mask(Suit::Hearts),
+            bridge::make_card(Suit::Hearts, Rank::Two)),
+        bridge::remove_card(
+            bridge::suit_mask(Suit::Diamonds),
+            bridge::make_card(Suit::Diamonds, Rank::Two)),
+        bridge::remove_card(
+            bridge::suit_mask(Suit::Spades),
+            bridge::make_card(Suit::Spades, Rank::Two)),
+        bridge::remove_card(
+            bridge::suit_mask(Suit::Clubs),
+            bridge::make_card(Suit::Clubs, Rank::Two)),
+    }};
+    const std::vector<bridge::AlphaMuWorld> worlds {
+        bridge::AlphaMuWorld {
+            .position = bridge::Position {
+                .deal = deal,
+                .current_trick = bridge::Trick {.leader = Seat::South},
+                .score = bridge::Score {.north_south = 0, .east_west = 1},
+                .played_cards = bridge::kFullDeck & ~(
+                    deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+                .completed_tricks = 1,
+            },
+        },
+    };
+    bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .target_tricks = 13,
+        .max_declarer_plies = bridge::kMaxDeclarerPlies,
+        .collect_audit_log = true,
+    };
+
+    const bridge::AlphaMuResult bounded = bridge::alpha_mu_search(worlds, config);
+    require(bridge::best_winning_world_count(bounded.front) == 0 &&
+                bounded.stats.target_impossible_cuts == 1 &&
+                bounded.stats.dds_worlds == 0 &&
+                bounded.stats.nodes == 1 &&
+                bounded.stats.completed_depth == 1,
+            "after losing one trick, a 13-trick target should fail without DDS");
+    require(bounded.audit_log.find("[target-bound]") != std::string::npos,
+            "the impossible-target proof should be visible in the audit log");
+
+    config.optimizations.target_bounds = false;
+    config.optimizations.iterative_deepening = false;
+    config.max_declarer_plies = 1;
+    config.collect_audit_log = false;
+    const bridge::AlphaMuResult unbounded = bridge::alpha_mu_search(worlds, config);
+    require(bridge::best_winning_world_count(unbounded.front) == 0 &&
+                unbounded.stats.target_impossible_cuts == 0 &&
+                unbounded.stats.dds_worlds > 0,
+            "disabling target bounds should preserve the result but require DDS");
+}
+
 void test_alpha_mu_supports_full_26_ply_ceiling() {
     const bridge::Deal deal {.hands = {
         bridge::make_hand({bridge::make_card(Suit::Spades, Rank::Ace)}),
@@ -1667,6 +1723,7 @@ int main() {
         test_alpha_mu_world_cut_and_leaf_batch_counters();
         test_second_paper_cuts_are_observable();
         test_alpha_mu_soft_time_limit_stops_between_iterations();
+        test_alpha_mu_target_bounds_cut_impossible_contract();
         test_alpha_mu_supports_full_26_ply_ceiling();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << "\n";

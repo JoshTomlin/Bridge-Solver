@@ -19,7 +19,7 @@
 namespace bridge::cli {
 namespace {
 
-constexpr std::array<AlphaMuOptimization, 14> kOptimizations {
+constexpr std::array<AlphaMuOptimization, 15> kOptimizations {
     AlphaMuOptimization::IterativeDeepening,
     AlphaMuOptimization::TranspositionTable,
     AlphaMuOptimization::CanonicalTranspositionKeys,
@@ -32,6 +32,7 @@ constexpr std::array<AlphaMuOptimization, 14> kOptimizations {
     AlphaMuOptimization::DeepAlphaCut,
     AlphaMuOptimization::RootCut,
     AlphaMuOptimization::WinCut,
+    AlphaMuOptimization::TargetBounds,
     AlphaMuOptimization::ForcedTrumpRun,
     AlphaMuOptimization::LeafDdsBatch,
 };
@@ -153,6 +154,8 @@ std::uint64_t optimization_event_count(
             return stats.root_cuts;
         case AlphaMuOptimization::WinCut:
             return stats.win_cuts;
+        case AlphaMuOptimization::TargetBounds:
+            return stats.target_reached_cuts + stats.target_impossible_cuts;
         case AlphaMuOptimization::ForcedTrumpRun:
             return stats.forced_trump_run_cuts;
         case AlphaMuOptimization::LeafDdsBatch:
@@ -247,6 +250,9 @@ SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
            << ", MIN " << analysis.search.stats.min_equivalent_moves_skipped << ')'
            << " forced-trump-cuts=" << analysis.search.stats.forced_trump_run_cuts
            << " win-cuts=" << analysis.search.stats.win_cuts
+           << " target-bounds="
+           << analysis.search.stats.target_reached_cuts +
+                  analysis.search.stats.target_impossible_cuts
            << " DDS-batches=" << analysis.search.stats.leaf_dds_batches
            << " completed-M="
            << static_cast<int>(analysis.search.stats.completed_depth);

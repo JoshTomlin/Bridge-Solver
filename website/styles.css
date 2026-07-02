@@ -169,7 +169,16 @@ h3 { font-size: 1rem; }
 .suit-cards { display: flex; align-items: center; min-width: 0; }
 .mini-card { position: relative; display: inline-grid; grid-template-rows: auto auto; place-items: center; width: 30px; height: 42px; margin: 0; padding: 3px 1px; overflow: hidden; color: var(--ink); background: #fffdf8; border: 1px solid #d8d2c7; border-radius: 5px; box-shadow: 0 2px 5px rgba(5, 30, 24, 0.2); font-family: "DM Sans", sans-serif; line-height: 1; }
 .holding-inline .mini-card + .mini-card { margin-left: -10px; }
-.holding-stacked .mini-card + .mini-card { margin-left: -22px; }
+.holding-stacked .mini-card + .mini-card { margin-left: var(--side-card-overlap, 0); }
+.holding-stacked .cards-4 { --side-card-overlap: -6px; }
+.holding-stacked .cards-5 { --side-card-overlap: -14px; }
+.holding-stacked .cards-6 { --side-card-overlap: -19px; }
+.holding-stacked .cards-7 { --side-card-overlap: -22px; }
+.holding-stacked .cards-8 { --side-card-overlap: -25px; }
+.holding-stacked .cards-9 { --side-card-overlap: -26px; }
+.holding-stacked .cards-10 { --side-card-overlap: -28px; }
+.holding-stacked .cards-11 { --side-card-overlap: -29px; }
+.holding-stacked .cards-12, .holding-stacked .cards-13 { --side-card-overlap: -30px; }
 .mini-card b { font-size: 0.78rem; }
 .mini-card i { font-size: 0.82rem; font-style: normal; }
 .mini-card.suit-spades { color: #202825; }
@@ -296,7 +305,6 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
 .world-table .mini-card b { font-size: 0.5rem; }
 .world-table .mini-card i { font-size: 0.54rem; }
 .world-table .holding-inline .mini-card + .mini-card { margin-left: -7px; }
-.world-table .holding-stacked .mini-card + .mini-card { margin-left: -13px; }
 .world-table .holding-stacked { gap: 1px; }
 .world-table .trick-card { width: 28px; height: 38px; padding: 2px; border-radius: 3px; }
 .world-table .trick-card b { font-size: 0.58rem; }
@@ -361,7 +369,6 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
 .deal-seat .mini-card b { font-size: 0.62rem; }
 .deal-seat .mini-card i { font-size: 0.66rem; }
 .deal-seat .holding-inline .mini-card + .mini-card { margin-left: -8px; }
-.deal-seat .holding-stacked .mini-card + .mini-card { margin-left: -18px; }
 #play-prefix { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 0.02em; text-transform: uppercase; }
 .deal-compass-centre { grid-area: 2 / 2; display: grid; place-items: center; min-height: 90px; padding: 8px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 44%; background: rgba(7, 39, 33, 0.2); }
 .deal-compass-centre small { color: rgba(255, 255, 255, 0.64); font-size: 0.55rem; line-height: 1.35; }
@@ -480,7 +487,6 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
   .mini-card { width: 42px; height: 60px; border-radius: 6px; }
   .holding-inline .mini-card + .mini-card { margin-left: -21px; }
   .holding-stacked .mini-card { width: 38px; height: 52px; }
-  .holding-stacked .mini-card + .mini-card { margin-left: -30px; }
   .mini-card b { font-size: 0.96rem; }
   .mini-card i { font-size: 1.02rem; }
   .table-centre { width: 100px; min-height: 152px; padding: 2px; }
@@ -511,7 +517,6 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
   .deal-compass-centre { grid-area: 2 / 2; min-height: 82px; padding: 4px; }
   .deal-seat .mini-card { width: 22px; height: 31px; }
   .deal-seat .holding-inline .mini-card + .mini-card { margin-left: -8px; }
-  .deal-seat .holding-stacked .mini-card + .mini-card { margin-left: -16px; }
   .palette-row { grid-template-columns: 22px minmax(300px, 1fr); }
   .card-picker { padding: 11px; }
   .contract-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }

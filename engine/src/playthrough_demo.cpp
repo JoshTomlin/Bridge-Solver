@@ -290,6 +290,9 @@ AlphaMuResult choose_alpha_mu_strategy(
               << ", MIN=" << result.stats.min_equivalent_moves_skipped << ')'
               << " forced-trump-cuts=" << result.stats.forced_trump_run_cuts
               << " win-cuts=" << result.stats.win_cuts
+              << " target-bounds="
+              << result.stats.target_reached_cuts +
+                     result.stats.target_impossible_cuts
               << " DDS-batches=" << result.stats.leaf_dds_batches
               << " completed-M=" << static_cast<int>(result.stats.completed_depth);
     if (result.stats.stopped_by_time_limit) {
@@ -321,6 +324,8 @@ void accumulate_search_stats(
     total.min_equivalent_moves_skipped += current.min_equivalent_moves_skipped;
     total.forced_trump_run_cuts += current.forced_trump_run_cuts;
     total.win_cuts += current.win_cuts;
+    total.target_reached_cuts += current.target_reached_cuts;
+    total.target_impossible_cuts += current.target_impossible_cuts;
     total.leaf_dds_batches += current.leaf_dds_batches;
     total.leaf_dds_worlds += current.leaf_dds_worlds;
     total.tree_search_ms += current.tree_search_ms;
