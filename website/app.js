@@ -8,6 +8,8 @@ const elements = {
   engineLabel: byId("engine-label"),
   dealDialog: byId("deal-dialog"),
   settingsDialog: byId("settings-dialog"),
+  analysisDialog: byId("analysis-dialog"),
+  analysisInspectorBody: byId("analysis-inspector-body"),
   currentDealName: byId("current-deal-name"),
   currentDealSummary: byId("current-deal-summary"),
   settingsSummary: byId("settings-summary"),
@@ -28,7 +30,6 @@ const elements = {
   cardPalette: byId("card-palette"),
   pickerSeatName: byId("picker-seat-name"),
   pickerSeatCount: byId("picker-seat-count"),
-  completeFourthHand: byId("complete-fourth-hand"),
   completeHandStatus: byId("complete-hand-status"),
   turnLabel: byId("turn-label"),
   currentTrick: byId("current-trick"),
@@ -253,11 +254,9 @@ function holdingMarkup(hand, legalCards, interactive) {
       }
       return `<span class="mini-card suit-${display.className}">${cardFaceMarkup(card)}</span>`;
     }).join("");
-    return `
-      <div class="suit-line suit-${display.className}">
-        <span class="suit-symbol">${display.symbol}</span>
-        <div class="suit-cards">${cards || "<span class=\"void\">-</span>"}</div>
-      </div>`;
+    return `<div class="suit-line suit-${display.className} ${cards ? "" : "is-void"}" aria-label="${display.name}">
+      <div class="suit-cards">${cards || "<span class=\"void\">&nbsp;</span>"}</div>
+    </div>`;
   }).join("");
 }
 
@@ -265,7 +264,6 @@ function trickCardMarkup(play) {
   const suit = suitDisplay[play.card[0]];
   return `
     <span class="trick-card suit-${suit.className}" data-trick-seat="${escapeHtml(play.seat)}" title="${escapeHtml(play.seat)} played ${escapeHtml(play.card)}">
-      <small>${escapeHtml(play.seat[0])}</small>
       ${cardFaceMarkup(play.card)}
     </span>`;
 }
@@ -344,7 +342,7 @@ function renderDealSummary() {
   const deal = currentDeal || collectDeal();
   elements.currentDealName.textContent = deal.name || "Untitled deal";
   elements.currentDealSummary.textContent =
-    `${deal.leader} lead | ${deal.trump} | target ${deal.target || elements.target.value}`;
+    `${deal.trump} | ${deal.leader[0]} lead | ${deal.target || elements.target.value}`;
 }
 
 function renderTable(override) {
@@ -365,7 +363,7 @@ function renderTable(override) {
   elements.currentTrick.classList.toggle("is-retained", !state.trick.length && displayedTrick.length === 4);
   elements.currentTrick.innerHTML = displayedTrick.length
     ? displayedTrick.map(trickCardMarkup).join("")
-    : "<em>New trick</em>";
+    : "";
 
   elements.legalSummary.textContent = !interactive && timelineFrames.length
     ? "Reviewing history"
@@ -444,11 +442,27 @@ function moveStatus(move, analysis) {
 function worldLayoutMarkup(analysis, worldIndex, winningSet) {
   const world = (analysis.sampledWorlds || []).find((candidate) => candidate.index === worldIndex);
   if (!world) return "<p class=\"muted-copy\">Sampled layouts require the current WebAssembly build.</p>";
+  const state = displayedState();
+  const hands = {
+    ...state.hands,
+    East: parsePreviewHand(world.east.record),
+    West: parsePreviewHand(world.west.record)
+  };
+  const trick = state.trick?.length ? state.trick : completedTrickForFrame(timelineIndex);
   return `
-    <div class="world-layout">
-      <div class="world-hand"><span>World ${worldIndex + 1} | East</span><strong>${escapeHtml(world.east.record)}</strong></div>
-      <div class="world-hand"><span>${winningSet.has(worldIndex) ? "Makes target" : "Fails target"} | West</span><strong>${escapeHtml(world.west.record)}</strong></div>
-    </div>`;
+    <section class="world-position">
+      <div class="world-position-heading">
+        <strong>World ${worldIndex + 1}</strong>
+        <span class="status-chip ${winningSet.has(worldIndex) ? "best" : "lost"}">${winningSet.has(worldIndex) ? "Target made" : "Target failed"}</span>
+      </div>
+      <div class="world-table" aria-label="Complete position in sampled world ${worldIndex + 1}">
+        <div class="world-seat north"><div class="holding holding-inline">${holdingMarkup(hands.North, [], false)}</div></div>
+        <div class="world-seat west"><div class="holding holding-stacked">${holdingMarkup(hands.West, [], false)}</div></div>
+        <div class="world-trick">${trick.map(trickCardMarkup).join("")}</div>
+        <div class="world-seat east"><div class="holding holding-stacked">${holdingMarkup(hands.East, [], false)}</div></div>
+        <div class="world-seat south"><div class="holding holding-inline">${holdingMarkup(hands.South, [], false)}</div></div>
+      </div>
+    </section>`;
 }
 
 function moveDetailMarkup(analysis, move) {
@@ -532,6 +546,50 @@ function analysisMarkup(analysis) {
     </dl>`;
 }
 
+function analysisDockMarkup(analysis) {
+  const rootMoves = analysis.rootMoves || [];
+  const bestScore = Math.max(0, ...rootMoves.map((move) => move.winningWorlds));
+  const bestOptions = rootMoves.filter((move) => move.winningWorlds === bestScore).length;
+  const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
+  const display = suitDisplay[analysis.bestMove?.[0]];
+  return `<button class="analysis-recommendation" data-open-inspector type="button">
+    <span class="recommendation-card suit-${display?.className || "spades"}">${analysis.bestMove ? cardFaceMarkup(analysis.bestMove) : "-"}</span>
+    <span class="recommendation-copy"><small>Suggested play</small><strong>${escapeHtml(analysis.bestMove)}</strong><span>${analysis.winningWorlds}/${worldCount} worlds${bestOptions > 1 ? ` | ${bestOptions} tied` : ""}</span></span>
+    <span class="recommendation-stats"><b>M${analysis.stats.completedDepth}</b><small>${formatMs(analysis.searchMs)}</small></span>
+    <span class="inspector-chevron" aria-hidden="true">&#8250;</span>
+  </button>`;
+}
+
+function renderAnalysisInspector() {
+  if (activeFullResult) {
+    const result = activeFullResult;
+    const totals = aggregateFull(result);
+    const analyses = result.analyses || [];
+    activeDecisionIndex = Math.min(activeDecisionIndex, Math.max(0, analyses.length - 1));
+    const selected = analyses[activeDecisionIndex];
+    elements.analysisInspectorBody.innerHTML = `
+      <div class="recommendation full-result">
+        <span>Bot continuation complete</span>
+        <strong>${result.state.score.ns}-${result.state.score.ew}</strong>
+        <p>${analyses.length} alpha-mu decisions | ${result.plays.length} cards | ${formatMs(result.totalMs)}</p>
+      </div>
+      <dl class="stat-grid">
+        <div><dt>Search time</dt><dd>${formatMs(totals.searchMs)}</dd></div>
+        <div><dt>Deepest M</dt><dd>${totals.maxDepth}</dd></div>
+        <div><dt>Nodes</dt><dd>${formatNumber(totals.nodes)}</dd></div>
+        <div><dt>DDS worlds</dt><dd>${formatNumber(totals.ddsWorlds)}</dd></div>
+      </dl>
+      ${analyses.length ? `
+        <div class="analysis-subhead"><h3>Decisions</h3><small>Choose a play to inspect</small></div>
+        <div class="decision-list">${analyses.map((analysis, index) => `<button class="decision-chip ${index === activeDecisionIndex ? "is-selected" : ""}" data-decision-index="${index}" type="button">${index + 1}. ${escapeHtml(analysis.bestMove)}</button>`).join("")}</div>
+        ${analysisMarkup(selected)}` : "<p class=\"muted-copy\">No declarer decisions remained in this continuation.</p>"}`;
+    return;
+  }
+  elements.analysisInspectorBody.innerHTML = activeAnalysis
+    ? analysisMarkup(activeAnalysis)
+    : "<p class=\"muted-copy\">Run an analysis to inspect its decision tree.</p>";
+}
+
 function showAnalysis(analysis, liveContext = false) {
   activeFullResult = null;
   activeAnalysis = analysis;
@@ -541,7 +599,8 @@ function showAnalysis(analysis, liveContext = false) {
   activeWorldIndex = null;
   elements.resultEmpty.classList.add("is-hidden");
   elements.result.classList.remove("is-hidden");
-  elements.result.innerHTML = analysisMarkup(analysis);
+  elements.result.innerHTML = analysisDockMarkup(analysis);
+  renderAnalysisInspector();
 }
 
 function aggregateFull(result) {
@@ -564,22 +623,13 @@ function renderFullResult() {
   const selected = analyses[activeDecisionIndex];
   activeAnalysis = selected || null;
   activeAnalysisIsLive = false;
-  elements.result.innerHTML = `
-    <div class="recommendation full-result">
-      <span>Bot continuation complete</span>
-      <strong>${result.state.score.ns}-${result.state.score.ew}</strong>
-      <p>${analyses.length} alpha-mu decisions | ${result.plays.length} cards continued | ${formatMs(result.totalMs)}</p>
-    </div>
-    <dl class="stat-grid">
-      <div><dt>Search time</dt><dd>${formatMs(totals.searchMs)}</dd></div>
-      <div><dt>Deepest M</dt><dd>${totals.maxDepth}</dd></div>
-      <div><dt>Nodes</dt><dd>${formatNumber(totals.nodes)}</dd></div>
-      <div><dt>DDS worlds</dt><dd>${formatNumber(totals.ddsWorlds)}</dd></div>
-    </dl>
-    ${analyses.length ? `
-      <div class="analysis-subhead"><h3>Decisions</h3><small>Select a decision to inspect it</small></div>
-      <div class="decision-list">${analyses.map((analysis, index) => `<button class="decision-chip ${index === activeDecisionIndex ? "is-selected" : ""}" data-decision-index="${index}" type="button">${index + 1}. ${escapeHtml(analysis.turn)} ${escapeHtml(analysis.bestMove)}</button>`).join("")}</div>
-      ${analysisMarkup(selected)}` : "<p class=\"muted-copy\">No declarer decisions remained in this continuation.</p>"}`;
+  elements.result.innerHTML = `<button class="analysis-recommendation full-dock" data-open-inspector type="button">
+    <span class="continuation-score">${result.state.score.ns}-${result.state.score.ew}</span>
+    <span class="recommendation-copy"><small>Continuation complete</small><strong>${analyses.length} decisions</strong><span>${result.plays.length} cards played</span></span>
+    <span class="recommendation-stats"><b>M${totals.maxDepth}</b><small>${formatMs(result.totalMs)}</small></span>
+    <span class="inspector-chevron" aria-hidden="true">&#8250;</span>
+  </button>`;
+  renderAnalysisInspector();
 }
 
 function showFullResult(result) {
@@ -665,18 +715,27 @@ function editorHandState() {
 
 function updateFourthHandControl() {
   const completion = fourthHandCompletion(handFormValues());
-  elements.completeFourthHand.disabled = !completion.ready;
-  elements.completeHandStatus.textContent = completion.message;
+  elements.completeHandStatus.textContent = completion.ready
+    ? `${completion.seat} fills automatically`
+    : completion.message;
   return completion;
 }
 
 function renderDealEditor() {
+  const completion = fourthHandCompletion(handFormValues());
+  if (completion.ready) {
+    elements[completion.seat.toLowerCase()].value = completion.record;
+    renderDealEditor();
+    return;
+  }
   const hands = editorHandState();
   const owners = new Map();
   for (const seat of ["North", "East", "South", "West"]) {
     for (const card of hands[seat].cards) owners.set(card, seat);
     const summary = document.querySelector(`[data-seat-summary="${seat}"]`);
-    summary.textContent = `${hands[seat].count} cards | ${elements[seat.toLowerCase()].value || "-.-.-.-"}`;
+    summary.textContent = `${hands[seat].count}/13`;
+    document.querySelector(`[data-editor-holding="${seat}"]`).innerHTML =
+      holdingMarkup(parsePreviewHand(elements[seat.toLowerCase()].value), [], false);
   }
 
   for (const button of elements.dealCompass.querySelectorAll("[data-edit-seat]")) {
@@ -711,7 +770,7 @@ function renderDealEditor() {
 
 function updateEditorHand(seat, cards) {
   elements[seat.toLowerCase()].value = handRecordFromCards(cards);
-  renderDealEditor();
+  if (!fillFourthHand(false)) renderDealEditor();
 }
 
 function fillFourthHand(showToast = true) {
@@ -730,7 +789,7 @@ function setBusy(value, full = false) {
   busy = value;
   elements.cancel.classList.toggle("is-hidden", !value);
   elements.progress.classList.toggle("is-hidden", !value || !full);
-  elements.analyze.textContent = value && !full ? "Analyzing..." : "Analyze this decision";
+  elements.analyze.textContent = value && !full ? "Analyzing..." : "Analyze";
   updateActionState();
 }
 
@@ -830,7 +889,7 @@ byId("edit-settings").addEventListener("click", () => openDialog(elements.settin
 for (const button of document.querySelectorAll("[data-close-dialog]")) {
   button.addEventListener("click", () => byId(button.dataset.closeDialog).close());
 }
-for (const dialog of [elements.dealDialog, elements.settingsDialog]) {
+for (const dialog of [elements.dealDialog, elements.settingsDialog, elements.analysisDialog]) {
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close();
   });
@@ -894,7 +953,6 @@ elements.tableStage.addEventListener("click", safely(async (event) => {
   renderTable();
 }));
 
-elements.completeFourthHand.addEventListener("click", () => fillFourthHand(true));
 elements.dealCompass.addEventListener("click", (event) => {
   const seatButton = event.target.closest("[data-edit-seat]");
   if (!seatButton) return;
@@ -954,6 +1012,12 @@ elements.cancel.addEventListener("click", safely(async () => {
 }));
 
 elements.result.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-open-inspector]")) return;
+  renderAnalysisInspector();
+  openDialog(elements.analysisDialog);
+});
+
+elements.analysisInspectorBody.addEventListener("click", (event) => {
   const move = event.target.closest("[data-analysis-move]");
   const strategy = event.target.closest("[data-strategy-index]");
   const world = event.target.closest("[data-world-index]");
@@ -990,7 +1054,7 @@ elements.result.addEventListener("click", (event) => {
     return;
   }
   if (activeFullResult) renderFullResult();
-  else elements.result.innerHTML = analysisMarkup(activeAnalysis);
+  else renderAnalysisInspector();
 });
 
 elements.runList.addEventListener("click", (event) => {
@@ -1001,7 +1065,15 @@ elements.runList.addEventListener("click", (event) => {
   const run = loadRuns().find((candidate) => candidate.id === id);
   if (!run) return;
   if (analysisButton) {
+    currentDeal = run.deal;
+    populateDealForm(run.deal);
+    liveState = run.result.state || previewState();
+    timelineFrames = [{ state: liveState, play: null, label: "Saved analysis position" }];
+    timelineIndex = 0;
+    reviewOnly = true;
+    renderTable();
     showAnalysis(run.result.analysis, false);
+    openDialog(elements.analysisDialog);
   } else {
     currentDeal = run.deal;
     populateDealForm(run.deal);
@@ -1025,7 +1097,7 @@ byId("clear-runs").addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", (event) => {
-  if (event.target.matches("input, textarea, select") || elements.dealDialog.open || elements.settingsDialog.open) return;
+  if (event.target.matches("input, textarea, select") || elements.dealDialog.open || elements.settingsDialog.open || elements.analysisDialog.open) return;
   if (event.key === "ArrowLeft" && timelineIndex > 0) {
     timelineIndex -= 1;
     renderTable();

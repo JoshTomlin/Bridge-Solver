@@ -1,0 +1,9 @@
+Let's make the layout more like BBO - dec and dummy's hands are inline, east/west are stacked in suit order. West left aligned and East right aligned. The card alignment is totally off, make sure it is all centered where it needs to be. The cards are much smaller than they need to be. Can you research what the BBO mobile app looks like? 
+
+I don't need too many labels like "New trick", "South", "To play", get rid of the suit icons where the hands are ordered, they are unnecessary since the suit symbols are already on the cards. We don't need a return to live button, this can be a >> arrow if needed. The title and info up the top is taking up too much room, can this go somewhere more ergonomic?
+
+With the card table more streamlined and compact, the analysis stuff can go below it and be available without scrolling. Maybe tapping on the suggested card can bring up an overlay screen with info on the decision.
+
+The edit deal screen needs a lot of work. Make it look like the card table as cards populate in. The name box can go at the bottom since I only choose a name if I am saving it. Maybe there shouldn't be a fill fourth hand button and it should just be automatic?
+
+The different worlds should display the whole current position, with the current trick information, in a mini table like image detailed in the same way as the actual table. I'm wondering whether all this info needs to happen on another screen, with an easy way to switch between them? Unsure at what will look best and be most practicle.

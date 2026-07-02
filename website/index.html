@@ -27,27 +27,27 @@
         <section class="table-stage" id="table" aria-label="Bridge table">
           <div class="felt-grain"></div>
           <div class="table-meta">
-            <strong id="current-deal-name">7NT spade guess</strong>
-            <small id="current-deal-summary">South &middot; NT &middot; target 13</small>
+            <strong class="sr-only" id="current-deal-name">7NT spade guess</strong>
+            <small id="current-deal-summary">NT &middot; S lead &middot; 13</small>
           </div>
 
           <article class="seat north" data-seat="North">
-            <p>North</p><div class="holding" data-holding="North"></div>
+            <span class="sr-only">North</span><div class="holding holding-inline" data-holding="North"></div>
           </article>
           <article class="seat west" data-seat="West">
-            <p>West</p><div class="holding" data-holding="West"></div>
+            <span class="sr-only">West</span><div class="holding holding-stacked" data-holding="West"></div>
           </article>
           <article class="seat east" data-seat="East">
-            <p>East</p><div class="holding" data-holding="East"></div>
+            <span class="sr-only">East</span><div class="holding holding-stacked" data-holding="East"></div>
           </article>
           <article class="seat south" data-seat="South">
-            <p>South</p><div class="holding" data-holding="South"></div>
+            <span class="sr-only">South</span><div class="holding holding-inline" data-holding="South"></div>
           </article>
 
           <div class="table-centre">
-            <div class="scoreline"><span>NS <strong id="score-ns">0</strong></span><span>EW <strong id="score-ew">0</strong></span></div>
-            <p class="turn-label" id="turn-label">Load a deal to begin</p>
             <div class="current-trick" id="current-trick"></div>
+            <div class="scoreline"><span>NS <strong id="score-ns">0</strong></span><span>EW <strong id="score-ew">0</strong></span></div>
+            <p class="sr-only" id="turn-label">Load a deal to begin</p>
           </div>
 
           <div class="table-controls table-controls-left">
@@ -58,10 +58,10 @@
             <button class="table-icon" id="undo" type="button" aria-label="Undo last card" title="Undo last card">&#8630;</button>
             <button class="table-icon" id="history-prev" type="button" aria-label="Previous card">&#8249;</button>
             <button class="table-icon" id="history-next" type="button" aria-label="Next card">&#8250;</button>
+            <button class="table-icon is-hidden" id="history-live" type="button" aria-label="Return to live position" title="Return to live position">&raquo;</button>
           </div>
           <strong class="sr-only" id="legal-summary">No active deal</strong>
           <strong class="sr-only" id="history-position">Opening position</strong>
-          <button class="is-hidden" id="history-live" type="button">Return live</button>
         </section>
 
         <aside class="analysis-panel" id="analysis">
@@ -74,8 +74,8 @@
           </div>
 
           <div class="analysis-actions">
-            <button class="button primary" id="analyze-position" type="button">Analyze this decision</button>
-            <button class="button dark" id="analyze-full" type="button">Let bot finish from here</button>
+            <button class="button primary" id="analyze-position" type="button">Analyze</button>
+            <button class="button dark" id="analyze-full" type="button">Finish hand</button>
             <button class="button danger is-hidden" id="cancel-analysis" type="button">Stop analysis</button>
           </div>
 
@@ -85,7 +85,6 @@
           </div>
 
           <div class="result-empty" id="result-empty">
-            <span class="result-glyph">&mu;</span>
             <p>No analysis yet</p>
           </div>
           <div class="analysis-result is-hidden" id="analysis-result"></div>
@@ -109,22 +108,24 @@
         </header>
         <div class="dialog-body deal-dialog-grid">
           <section class="editor-fields">
-            <label class="field"><span>Name</span><input id="deal-name" value="7NT spade guess" autocomplete="off"></label>
+            <div class="contract-grid">
+              <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>
+              <label class="field"><span>Trump</span><select id="trump"><option selected>NT</option><option>S</option><option>H</option><option>D</option><option>C</option></select></label>
+              <label class="field"><span>Target</span><input id="target-tricks" type="number" min="1" max="13" value="13"></label>
+            </div>
             <div class="deal-entry">
               <input id="north-hand" type="hidden" value="AJT9.AKQ.AKQ.432">
               <input id="east-hand" type="hidden" value="Q5.T65.T865.J985">
               <input id="south-hand" type="hidden" value="K876.432.432.AKQ">
               <input id="west-hand" type="hidden" value="432.J987.J97.T76">
               <div class="deal-compass" id="deal-compass" aria-label="Choose a hand to edit">
-                <button class="deal-seat north is-active" data-edit-seat="North" type="button" aria-pressed="true"><span>N</span><strong>North</strong><small data-seat-summary="North"></small></button>
-                <button class="deal-seat west" data-edit-seat="West" type="button" aria-pressed="false"><span>W</span><strong>West</strong><small data-seat-summary="West"></small></button>
+                <button class="deal-seat north is-active" data-edit-seat="North" type="button" aria-pressed="true"><span>N</span><div class="editor-holding holding-inline" data-editor-holding="North"></div><small data-seat-summary="North"></small></button>
+                <button class="deal-seat west" data-edit-seat="West" type="button" aria-pressed="false"><span>W</span><div class="editor-holding holding-stacked" data-editor-holding="West"></div><small data-seat-summary="West"></small></button>
                 <div class="deal-compass-centre">
-                  <span class="micro-label">SHDC</span>
-                  <button class="button secondary compact" id="complete-fourth-hand" type="button">Fill fourth hand</button>
                   <small id="complete-hand-status">All four hands are entered</small>
                 </div>
-                <button class="deal-seat east" data-edit-seat="East" type="button" aria-pressed="false"><span>E</span><strong>East</strong><small data-seat-summary="East"></small></button>
-                <button class="deal-seat south" data-edit-seat="South" type="button" aria-pressed="false"><span>S</span><strong>South</strong><small data-seat-summary="South"></small></button>
+                <button class="deal-seat east" data-edit-seat="East" type="button" aria-pressed="false"><span>E</span><div class="editor-holding holding-stacked" data-editor-holding="East"></div><small data-seat-summary="East"></small></button>
+                <button class="deal-seat south" data-edit-seat="South" type="button" aria-pressed="false"><span>S</span><div class="editor-holding holding-inline" data-editor-holding="South"></div><small data-seat-summary="South"></small></button>
               </div>
               <section class="card-picker" aria-label="Card selector">
                 <div class="card-picker-heading">
@@ -133,11 +134,6 @@
                 </div>
                 <div class="card-palette" id="card-palette"></div>
               </section>
-            </div>
-            <div class="contract-grid">
-              <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>
-              <label class="field"><span>Trump</span><select id="trump"><option selected>NT</option><option>S</option><option>H</option><option>D</option><option>C</option></select></label>
-              <label class="field"><span>Target tricks</span><input id="target-tricks" type="number" min="1" max="13" value="13"></label>
             </div>
             <label class="field">
               <span>Play already made</span>
@@ -186,6 +182,7 @@
         </div>
         <footer class="dialog-footer">
           <button class="button secondary" id="new-deal" type="button">Clear</button>
+          <label class="save-name-field"><span>Name to save</span><input id="deal-name" value="7NT spade guess" autocomplete="off"></label>
           <button class="button secondary" id="save-deal" type="button">Save deal</button>
           <button class="button primary" id="load-deal" type="button">Put on table</button>
         </footer>
@@ -209,6 +206,16 @@
         <footer class="dialog-footer">
           <button class="button primary" id="apply-settings" type="button">Use these settings</button>
         </footer>
+      </div>
+    </dialog>
+
+    <dialog class="editor-dialog analysis-dialog" id="analysis-dialog">
+      <div class="dialog-shell">
+        <header class="dialog-header">
+          <div><p class="section-number">Alpha-mu</p><h2>Decision inspector</h2></div>
+          <button class="dialog-close" data-close-dialog="analysis-dialog" type="button" aria-label="Close decision inspector">&times;</button>
+        </header>
+        <div class="dialog-body analysis-inspector-body" id="analysis-inspector-body"></div>
       </div>
     </dialog>
 

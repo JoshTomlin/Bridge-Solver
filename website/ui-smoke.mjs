@@ -19,8 +19,9 @@ for (const id of new Set(staticLookups)) {
 for (const required of [
   "deal-dialog",
   "settings-dialog",
+  "analysis-dialog",
+  "analysis-inspector-body",
   "play-prefix",
-  "complete-fourth-hand",
   "card-palette",
   "target-tricks",
   "history-prev",
@@ -43,6 +44,10 @@ assert.ok(app.includes("completedTrickForFrame"), "the completed trick must rema
 assert.ok(!html.includes("id=\"legal-cards\""), "legal cards must be played directly from hands");
 assert.ok(html.includes("class=\"deal-compass\""), "deal entry must use compass order");
 assert.ok(app.includes("data-picker-card"), "deal entry must expose a duplicate-safe card picker");
+assert.ok(app.includes("completion.ready"), "the fourth hand must complete automatically");
+assert.ok(!ids.includes("complete-fourth-hand"), "automatic completion must not require a button");
+assert.ok(html.includes("data-editor-holding"), "deal entry must preview cards on a bridge table");
+assert.ok(html.includes("analysis-inspector-body"), "detailed decisions belong in the inspector");
 assert.ok(html.includes("table-controls-left"), "table must expose compact edit controls");
 assert.ok(html.includes("table-controls-right"), "table must expose compact playback controls");
 assert.ok(!html.includes("Read the play"), "introductory marketing copy must stay out of the mobile workspace");
