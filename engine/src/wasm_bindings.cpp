@@ -235,6 +235,8 @@ std::string stats_json(const AlphaMuSearchStats& stats) {
            << ",\"deepAlphaCuts\":" << stats.deep_alpha_cuts
            << ",\"rootCuts\":" << stats.root_cuts
            << ",\"winCuts\":" << stats.win_cuts
+           << ",\"targetReachedCuts\":" << stats.target_reached_cuts
+           << ",\"targetImpossibleCuts\":" << stats.target_impossible_cuts
            << ",\"equivalentMoves\":" << stats.equivalent_moves_skipped
            << ",\"maxEquivalentMoves\":" << stats.max_equivalent_moves_skipped
            << ",\"minEquivalentMoves\":" << stats.min_equivalent_moves_skipped

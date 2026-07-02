@@ -96,6 +96,52 @@ std::optional<ParetoFront> evaluate_world_cut(
     return evaluate_leaf(worlds, useful_worlds, context);
 }
 
+// These are exact score bounds. Cards already in the partial trick still
+// belong to the same remaining trick, so this also works for shortened deals.
+std::optional<ParetoFront> evaluate_target_bound(
+    const Position& position,
+    WorldMask useful_worlds,
+    SearchContext& context,
+    std::size_t search_depth) {
+    if (!context.config.optimizations.target_bounds) return std::nullopt;
+
+    std::uint16_t cards_until_finished = position.current_trick.card_count;
+    for (const Hand hand : position.deal.hands) {
+        cards_until_finished = static_cast<std::uint16_t>(
+            cards_until_finished + card_count(hand));
+    }
+    if (cards_until_finished % 4 != 0) return std::nullopt;
+
+    const std::uint8_t won =
+        tricks_won_by_declarer(position, context.config.declarer);
+    const std::uint8_t remaining = static_cast<std::uint8_t>(
+        cards_until_finished / 4);
+    if (won >= context.config.target_tricks) {
+        ++context.stats.target_reached_cuts;
+        audit_line(
+            context,
+            search_depth,
+            "target-bound",
+            "target already reached; every continuation succeeds");
+        return ParetoFront {
+            .vectors = {OutcomeVector {.wins = useful_worlds}},
+        };
+    }
+    if (static_cast<std::uint16_t>(won) + remaining <
+        context.config.target_tricks) {
+        ++context.stats.target_impossible_cuts;
+        audit_line(
+            context,
+            search_depth,
+            "target-bound",
+            "target impossible: won " + std::to_string(won) +
+                " with only " + std::to_string(remaining) +
+                " trick(s) remaining");
+        return zero_front();
+    }
+    return std::nullopt;
+}
+
 // This is an exact terminal proof, not a heuristic: the MAX leader has only
 // trumps and every defender is void, so MAX wins every remaining trick.
 std::optional<ParetoFront> evaluate_forced_trump_run(
@@ -424,6 +470,31 @@ RootIteration search_root_iteration(
         };
     }
 
+    if (const std::optional<ParetoFront> bound =
+            evaluate_target_bound(root, active_worlds, context, 0);
+        bound.has_value()) {
+        const std::vector<Card> moves = representative_cards(
+            root, legal_moves, kNoCard, context);
+        std::vector<AlphaMuRootMove> root_moves;
+        root_moves.reserve(moves.size());
+        const std::size_t score = best_winning_world_count(*bound);
+        for (const Card move : moves) {
+            root_moves.push_back(AlphaMuRootMove {
+                .move = move,
+                .winning_worlds = score,
+                .pareto_vectors = bound->vectors.size(),
+                .front = *bound,
+            });
+        }
+        return RootIteration {
+            .evaluation = NodeEvaluation {
+                .front = *bound,
+                .best_move = moves.front(),
+            },
+            .root_moves = std::move(root_moves),
+        };
+    }
+
     if (const std::optional<ParetoFront> forced =
             evaluate_forced_trump_run(
                 worlds, active_worlds, active_worlds, context, 0);
@@ -571,6 +642,14 @@ NodeEvaluation alpha_mu_node(
     }
     useful_worlds &= active_worlds;
 
+    const Position& position = worlds[first_world(active_worlds)].position;
+    if (const std::optional<ParetoFront> bound =
+            evaluate_target_bound(
+                position, useful_worlds, context, trace_depth);
+        bound.has_value()) {
+        return NodeEvaluation {.front = *bound};
+    }
+
     std::optional<NodeKey> key;
     Card preferred_move = kNoCard;
     const TranspositionEntry* cached_entry = nullptr;
@@ -602,7 +681,6 @@ NodeEvaluation alpha_mu_node(
         }
     }
 
-    const Position& position = worlds[first_world(active_worlds)].position;
     if (const std::optional<ParetoFront> cut =
             evaluate_world_cut(worlds, useful_worlds, context, trace_depth);
         cut.has_value()) {

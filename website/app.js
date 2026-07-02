@@ -34,6 +34,7 @@ const elements = {
   turnLabel: byId("turn-label"),
   currentTrick: byId("current-trick"),
   scoreNs: byId("score-ns"),
+  scoreLabel: byId("score-label"),
   scoreEw: byId("score-ew"),
   historyPrev: byId("history-prev"),
   historyNext: byId("history-next"),
@@ -342,7 +343,7 @@ function renderDealSummary() {
   const deal = currentDeal || collectDeal();
   elements.currentDealName.textContent = deal.name || "Untitled deal";
   elements.currentDealSummary.textContent =
-    `${deal.trump} | ${deal.leader[0]} lead | ${deal.target || elements.target.value}`;
+    `${deal.trump} | ${deal.target || elements.target.value} tricks`;
 }
 
 function renderTable(override) {
@@ -355,6 +356,7 @@ function renderTable(override) {
     document.querySelector(`[data-seat="${seat}"]`).classList.toggle("is-turn", state.turn === seat);
   }
   elements.scoreNs.textContent = state.score.ns;
+  elements.scoreLabel.textContent = state.score.ns === 1 ? " trick" : " tricks";
   elements.scoreEw.textContent = state.score.ew;
   elements.turnLabel.textContent = state.finished
     ? `Deal complete | ${state.score.ns}-${state.score.ew}`
@@ -543,6 +545,7 @@ function analysisMarkup(analysis) {
       <div><dt>Equals skipped</dt><dd>${formatNumber(analysis.stats.equivalentMoves)}</dd></div>
       <div><dt>Useful removed</dt><dd>${formatNumber(analysis.stats.usefulWorldsRemoved)}</dd></div>
       <div><dt>Paper cuts</dt><dd>${formatNumber((analysis.stats.earlyCuts || 0) + (analysis.stats.deepAlphaCuts || 0) + (analysis.stats.worldCuts || 0) + (analysis.stats.winCuts || 0))}</dd></div>
+      <div><dt>Target bounds</dt><dd>${formatNumber((analysis.stats.targetReachedCuts || 0) + (analysis.stats.targetImpossibleCuts || 0))}</dd></div>
     </dl>`;
 }
 

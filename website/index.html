@@ -26,11 +26,6 @@
       <section class="workbench reveal">
         <section class="table-stage" id="table" aria-label="Bridge table">
           <div class="felt-grain"></div>
-          <div class="table-meta">
-            <strong class="sr-only" id="current-deal-name">7NT spade guess</strong>
-            <small id="current-deal-summary">NT &middot; S lead &middot; 13</small>
-          </div>
-
           <article class="seat north" data-seat="North">
             <span class="sr-only">North</span><div class="holding holding-inline" data-holding="North"></div>
           </article>
@@ -46,13 +41,17 @@
 
           <div class="table-centre">
             <div class="current-trick" id="current-trick"></div>
-            <div class="scoreline"><span>NS <strong id="score-ns">0</strong></span><span>EW <strong id="score-ew">0</strong></span></div>
+            <div class="scoreline"><strong id="score-ns">0</strong><span id="score-label"> tricks</span><span class="sr-only">EW <strong id="score-ew">0</strong></span></div>
             <p class="sr-only" id="turn-label">Load a deal to begin</p>
           </div>
 
           <div class="table-controls table-controls-left">
             <button class="table-icon" id="edit-deal" type="button" aria-label="Edit deal" title="Edit deal">&#9998;</button>
             <button class="table-icon" id="replay" type="button" aria-label="Restart deal" title="Restart deal">&#8635;</button>
+            <div class="table-meta">
+              <strong class="sr-only" id="current-deal-name">7NT spade guess</strong>
+              <small id="current-deal-summary">NT &middot; 13 tricks</small>
+            </div>
           </div>
           <div class="table-controls table-controls-right" aria-label="Play controls">
             <button class="table-icon" id="undo" type="button" aria-label="Undo last card" title="Undo last card">&#8630;</button>

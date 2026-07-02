@@ -38,6 +38,7 @@ std::string_view to_string(AlphaMuOptimization optimization) {
         case AlphaMuOptimization::DeepAlphaCut: return "deep-alpha";
         case AlphaMuOptimization::RootCut: return "root-cut";
         case AlphaMuOptimization::WinCut: return "win-cut";
+        case AlphaMuOptimization::TargetBounds: return "target-bounds";
         case AlphaMuOptimization::ForcedTrumpRun: return "forced-trump";
         case AlphaMuOptimization::LeafDdsBatch: return "leaf-dds-batch";
     }
@@ -59,6 +60,7 @@ std::optional<AlphaMuOptimization> parse_alpha_mu_optimization(std::string_view 
              AlphaMuOptimization::DeepAlphaCut,
              AlphaMuOptimization::RootCut,
              AlphaMuOptimization::WinCut,
+             AlphaMuOptimization::TargetBounds,
              AlphaMuOptimization::ForcedTrumpRun,
              AlphaMuOptimization::LeafDdsBatch}) {
         if (normalized == to_string(optimization)) {
@@ -96,6 +98,8 @@ bool optimization_enabled(
             return optimizations.root_cut;
         case AlphaMuOptimization::WinCut:
             return optimizations.win_cut;
+        case AlphaMuOptimization::TargetBounds:
+            return optimizations.target_bounds;
         case AlphaMuOptimization::ForcedTrumpRun:
             return optimizations.forced_trump_run;
         case AlphaMuOptimization::LeafDdsBatch:
@@ -145,6 +149,9 @@ void set_optimization_enabled(
         case AlphaMuOptimization::WinCut:
             optimizations.win_cut = enabled;
             return;
+        case AlphaMuOptimization::TargetBounds:
+            optimizations.target_bounds = enabled;
+            return;
         case AlphaMuOptimization::ForcedTrumpRun:
             optimizations.forced_trump_run = enabled;
             return;
@@ -168,6 +175,7 @@ AlphaMuOptimizations disabled_alpha_mu_optimizations() {
         .deep_alpha_cut = false,
         .root_cut = false,
         .win_cut = false,
+        .target_bounds = false,
         .forced_trump_run = false,
         .leaf_dds_batch = false,
     };
