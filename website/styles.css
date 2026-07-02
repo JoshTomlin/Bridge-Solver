@@ -170,14 +170,15 @@ h3 { font-size: 1rem; }
 .mini-card { position: relative; display: inline-grid; grid-template-rows: auto auto; place-items: center; width: 30px; height: 42px; margin: 0; padding: 3px 1px; overflow: hidden; color: var(--ink); background: #fffdf8; border: 1px solid #d8d2c7; border-radius: 5px; box-shadow: 0 2px 5px rgba(5, 30, 24, 0.2); font-family: "DM Sans", sans-serif; line-height: 1; }
 .holding-inline .mini-card + .mini-card { margin-left: -10px; }
 .holding-stacked .mini-card + .mini-card { margin-left: var(--side-card-overlap, 0); }
-.holding-stacked .cards-4 { --side-card-overlap: -6px; }
-.holding-stacked .cards-5 { --side-card-overlap: -14px; }
-.holding-stacked .cards-6 { --side-card-overlap: -19px; }
-.holding-stacked .cards-7 { --side-card-overlap: -22px; }
-.holding-stacked .cards-8 { --side-card-overlap: -25px; }
-.holding-stacked .cards-9 { --side-card-overlap: -26px; }
-.holding-stacked .cards-10 { --side-card-overlap: -28px; }
-.holding-stacked .cards-11 { --side-card-overlap: -29px; }
+.holding-stacked .cards-2 { --side-card-overlap: -4px; }
+.holding-stacked .cards-3 { --side-card-overlap: -8px; }
+.holding-stacked .cards-4 { --side-card-overlap: -14px; }
+.holding-stacked .cards-5 { --side-card-overlap: -19px; }
+.holding-stacked .cards-6 { --side-card-overlap: -23px; }
+.holding-stacked .cards-7 { --side-card-overlap: -26px; }
+.holding-stacked .cards-8 { --side-card-overlap: -28px; }
+.holding-stacked .cards-9 { --side-card-overlap: -29px; }
+.holding-stacked .cards-10, .holding-stacked .cards-11,
 .holding-stacked .cards-12, .holding-stacked .cards-13 { --side-card-overlap: -30px; }
 .mini-card b { font-size: 0.78rem; }
 .mini-card i { font-size: 0.82rem; font-style: normal; }
@@ -484,8 +485,8 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
   .seat { padding: 3px; border-radius: 9px; }
   .seat.north, .seat.south { width: 100%; }
   .seat.west, .seat.east { width: 134px; }
-  .mini-card { width: 42px; height: 60px; border-radius: 6px; }
-  .holding-inline .mini-card + .mini-card { margin-left: -21px; }
+  .mini-card { width: 38px; height: 60px; border-radius: 6px; }
+  .holding-inline .mini-card + .mini-card { margin-left: -14px; }
   .holding-stacked .mini-card { width: 38px; height: 52px; }
   .mini-card b { font-size: 0.96rem; }
   .mini-card i { font-size: 1.02rem; }
@@ -506,7 +507,17 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
   .recommendation-copy strong { font-size: 1rem; }
   .recommendation-stats small { font-size: 0.52rem; }
   .world-grid { grid-template-columns: repeat(8, minmax(18px, 1fr)); gap: 3px; }
-  .world-table { grid-template: 66px 150px 66px / minmax(96px, 1fr) 88px minmax(96px, 1fr); min-height: 282px; padding: 4px; }
+  .world-table { grid-template: 44px 104px 44px / minmax(80px, 1fr) 66px minmax(80px, 1fr); min-height: 192px; padding: 3px; }
+  .world-trick { width: 62px; height: 72px; }
+  .world-table .holding-inline .mini-card,
+  .world-table .holding-stacked .mini-card { width: 14px; height: 20px; padding: 1px; border-radius: 2px; }
+  .world-table .mini-card b { font-size: 0.4rem; }
+  .world-table .mini-card i { font-size: 0.43rem; }
+  .world-table .holding-inline .mini-card + .mini-card { margin-left: -2px; }
+  .world-table .holding-stacked .suit-cards { --side-card-overlap: -4px; }
+  .world-table .trick-card { width: 20px; height: 28px; padding: 1px; }
+  .world-table .trick-card b { font-size: 0.46rem; }
+  .world-table .trick-card i { font-size: 0.5rem; }
   .run-section { margin: 28px 12px 0; }
   .deal-compass { grid-template: 78px 202px 78px / minmax(0, 1fr) 90px minmax(0, 1fr); min-height: 358px; padding: 5px; }
   .deal-seat { min-height: 68px; padding: 5px 2px; }
