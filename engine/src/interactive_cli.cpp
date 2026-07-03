@@ -19,7 +19,7 @@
 namespace bridge::cli {
 namespace {
 
-constexpr std::array<AlphaMuOptimization, 15> kOptimizations {
+constexpr std::array<AlphaMuOptimization, 16> kOptimizations {
     AlphaMuOptimization::IterativeDeepening,
     AlphaMuOptimization::TranspositionTable,
     AlphaMuOptimization::CanonicalTranspositionKeys,
@@ -33,6 +33,7 @@ constexpr std::array<AlphaMuOptimization, 15> kOptimizations {
     AlphaMuOptimization::RootCut,
     AlphaMuOptimization::WinCut,
     AlphaMuOptimization::TargetBounds,
+    AlphaMuOptimization::ForcedMoves,
     AlphaMuOptimization::ForcedTrumpRun,
     AlphaMuOptimization::LeafDdsBatch,
 };
@@ -156,6 +157,8 @@ std::uint64_t optimization_event_count(
             return stats.win_cuts;
         case AlphaMuOptimization::TargetBounds:
             return stats.target_reached_cuts + stats.target_impossible_cuts;
+        case AlphaMuOptimization::ForcedMoves:
+            return stats.forced_move_nodes + stats.forced_root_recommendations;
         case AlphaMuOptimization::ForcedTrumpRun:
             return stats.forced_trump_run_cuts;
         case AlphaMuOptimization::LeafDdsBatch:
@@ -224,15 +227,27 @@ void show_session(const AnalysisSession& session, std::ostream& output) {
 
 SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
     const SessionAnalysis analysis = session.analyze();
-    output << "Possible deals: " << analysis.possible_deals
-           << "; sampled " << session.settings().world_count
-           << " (" << analysis.unique_worlds << " unique) in "
-           << std::fixed << std::setprecision(3) << analysis.sampling_ms << " ms\n";
+    const bool forced =
+        analysis.search.stats.forced_root_recommendations != 0;
+    output << "Possible deals: " << analysis.possible_deals;
+    if (forced) {
+        output << "; forced play, no worlds sampled\n";
+    } else {
+        output << "; sampled " << session.settings().world_count
+               << " (" << analysis.unique_worlds << " unique) in "
+               << std::fixed << std::setprecision(3)
+               << analysis.sampling_ms << " ms\n";
+    }
     output << "Root moves:\n";
     for (const AlphaMuRootMove& move : analysis.search.root_moves) {
-        output << "  " << to_string(move.move) << ": " << move.winning_worlds
-               << '/' << session.settings().world_count
-               << " worlds, " << move.pareto_vectors << " vector(s)\n";
+        output << "  " << to_string(move.move);
+        if (forced) {
+            output << ": only legal card\n";
+        } else {
+            output << ": " << move.winning_worlds
+                   << '/' << session.settings().world_count
+                   << " worlds, " << move.pareto_vectors << " vector(s)\n";
+        }
     }
     output << "Recommended: " << to_string(analysis.search.best_move)
            << " in " << analysis.search_ms << " ms\n";
@@ -248,6 +263,9 @@ SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
            << " equals-skipped=" << analysis.search.stats.equivalent_moves_skipped
            << " (MAX " << analysis.search.stats.max_equivalent_moves_skipped
            << ", MIN " << analysis.search.stats.min_equivalent_moves_skipped << ')'
+           << " forced-moves="
+           << analysis.search.stats.forced_move_nodes +
+                  analysis.search.stats.forced_root_recommendations
            << " forced-trump-cuts=" << analysis.search.stats.forced_trump_run_cuts
            << " win-cuts=" << analysis.search.stats.win_cuts
            << " target-bounds="

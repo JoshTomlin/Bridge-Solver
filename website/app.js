@@ -1,5 +1,5 @@
 import { EngineClient } from "./engine-client.js";
-import { fourthHandCompletion, handRecordFromCards, parseHandRecord } from "./deal-utils.js";
+import { completeDefenderLayout, fourthHandCompletion, handRecordFromCards, parseHandRecord } from "./deal-utils.js";
 import { clearRuns, deleteDeal, loadDeals, loadRuns, saveDeal, saveRun } from "./storage.js";
 
 const byId = (id) => document.getElementById(id);
@@ -22,6 +22,11 @@ const elements = {
   trump: byId("trump"),
   playPrefix: byId("play-prefix"),
   restrictionStatus: byId("restriction-status"),
+  layoutCount: byId("layout-count"),
+  layoutName: byId("layout-name"),
+  layoutEast: byId("layout-east"),
+  layoutWest: byId("layout-west"),
+  additionalLayoutList: byId("additional-layout-list"),
   savedDeals: byId("saved-deals"),
   dealCount: byId("deal-count"),
   tableStage: byId("table"),
@@ -47,6 +52,7 @@ const elements = {
   seed: byId("random-seed"),
   analyze: byId("analyze-position"),
   analyzeFull: byId("analyze-full"),
+  analyzeLayouts: byId("analyze-layouts"),
   cancel: byId("cancel-analysis"),
   progress: byId("progress-card"),
   progressLabel: byId("progress-label"),
@@ -78,6 +84,9 @@ let activeFullResult = null;
 let activeDecisionIndex = 0;
 let activeEditSeat = "North";
 let retainedTrick = [];
+let additionalLayouts = [];
+let activeLayoutBatch = null;
+let activeLayoutResultIndex = 0;
 
 function defaultSeatRestrictions() {
   return {
@@ -136,6 +145,12 @@ const engine = new EngineClient({
     }
   },
   onProgress(progress) {
+    if (progress.batch) {
+      elements.progressLabel.textContent = progress.label;
+      elements.progressValue.textContent = `${progress.percent}%`;
+      elements.progressBar.style.width = `${progress.percent}%`;
+      return;
+    }
     liveState = progress.state;
     retainTrickAfterPlay(progress.state, progress.play);
     renderTable(progress.state);
@@ -174,6 +189,7 @@ function collectDeal() {
     trump: elements.trump.value,
     target: Number(elements.target.value),
     playPrefix: elements.playPrefix.value.trim().toUpperCase(),
+    additionalLayouts: additionalLayouts.map((layout) => ({ ...layout })),
     restrictions: {
       east: collectSeatRestrictions("east"),
       west: collectSeatRestrictions("west")
@@ -192,14 +208,20 @@ function populateDealForm(deal) {
   elements.trump.value = deal.trump || "NT";
   elements.target.value = deal.target || 13;
   elements.playPrefix.value = deal.playPrefix || "";
+  additionalLayouts = (deal.additionalLayouts || []).map((layout) => ({
+    ...layout,
+    id: layout.id || layoutIdentifier()
+  }));
   applySeatRestrictions("east", deal.restrictions?.east);
   applySeatRestrictions("west", deal.restrictions?.west);
   byId("defender-knowledge").open = Boolean(
     hasSeatRestrictions(deal.restrictions?.east) ||
-    hasSeatRestrictions(deal.restrictions?.west)
+    hasSeatRestrictions(deal.restrictions?.west) ||
+    additionalLayouts.length
   );
   elements.restrictionStatus.textContent = "Load to count";
   renderDealEditor();
+  renderAdditionalLayouts();
 }
 
 function analysisSettings() {
@@ -230,6 +252,33 @@ function parsePreviewHand(record) {
   const fields = record.trim().split(/[.\s]+/);
   if (fields.length !== 4) return { S: "?", H: "?", D: "?", C: "?" };
   return { S: fields[0], H: fields[1], D: fields[2], C: fields[3] };
+}
+
+function layoutIdentifier() {
+  return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+}
+
+function completeAlternativeLayout(eastText, westText) {
+  return completeDefenderLayout(
+    elements.east.value,
+    elements.west.value,
+    eastText,
+    westText
+  );
+}
+
+function renderAdditionalLayouts() {
+  elements.layoutCount.textContent = additionalLayouts.length;
+  elements.analyzeLayouts.classList.toggle("is-hidden", additionalLayouts.length === 0);
+  elements.analyzeLayouts.textContent = `Test ${additionalLayouts.length + 1} layouts`;
+  elements.additionalLayoutList.innerHTML = additionalLayouts.length
+    ? additionalLayouts.map((layout, index) => `
+      <article class="additional-layout">
+        <div><strong>${escapeHtml(layout.name || `Layout ${index + 1}`)}</strong><small>E ${escapeHtml(layout.east)} | W ${escapeHtml(layout.west)}</small></div>
+        <button type="button" data-delete-layout="${escapeHtml(layout.id)}" aria-label="Delete ${escapeHtml(layout.name)}">&times;</button>
+      </article>`).join("")
+    : "<p class=\"muted-copy\">No additional true layouts.</p>";
+  updateActionState();
 }
 
 const suitDisplay = {
@@ -441,6 +490,17 @@ function moveStatus(move, analysis) {
   return null;
 }
 
+function isForcedAnalysis(analysis) {
+  return Number(analysis?.stats?.forcedRootMoves || 0) > 0;
+}
+
+function worldHandRecordMarkup(hand) {
+  return `<div class="world-hand-record">${Object.entries(suitDisplay).map(([suit, display]) => {
+    const holding = hand?.[suit] && hand[suit] !== "-" ? hand[suit] : "&mdash;";
+    return `<div class="world-suit suit-${display.className}"><span>${display.symbol}</span><strong>${holding}</strong></div>`;
+  }).join("")}</div>`;
+}
+
 function worldLayoutMarkup(analysis, worldIndex, winningSet) {
   const world = (analysis.sampledWorlds || []).find((candidate) => candidate.index === worldIndex);
   if (!world) return "<p class=\"muted-copy\">Sampled layouts require the current WebAssembly build.</p>";
@@ -451,18 +511,20 @@ function worldLayoutMarkup(analysis, worldIndex, winningSet) {
     West: parsePreviewHand(world.west.record)
   };
   const trick = state.trick?.length ? state.trick : completedTrickForFrame(timelineIndex);
+  const target = Number(analysis.targetTricks ?? elements.target.value);
+  const tricksNeeded = Math.max(0, target - Number(state.score?.ns || 0));
   return `
     <section class="world-position">
       <div class="world-position-heading">
-        <strong>World ${worldIndex + 1}</strong>
+        <strong>World ${worldIndex + 1} | ${tricksNeeded} trick${tricksNeeded === 1 ? "" : "s"} needed</strong>
         <span class="status-chip ${winningSet.has(worldIndex) ? "best" : "lost"}">${winningSet.has(worldIndex) ? "Target made" : "Target failed"}</span>
       </div>
       <div class="world-table" aria-label="Complete position in sampled world ${worldIndex + 1}">
-        <div class="world-seat north"><div class="holding holding-inline">${holdingMarkup(hands.North, [], false)}</div></div>
-        <div class="world-seat west"><div class="holding holding-stacked">${holdingMarkup(hands.West, [], false)}</div></div>
+        <div class="world-seat north">${worldHandRecordMarkup(hands.North)}</div>
+        <div class="world-seat west">${worldHandRecordMarkup(hands.West)}</div>
         <div class="world-trick">${trick.map(trickCardMarkup).join("")}</div>
-        <div class="world-seat east"><div class="holding holding-stacked">${holdingMarkup(hands.East, [], false)}</div></div>
-        <div class="world-seat south"><div class="holding holding-inline">${holdingMarkup(hands.South, [], false)}</div></div>
+        <div class="world-seat east">${worldHandRecordMarkup(hands.East)}</div>
+        <div class="world-seat south">${worldHandRecordMarkup(hands.South)}</div>
       </div>
     </section>`;
 }
@@ -475,6 +537,10 @@ function moveDetailMarkup(analysis, move) {
   activeStrategyIndex = Math.min(activeStrategyIndex, outcomes.length - 1);
   const outcome = outcomes[activeStrategyIndex];
   const winningSet = new Set(outcome);
+  const bestMove = analysis.rootMoves.find((candidate) => candidate.card === analysis.bestMove);
+  const bestOutcome = bestMove?.outcomes?.[bestOutcomeIndex(bestMove)] || [];
+  const bestWinningSet = new Set(bestOutcome);
+  const comparesWithBest = move.card !== analysis.bestMove;
   const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
   if (activeWorldIndex === null || activeWorldIndex >= worldCount) {
     activeWorldIndex = outcome[0] ?? 0;
@@ -497,10 +563,19 @@ function moveDetailMarkup(analysis, move) {
       </div>
       ${outcomes.length > 1 ? `<div class="strategy-tabs">${outcomes.map((vector, index) => `
         <button class="strategy-tab ${index === activeStrategyIndex ? "is-selected" : ""}" data-strategy-index="${index}" type="button">Strategy ${index + 1} | ${vector.length}</button>`).join("")}</div>` : ""}
-      <div class="world-key"><span>Target made</span><span class="lost">Target failed</span></div>
+      <div class="world-key">
+        <span>Target made</span><span class="lost">Target failed</span>
+        ${comparesWithBest ? "<span class=\"regressed\">Lost vs best</span><span class=\"gained\">Won vs best</span>" : ""}
+      </div>
       <div class="world-grid" aria-label="Sampled world outcomes">
-        ${Array.from({ length: worldCount }, (_, index) => `
-          <button class="world-cell ${winningSet.has(index) ? "" : "is-lost"} ${activeWorldIndex === index ? "is-selected" : ""}" data-world-index="${index}" type="button" title="World ${index + 1}">${index + 1}</button>`).join("")}
+        ${Array.from({ length: worldCount }, (_, index) => {
+          const selectedWins = winningSet.has(index);
+          const bestWins = bestWinningSet.has(index);
+          const comparison = comparesWithBest && !selectedWins && bestWins
+            ? "is-regressed"
+            : comparesWithBest && selectedWins && !bestWins ? "is-gained" : "";
+          return `<button class="world-cell ${selectedWins ? "" : "is-lost"} ${comparison} ${activeWorldIndex === index ? "is-selected" : ""}" data-world-index="${index}" type="button" title="World ${index + 1}">${index + 1}</button>`;
+        }).join("")}
       </div>
       ${worldLayoutMarkup(analysis, activeWorldIndex, winningSet)}
     </section>`;
@@ -508,19 +583,24 @@ function moveDetailMarkup(analysis, move) {
 
 function analysisMarkup(analysis) {
   const rootMoves = analysis.rootMoves || [];
+  const forced = isForcedAnalysis(analysis);
   const bestScore = Math.max(0, ...rootMoves.map((move) => move.winningWorlds));
+  const bestOptions = rootMoves.filter((move) => move.winningWorlds === bestScore).length;
   const selected = rootMoves.find((move) => move.card === activeMoveCard) ||
     rootMoves.find((move) => move.card === analysis.bestMove) || rootMoves[0];
   activeMoveCard = selected?.card || null;
   const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
+  const recommendationSummary = forced
+    ? "Only legal card | no world search needed"
+    : `${analysis.winningWorlds}/${worldCount} sampled worlds | ${bestOptions} best option${bestOptions === 1 ? "" : "s"}`;
   return `
     <div class="recommendation">
       <span>Recommended card</span>
       <strong>${escapeHtml(analysis.bestMove)}</strong>
-      <p>${analysis.winningWorlds}/${worldCount} sampled worlds | ${rootMoves.filter((move) => move.winningWorlds === bestScore).length} best option${rootMoves.filter((move) => move.winningWorlds === bestScore).length === 1 ? "" : "s"}</p>
+      <p>${recommendationSummary}</p>
     </div>
     <div class="analysis-meta">
-      <span>M reached ${analysis.stats.completedDepth}</span>
+      <span>${forced ? "Forced play" : `M reached ${analysis.stats.completedDepth}`}</span>
       <span>${formatMs(analysis.searchMs)} search</span>
       <span>${formatMs(analysis.samplingMs)} sampling</span>
       <span>${formatNumber(analysis.possibleDeals)} possible deals</span>
@@ -530,19 +610,23 @@ function analysisMarkup(analysis) {
       ${rootMoves.map((move) => {
         const status = moveStatus(move, analysis);
         const red = move.card?.startsWith("H") || move.card?.startsWith("D");
+        const scoreLabel = forced ? "Only legal card" : `${move.winningWorlds}/${worldCount} worlds`;
+        const scoreDetail = forced ? "No sampling or DDS" : `${move.paretoVectors} Pareto strateg${move.paretoVectors === 1 ? "y" : "ies"}`;
+        const scoreBar = forced ? "" : `<span class="move-bar"><span style="width:${worldCount ? (move.winningWorlds / worldCount) * 100 : 0}%"></span></span>`;
         return `<button class="move-option ${move.card === activeMoveCard ? "is-selected" : ""}" data-analysis-move="${escapeHtml(move.card)}" type="button">
           <span class="move-card ${red ? "red" : ""}">${escapeHtml(move.card)}</span>
-          <span class="move-score"><strong>${move.winningWorlds}/${worldCount} worlds</strong><small>${move.paretoVectors} Pareto strateg${move.paretoVectors === 1 ? "y" : "ies"}</small><span class="move-bar"><span style="width:${worldCount ? (move.winningWorlds / worldCount) * 100 : 0}%"></span></span></span>
+          <span class="move-score"><strong>${scoreLabel}</strong><small>${scoreDetail}</small>${scoreBar}</span>
           ${status ? `<span class="status-chip ${status.className}">${status.label}</span>` : `<b>-${bestScore - move.winningWorlds}</b>`}
         </button>`;
       }).join("")}
     </div>
-    ${selected ? moveDetailMarkup(analysis, selected) : ""}
+    ${selected && !forced ? moveDetailMarkup(analysis, selected) : ""}
     <dl class="stat-grid">
       <div><dt>Nodes</dt><dd>${formatNumber(analysis.stats.nodes)}</dd></div>
       <div><dt>DDS worlds</dt><dd>${formatNumber(analysis.stats.ddsWorlds)}</dd></div>
       <div><dt>TT hits</dt><dd>${formatNumber(analysis.stats.ttHits)}</dd></div>
       <div><dt>Equals skipped</dt><dd>${formatNumber(analysis.stats.equivalentMoves)}</dd></div>
+      <div><dt>Forced nodes</dt><dd>${formatNumber((analysis.stats.forcedMoveNodes || 0) + (analysis.stats.forcedRootMoves || 0))}</dd></div>
       <div><dt>Useful removed</dt><dd>${formatNumber(analysis.stats.usefulWorldsRemoved)}</dd></div>
       <div><dt>Paper cuts</dt><dd>${formatNumber((analysis.stats.earlyCuts || 0) + (analysis.stats.deepAlphaCuts || 0) + (analysis.stats.worldCuts || 0) + (analysis.stats.winCuts || 0))}</dd></div>
       <div><dt>Target bounds</dt><dd>${formatNumber((analysis.stats.targetReachedCuts || 0) + (analysis.stats.targetImpossibleCuts || 0))}</dd></div>
@@ -551,16 +635,37 @@ function analysisMarkup(analysis) {
 
 function analysisDockMarkup(analysis) {
   const rootMoves = analysis.rootMoves || [];
+  const forced = isForcedAnalysis(analysis);
   const bestScore = Math.max(0, ...rootMoves.map((move) => move.winningWorlds));
   const bestOptions = rootMoves.filter((move) => move.winningWorlds === bestScore).length;
   const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
   const display = suitDisplay[analysis.bestMove?.[0]];
+  const outcomeSummary = forced
+    ? "No world search needed"
+    : `${analysis.winningWorlds}/${worldCount} worlds${bestOptions > 1 ? ` | ${bestOptions} tied` : ""}`;
   return `<button class="analysis-recommendation" data-open-inspector type="button">
     <span class="recommendation-card suit-${display?.className || "spades"}">${analysis.bestMove ? cardFaceMarkup(analysis.bestMove) : "-"}</span>
-    <span class="recommendation-copy"><small>Suggested play</small><strong>${escapeHtml(analysis.bestMove)}</strong><span>${analysis.winningWorlds}/${worldCount} worlds${bestOptions > 1 ? ` | ${bestOptions} tied` : ""}</span></span>
-    <span class="recommendation-stats"><b>M${analysis.stats.completedDepth}</b><small>${formatMs(analysis.searchMs)}</small></span>
+    <span class="recommendation-copy"><small>${forced ? "Only legal card" : "Suggested play"}</small><strong>${escapeHtml(analysis.bestMove)}</strong><span>${outcomeSummary}</span></span>
+    <span class="recommendation-stats"><b>${forced ? "Forced" : `M${analysis.stats.completedDepth}`}</b><small>${formatMs(analysis.searchMs)}</small></span>
     <span class="inspector-chevron" aria-hidden="true">&#8250;</span>
   </button>`;
+}
+
+function layoutBatchTabsMarkup() {
+  if (!activeLayoutBatch) return "";
+  const completed = activeLayoutBatch.results.filter((entry) => entry.result).length;
+  return `<section class="layout-batch-results">
+    <div class="layout-batch-heading"><strong>Test layouts</strong><span>${completed}/${activeLayoutBatch.results.length} completed | ${formatMs(activeLayoutBatch.totalMs)}</span></div>
+    <div class="layout-batch-tabs">
+      ${activeLayoutBatch.results.map((entry, index) => `
+        <button class="layout-result-tab ${index === activeLayoutResultIndex ? "is-selected" : ""} ${entry.error ? "has-error" : ""}"
+          data-layout-result="${index}" type="button" ${entry.error ? "disabled" : ""}
+          title="${escapeHtml(entry.error || entry.layout.name)}">
+          <strong>${escapeHtml(entry.layout.name)}</strong>
+          <small>${entry.error ? "Failed" : `${entry.result.state.score.ns} tricks | ${formatMs(entry.result.totalMs)}`}</small>
+        </button>`).join("")}
+    </div>
+  </section>`;
 }
 
 function renderAnalysisInspector() {
@@ -571,6 +676,7 @@ function renderAnalysisInspector() {
     activeDecisionIndex = Math.min(activeDecisionIndex, Math.max(0, analyses.length - 1));
     const selected = analyses[activeDecisionIndex];
     elements.analysisInspectorBody.innerHTML = `
+      ${layoutBatchTabsMarkup()}
       <div class="recommendation full-result">
         <span>Bot continuation complete</span>
         <strong>${result.state.score.ns}-${result.state.score.ew}</strong>
@@ -594,6 +700,7 @@ function renderAnalysisInspector() {
 }
 
 function showAnalysis(analysis, liveContext = false) {
+  activeLayoutBatch = null;
   activeFullResult = null;
   activeAnalysis = analysis;
   activeAnalysisIsLive = liveContext;
@@ -626,7 +733,7 @@ function renderFullResult() {
   const selected = analyses[activeDecisionIndex];
   activeAnalysis = selected || null;
   activeAnalysisIsLive = false;
-  elements.result.innerHTML = `<button class="analysis-recommendation full-dock" data-open-inspector type="button">
+  elements.result.innerHTML = `${layoutBatchTabsMarkup()}<button class="analysis-recommendation full-dock" data-open-inspector type="button">
     <span class="continuation-score">${result.state.score.ns}-${result.state.score.ew}</span>
     <span class="recommendation-copy"><small>Continuation complete</small><strong>${analyses.length} decisions</strong><span>${result.plays.length} cards played</span></span>
     <span class="recommendation-stats"><b>M${totals.maxDepth}</b><small>${formatMs(result.totalMs)}</small></span>
@@ -635,7 +742,8 @@ function renderFullResult() {
   renderAnalysisInspector();
 }
 
-function showFullResult(result) {
+function showFullResult(result, preserveBatch = false) {
+  if (!preserveBatch) activeLayoutBatch = null;
   activeFullResult = result;
   activeDecisionIndex = 0;
   activeMoveCard = result.analyses?.[0]?.bestMove || null;
@@ -644,6 +752,23 @@ function showFullResult(result) {
   elements.resultEmpty.classList.add("is-hidden");
   elements.result.classList.remove("is-hidden");
   renderFullResult();
+}
+
+function selectLayoutResult(index) {
+  const entry = activeLayoutBatch?.results?.[index];
+  if (!entry?.result) return;
+  activeLayoutResultIndex = index;
+  const result = entry.result;
+  timelineFrames = [
+    { state: result.startState, play: null, label: entry.layout.name },
+    ...(result.frames || [])
+  ];
+  if (!timelineFrames[0].state) timelineFrames = [{ state: result.state, play: null, label: entry.layout.name }];
+  timelineIndex = 0;
+  liveState = result.state;
+  reviewOnly = true;
+  showFullResult(result, true);
+  renderTable();
 }
 
 function runSummary(run) {
@@ -684,6 +809,7 @@ function updateActionState() {
   const declarerTurn = liveState?.turn === "North" || liveState?.turn === "South";
   elements.analyze.disabled = busy || !engineReady || !hasSession || !live || !declarerTurn || liveState?.finished;
   elements.analyzeFull.disabled = busy || !engineReady || !hasSession || !live || liveState?.finished;
+  elements.analyzeLayouts.disabled = busy || !engineReady || !hasSession || !live || liveState?.finished || additionalLayouts.length === 0;
   byId("load-deal").disabled = busy || !engineReady;
   byId("undo").disabled = busy || !hasSession || !live || timelineFrames.length <= 1;
   byId("replay").disabled = busy || !currentDeal;
@@ -814,6 +940,7 @@ async function putDealOnTable(quiet = false) {
   activeAnalysis = null;
   activeAnalysisIsLive = false;
   activeFullResult = null;
+  activeLayoutBatch = null;
   elements.result.classList.add("is-hidden");
   elements.resultEmpty.classList.remove("is-hidden");
   elements.restrictionStatus.textContent = `${formatNumber(response.possibleDeals)} deal${response.possibleDeals === 1 ? "" : "s"}`;
@@ -868,6 +995,53 @@ async function analyzeFullDeal() {
   }
 }
 
+function currentPlayedCards() {
+  return timelineFrames
+    .slice(1, timelineIndex + 1)
+    .map((frame) => frame.play?.card)
+    .filter(Boolean);
+}
+
+async function analyzeLayoutBatch() {
+  setBusy(true, true);
+  elements.progressBar.style.width = "0%";
+  elements.progressValue.textContent = "0%";
+  elements.progressLabel.textContent = "Preparing true layouts";
+  try {
+    const settings = analysisSettings();
+    const baseDeal = currentDeal || collectDeal();
+    const layouts = [
+      {
+        id: "base",
+        name: "Base layout",
+        east: baseDeal.east,
+        west: baseDeal.west
+      },
+      ...additionalLayouts.map((layout) => ({ ...layout }))
+    ];
+    const batch = await engine.runLayouts({
+      baseDeal,
+      layouts,
+      playCards: currentPlayedCards(),
+      settings
+    });
+    const firstSuccessful = batch.results.findIndex((entry) => entry.result);
+    if (firstSuccessful < 0) {
+      throw new Error(batch.results[0]?.error || "Every layout test failed");
+    }
+    activeLayoutBatch = batch;
+    selectLayoutResult(firstSuccessful);
+    const failed = batch.results.length - batch.results.filter((entry) => entry.result).length;
+    toast(
+      failed ? `Layout tests complete; ${failed} failed` : `Tested ${batch.results.length} layouts`,
+      failed ? "error" : "success"
+    );
+  } finally {
+    setBusy(false);
+    renderTable();
+  }
+}
+
 function safely(action) {
   return async (...args) => {
     try {
@@ -904,6 +1078,47 @@ byId("apply-settings").addEventListener("click", () => {
   toast("Analysis settings updated");
 });
 
+byId("defender-knowledge").addEventListener("click", (event) => {
+  const selected = event.target.closest("[data-knowledge-tab]");
+  if (!selected) return;
+  const tabName = selected.dataset.knowledgeTab;
+  for (const tab of document.querySelectorAll("[data-knowledge-tab]")) {
+    const active = tab.dataset.knowledgeTab === tabName;
+    tab.classList.toggle("is-selected", active);
+    tab.setAttribute("aria-selected", String(active));
+  }
+  for (const panel of document.querySelectorAll("[data-knowledge-panel]")) {
+    panel.classList.toggle("is-hidden", panel.dataset.knowledgePanel !== tabName);
+  }
+});
+
+byId("add-layout").addEventListener("click", () => {
+  try {
+    const completed = completeAlternativeLayout(
+      elements.layoutEast.value.trim(),
+      elements.layoutWest.value.trim()
+    );
+    additionalLayouts.push({
+      id: layoutIdentifier(),
+      name: elements.layoutName.value.trim() || `Layout ${additionalLayouts.length + 1}`,
+      ...completed
+    });
+    elements.layoutName.value = "";
+    elements.layoutEast.value = "";
+    elements.layoutWest.value = "";
+    renderAdditionalLayouts();
+  } catch (error) {
+    toast(error.message || String(error), "error");
+  }
+});
+
+elements.additionalLayoutList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-delete-layout]");
+  if (!button) return;
+  additionalLayouts = additionalLayouts.filter((layout) => layout.id !== button.dataset.deleteLayout);
+  renderAdditionalLayouts();
+});
+
 byId("load-deal").addEventListener("click", safely(() => putDealOnTable(false)));
 byId("save-deal").addEventListener("click", () => {
   const stored = saveDeal(collectDeal());
@@ -923,6 +1138,7 @@ byId("new-deal").addEventListener("click", () => {
     trump: "NT",
     target: 13,
     playPrefix: "",
+    additionalLayouts: [],
     restrictions: {}
   });
 });
@@ -1007,6 +1223,7 @@ elements.historyLive.addEventListener("click", () => {
 
 elements.analyze.addEventListener("click", safely(analyzePosition));
 elements.analyzeFull.addEventListener("click", safely(analyzeFullDeal));
+elements.analyzeLayouts.addEventListener("click", safely(analyzeLayoutBatch));
 elements.cancel.addEventListener("click", safely(async () => {
   engine.cancel();
   setBusy(false);
@@ -1015,12 +1232,22 @@ elements.cancel.addEventListener("click", safely(async () => {
 }));
 
 elements.result.addEventListener("click", (event) => {
+  const layoutResult = event.target.closest("[data-layout-result]");
+  if (layoutResult) {
+    selectLayoutResult(Number(layoutResult.dataset.layoutResult));
+    return;
+  }
   if (!event.target.closest("[data-open-inspector]")) return;
   renderAnalysisInspector();
   openDialog(elements.analysisDialog);
 });
 
 elements.analysisInspectorBody.addEventListener("click", (event) => {
+  const layoutResult = event.target.closest("[data-layout-result]");
+  if (layoutResult) {
+    selectLayoutResult(Number(layoutResult.dataset.layoutResult));
+    return;
+  }
   const move = event.target.closest("[data-analysis-move]");
   const strategy = event.target.closest("[data-strategy-index]");
   const world = event.target.closest("[data-world-index]");
@@ -1134,4 +1361,5 @@ renderSettingsSummary();
 renderSavedDeals();
 renderRuns();
 renderDealEditor();
+renderAdditionalLayouts();
 renderTable();

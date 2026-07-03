@@ -216,6 +216,109 @@ void test_analysis_session_tracks_public_play() {
             "replay should restore the entered starting position");
 }
 
+void test_analysis_session_returns_forced_move_without_sampling() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Ace),
+            bridge::make_card(Suit::Hearts, Rank::Ace),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Two),
+            bridge::make_card(Suit::Hearts, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::King),
+            bridge::make_card(Suit::Hearts, Rank::King),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Three),
+            bridge::make_card(Suit::Hearts, Rank::Three),
+        }),
+    }};
+
+    bridge::AnalysisSession session(deal, Seat::West, std::nullopt);
+    session.play(bridge::make_card(Suit::Spades, Rank::Three));
+    bridge::BotSettings settings = session.settings();
+    settings.world_count = 64;
+    settings.max_declarer_plies = 10;
+    settings.target_tricks = 1;
+    session.set_settings(settings);
+
+    const bridge::SessionAnalysis forced = session.analyze();
+    require(forced.search.best_move ==
+                bridge::make_card(Suit::Spades, Rank::Ace),
+            "a forced follow should return the only legal card");
+    require(forced.worlds.empty() && forced.sampling_ms == 0.0 &&
+                forced.search.stats.dds_worlds == 0,
+            "a forced root recommendation should skip sampling and DDS");
+    require(forced.search.stats.forced_root_recommendations == 1 &&
+                forced.search.root_moves.size() == 1,
+            "forced root recommendations should be explicit in the result");
+
+    bridge::AnalysisSession reference_session(deal, Seat::West, std::nullopt);
+    reference_session.play(bridge::make_card(Suit::Spades, Rank::Three));
+    settings.world_count = 4;
+    settings.max_declarer_plies = 1;
+    settings.optimizations.forced_moves = false;
+    reference_session.set_settings(settings);
+    const bridge::SessionAnalysis reference = reference_session.analyze();
+    require(reference.worlds.size() == settings.world_count &&
+                reference.search.best_move == forced.search.best_move,
+            "disabling forced moves should restore sampling without changing the card");
+}
+
+void test_alpha_mu_collapses_forced_internal_nodes() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Ace),
+            bridge::make_card(Suit::Hearts, Rank::Ace),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Two),
+            bridge::make_card(Suit::Hearts, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::King),
+            bridge::make_card(Suit::Hearts, Rank::King),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Three),
+            bridge::make_card(Suit::Hearts, Rank::Three),
+        }),
+    }};
+    bridge::AnalysisSession session(deal, Seat::West, std::nullopt);
+    session.play(bridge::make_card(Suit::Spades, Rank::Three));
+    const std::vector<bridge::AlphaMuWorld> worlds {
+        bridge::AlphaMuWorld {.position = session.position()},
+    };
+
+    bridge::AlphaMuConfig forced_config {
+        .declarer = Seat::South,
+        .trump_suit = std::nullopt,
+        .target_tricks = 2,
+        .max_declarer_plies = 2,
+        .optimizations = bridge::disabled_alpha_mu_optimizations(),
+    };
+    forced_config.optimizations.forced_moves = true;
+    const bridge::AlphaMuResult forced =
+        bridge::alpha_mu_search(worlds, forced_config);
+
+    bridge::AlphaMuConfig reference_config = forced_config;
+    reference_config.optimizations.forced_moves = false;
+    const bridge::AlphaMuResult reference =
+        bridge::alpha_mu_search(worlds, reference_config);
+
+    require(forced.best_move == reference.best_move &&
+                forced.front.vectors.size() == reference.front.vectors.size() &&
+                forced.front.vectors.front().wins ==
+                    reference.front.vectors.front().wins,
+            "forced-node collapse must preserve the exact search result");
+    require(forced.stats.forced_min_nodes > 0 &&
+                forced.stats.forced_max_nodes > 0 &&
+                reference.stats.forced_move_nodes == 0,
+            "forced MAX and MIN nodes should be counted and independently disabled");
+}
+
 void test_alpha_mu_skips_touching_equal_cards() {
     const bridge::Deal deal {.hands = {
         bridge::make_hand({
@@ -393,6 +496,7 @@ void test_alpha_mu_optimization_controls() {
              bridge::AlphaMuOptimization::RootCut,
              bridge::AlphaMuOptimization::WinCut,
              bridge::AlphaMuOptimization::TargetBounds,
+             bridge::AlphaMuOptimization::ForcedMoves,
              bridge::AlphaMuOptimization::ForcedTrumpRun,
              bridge::AlphaMuOptimization::LeafDdsBatch}) {
         require(!bridge::optimization_enabled(optimizations, optimization),
@@ -1697,6 +1801,8 @@ int main() {
         test_alpha_mu_all_equal_suits_are_trivial();
         test_alpha_mu_cuts_max_node_on_all_winning_vector();
         test_alpha_mu_optimization_controls();
+        test_analysis_session_returns_forced_move_without_sampling();
+        test_alpha_mu_collapses_forced_internal_nodes();
         test_card_bitmask_layout_and_operations();
         test_legal_plays_follow_suit();
         test_trick_winner_with_trump();

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
-import { fourthHandCompletion } from "./deal-utils.js";
+import { completeDefenderLayout, fourthHandCompletion } from "./deal-utils.js";
 
 const [html, app, worker] = await Promise.all([
   fs.readFile(new URL("./index.html", import.meta.url), "utf8"),
@@ -26,7 +26,10 @@ for (const required of [
   "target-tricks",
   "history-prev",
   "history-next",
-  "analysis-result"
+  "analysis-result",
+  "analyze-layouts",
+  "layout-count",
+  "additional-layout-list"
 ]) {
   assert.ok(ids.includes(required), `redesign requires #${required}`);
 }
@@ -38,6 +41,11 @@ const runFull = worker.slice(
 assert.ok(!runFull.includes("engine.replay()"), "bot continuation must not replay the deal");
 assert.ok(runFull.includes("frames.push"), "bot continuation must retain playback frames");
 assert.ok(app.includes("data-world-index"), "analysis must expose sampled-world drill-down");
+assert.ok(app.includes("is-regressed"), "suboptimal moves must identify worlds lost versus the best move");
+assert.ok(app.includes("is-gained"), "suboptimal moves must identify worlds gained versus the best move");
+assert.ok(app.includes("tricksNeeded"), "world inspection must show the remaining target");
+assert.ok(worker.includes("async function runLayouts"), "the worker must support repeated true-layout runs");
+assert.ok(worker.includes("silentProgress"), "layout batches must suppress per-card progress updates");
 assert.ok(app.includes("syncAnalysisToTimeline"), "playback must synchronize analysis decisions");
 assert.ok(app.includes("data-trick-seat"), "played cards must retain compass positions");
 assert.ok(app.includes("completedTrickForFrame"), "the completed trick must remain until the next lead");
@@ -68,4 +76,22 @@ assert.equal(completion.ready, true);
 assert.equal(completion.seat, "West");
 assert.equal(completion.record, "432.J987.J97.T76");
 
-console.log(`UI smoke passed: ${ids.length} elements, modal editors, timeline, and world drill-down.`);
+const alternative = completeDefenderLayout(
+  "Q5.T65.T865.J985",
+  "432.J987.J97.T76",
+  "Q432.T65.T8.J985",
+  ""
+);
+assert.equal(alternative.east, "Q432.T65.T8.J985");
+assert.equal(alternative.west, "5.J987.J9765.T76");
+assert.throws(
+  () => completeDefenderLayout(
+    "Q5.T65.T865.J985",
+    "432.J987.J97.T76",
+    "A432.T65.T8.J985",
+    "Q.J987.J9765.T76"
+  ),
+  /redistribute exactly/
+);
+
+console.log(`UI smoke passed: ${ids.length} elements, layout batches, timeline, and comparative world drill-down.`);

@@ -64,6 +64,10 @@ export class EngineClient {
     return this.request("run-full", settings);
   }
 
+  runLayouts(request) {
+    return this.request("run-layouts", request);
+  }
+
   cancel() {
     for (const { reject } of this.pending.values()) reject(new Error("Analysis stopped"));
     this.pending.clear();

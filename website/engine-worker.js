@@ -31,13 +31,39 @@ async function loadEngine() {
 }
 
 function analyze(settings) {
-  return parseResult(engine.analyze(
+  const result = parseResult(engine.analyze(
     settings.worlds,
     settings.depth,
     settings.target,
     settings.seed,
     settings.timeLimit
   ));
+  result.analysis.targetTricks = settings.target;
+  return result;
+}
+
+function createSession(deal) {
+  let result = parseResult(engine.createSession(
+    deal.north,
+    deal.east,
+    deal.south,
+    deal.west,
+    deal.leader,
+    deal.trump
+  ));
+  if (deal.restrictions) {
+    result = parseResult(engine.setRestrictions(
+      deal.restrictions.east,
+      deal.restrictions.west
+    ));
+  }
+  return result;
+}
+
+function replayCards(cards) {
+  let result = parseResult(engine.state());
+  for (const card of cards) result = parseResult(engine.play(card));
+  return result;
 }
 
 async function runFull(settings) {
@@ -97,20 +123,60 @@ async function runFull(settings) {
     };
     plays.push(play);
     frames.push({ state: played.state, play });
-    self.postMessage({
-      type: "progress",
-      progress: {
-        cardNumber,
-        percent: Math.round(((step + 1) / remainingCards) * 100),
-        label: `${current.turn} played ${card}`,
-        state: played.state,
-        play
-      }
-    });
+    if (!settings.silentProgress) {
+      self.postMessage({
+        type: "progress",
+        progress: {
+          cardNumber,
+          percent: Math.round(((step + 1) / remainingCards) * 100),
+          label: `${current.turn} played ${card}`,
+          state: played.state,
+          play
+        }
+      });
+    }
   }
 
   const state = parseResult(engine.state()).state;
   return { startState, state, analyses, plays, frames, totalMs: performance.now() - startedAt };
+}
+
+async function runLayouts(request) {
+  const startedAt = performance.now();
+  const results = [];
+  try {
+    for (let index = 0; index < request.layouts.length; index += 1) {
+      const layout = request.layouts[index];
+      try {
+        createSession({
+          ...request.baseDeal,
+          east: layout.east,
+          west: layout.west
+        });
+        replayCards(request.playCards);
+        const result = await runFull({
+          ...request.settings,
+          priorAnalysis: null,
+          silentProgress: true
+        });
+        results.push({ layout, result });
+      } catch (error) {
+        results.push({ layout, error: error.message || String(error) });
+      }
+      self.postMessage({
+        type: "progress",
+        progress: {
+          batch: true,
+          percent: Math.round(((index + 1) / request.layouts.length) * 100),
+          label: `Tested ${layout.name}`
+        }
+      });
+    }
+  } finally {
+    createSession(request.baseDeal);
+    replayCards(request.playCards);
+  }
+  return { results, totalMs: performance.now() - startedAt };
 }
 
 self.addEventListener("message", async (event) => {
@@ -120,26 +186,14 @@ self.addEventListener("message", async (event) => {
     let result;
     switch (command) {
       case "create":
-        result = parseResult(engine.createSession(
-          payload.north,
-          payload.east,
-          payload.south,
-          payload.west,
-          payload.leader,
-          payload.trump
-        ));
-        if (payload.restrictions) {
-          result = parseResult(engine.setRestrictions(
-            payload.restrictions.east,
-            payload.restrictions.west
-          ));
-        }
+        result = createSession(payload);
         break;
       case "analyze": result = analyze(payload); break;
       case "play": result = parseResult(engine.play(payload.card)); break;
       case "undo": result = parseResult(engine.undo()); break;
       case "replay": result = parseResult(engine.replay()); break;
       case "run-full": result = await runFull(payload); break;
+      case "run-layouts": result = await runLayouts(payload); break;
       default: throw new Error(`Unknown engine command: ${command}`);
     }
     self.postMessage({ id, result });

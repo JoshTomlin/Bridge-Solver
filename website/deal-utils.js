@@ -32,6 +32,53 @@ export function handRecordFromCards(cards) {
   }).join(".");
 }
 
+export function completeDefenderLayout(baseEastRecord, baseWestRecord, eastRecord, westRecord) {
+  const baseEast = parseHandRecord(baseEastRecord);
+  const baseWest = parseHandRecord(baseWestRecord);
+  if (!baseEast.count || !baseWest.count) {
+    throw new Error("Enter the base East and West hands before adding layouts");
+  }
+
+  const defenderPool = new Set([...baseEast.cards, ...baseWest.cards]);
+  if (defenderPool.size !== baseEast.count + baseWest.count) {
+    throw new Error("The base defender hands contain duplicate cards");
+  }
+
+  let east = parseHandRecord(eastRecord);
+  let west = parseHandRecord(westRecord);
+  if (!east.count && !west.count) {
+    throw new Error("Enter East or West for the alternative layout");
+  }
+  if (!east.count) {
+    const cards = [...defenderPool].filter((card) => !west.cards.includes(card));
+    east = {
+      count: cards.length,
+      cards
+    };
+  }
+  if (!west.count) {
+    const cards = [...defenderPool].filter((card) => !east.cards.includes(card));
+    west = {
+      count: cards.length,
+      cards
+    };
+  }
+  if (east.count !== baseEast.count || west.count !== baseWest.count) {
+    throw new Error(`Alternative layouts need ${baseEast.count} East cards and ${baseWest.count} West cards`);
+  }
+
+  const combined = [...east.cards, ...west.cards];
+  if (new Set(combined).size !== combined.length ||
+      combined.some((card) => !defenderPool.has(card)) ||
+      combined.length !== defenderPool.size) {
+    throw new Error("The alternative must redistribute exactly the same defender cards");
+  }
+  return {
+    east: handRecordFromCards(east.cards),
+    west: handRecordFromCards(west.cards)
+  };
+}
+
 export function fourthHandCompletion(hands) {
   const parsed = {};
   try {

@@ -805,6 +805,86 @@ NodeEvaluation alpha_mu_node(
         return NodeEvaluation {.front = *cut};
     }
 
+    if (context.config.optimizations.forced_moves) {
+        const Hand forced_candidates = is_max
+            ? shared_declarer_moves(worlds, active_worlds)
+            : union_of_defender_moves(worlds, useful_worlds);
+        if (is_single_card(forced_candidates)) {
+            const Card move = forced_candidates;
+            auto child_worlds = worlds;
+            WorldMask child_active_worlds = 0;
+            WorldMask child_useful_worlds = 0;
+
+            for (std::size_t world = 0; world < child_worlds.size(); ++world) {
+                const WorldMask bit = WorldMask {1} << world;
+                if ((active_worlds & bit) == 0) {
+                    continue;
+                }
+
+                Position& child = child_worlds[world].position;
+                if (is_max || is_legal_play(
+                        child.current_trick,
+                        hand_of(child.deal, player_to_act(child)),
+                        move)) {
+                    play_card(child, move);
+                    child_active_worlds |= bit;
+                    if ((useful_worlds & bit) != 0) {
+                        child_useful_worlds |= bit;
+                    }
+                }
+            }
+
+            ++context.stats.forced_move_nodes;
+            if (is_max) {
+                ++context.stats.forced_max_nodes;
+            } else {
+                ++context.stats.forced_min_nodes;
+            }
+            trace_line(
+                trace,
+                trace_depth,
+                std::string(is_max ? "MAX" : "MIN") +
+                    " forced " + to_string(move));
+            audit_line(
+                context,
+                trace_depth,
+                "forced-moves",
+                std::string(is_max ? "MAX " : "MIN ") +
+                    to_string(turn) + " has only " + to_string(move));
+
+            NodeEvaluation result = alpha_mu_node(
+                child_worlds,
+                child_active_worlds,
+                child_useful_worlds,
+                is_max
+                    ? static_cast<std::uint8_t>(max_moves_left - 1)
+                    : max_moves_left,
+                context,
+                alpha_bounds,
+                trace,
+                trace_depth + 1);
+            if (!is_max) {
+                const WorldMask impossible_worlds =
+                    useful_worlds & ~child_active_worlds;
+                for (OutcomeVector& vector : result.front.vectors) {
+                    vector.wins |= impossible_worlds;
+                }
+            }
+            result.best_move = move;
+
+            if (key.has_value() && (alpha_bounds.empty() || !result.pruned)) {
+                TranspositionEntry& entry = context.table[*key];
+                entry.by_depth[max_moves_left] = CachedNode {
+                    .front = result.front,
+                    .best_move = move,
+                };
+                entry.move_hint = move;
+                ++context.stats.transposition_stores;
+            }
+            return result;
+        }
+    }
+
     trace_line(
         trace,
         trace_depth,

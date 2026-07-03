@@ -240,6 +240,10 @@ std::string stats_json(const AlphaMuSearchStats& stats) {
            << ",\"equivalentMoves\":" << stats.equivalent_moves_skipped
            << ",\"maxEquivalentMoves\":" << stats.max_equivalent_moves_skipped
            << ",\"minEquivalentMoves\":" << stats.min_equivalent_moves_skipped
+           << ",\"forcedMoveNodes\":" << stats.forced_move_nodes
+           << ",\"forcedMaxNodes\":" << stats.forced_max_nodes
+           << ",\"forcedMinNodes\":" << stats.forced_min_nodes
+           << ",\"forcedRootMoves\":" << stats.forced_root_recommendations
            << ",\"forcedTrumpCuts\":" << stats.forced_trump_run_cuts
            << ",\"leafDdsBatches\":" << stats.leaf_dds_batches
            << ",\"leafDdsWorlds\":" << stats.leaf_dds_worlds

@@ -76,6 +76,7 @@ intended for short endings and regression tests.
 | `root-cut` | `root_cut` | `search_root_iteration` | The previous iteration's root score is an upper bound; reaching it proves the current best score | `root_cuts` |
 | `win-cut` | `win_cut` | `evaluate_max_node`, `search_root_iteration` | A binary vector winning every active world cannot be improved | `win_cuts` |
 | `target-bounds` | `target_bounds` | `evaluate_target_bound` | If the target is already reached every continuation succeeds; if tricks won plus all remaining tricks is below target, no continuation can succeed | `target_reached_cuts`, `target_impossible_cuts` |
+| `forced-moves` | `forced_moves` | `AnalysisSession::analyze`, `alpha_mu_node` | A single legal root card needs no world sample; a single child at MAX or MIN can be followed without combining sibling fronts | `forced_root_recommendations`, `forced_move_nodes` |
 | `forced-trump` | `forced_trump_run` | `evaluate_forced_trump_run` | With only trumps in the MAX leader and no opposing trumps, every remaining trick is proven | `forced_trump_run_cuts` |
 | `leaf-dds-batch` | `leaf_dds_batch` | `evaluate_leaf`, `double_dummy_future_tricks_batch` | DDS solves the same independent world positions; only their scheduling changes | `leaf_dds_batches`, `leaf_dds_worlds` |
 
@@ -195,6 +196,14 @@ At MAX, `front_wins_all_worlds` detects a vector containing every useful world.
 No binary vector can improve on all ones, so remaining cards are skipped. The
 root applies the same proof over all sampled worlds.
 
+`forced-moves` has two levels. At the public root, the recommendation is
+returned before sampling because no hidden layout can change which card is
+legal. Inside the tree, the forced card is played and search continues from its
+child because later choices still need an exact outcome vector for the
+ancestor. MAX forced moves consume one unit of M; MIN forced moves do not. At
+MIN, different forced cards in different worlds remain separate,
+information-bearing branches.
+
 ### Batched DDS Leaves
 
 `evaluate_leaf` first collects every nonterminal useful world. With
@@ -226,7 +235,8 @@ useful work:
   explicit `AlphaBounds` stack.
 - `root-cut` needs a previous root iteration, so it is inert without
   `iterative`.
-- `max-equals`, `min-equals`, `win-cut`, `forced-trump`, and `leaf-dds-batch`
+- `max-equals`, `min-equals`, `win-cut`, `forced-moves`,
+  `forced-trump`, and `leaf-dds-batch`
   are independent of the table.
 
 An inert optimization has a zero counter. Disabling a dependency never changes

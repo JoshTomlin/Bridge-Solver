@@ -39,6 +39,7 @@ std::string_view to_string(AlphaMuOptimization optimization) {
         case AlphaMuOptimization::RootCut: return "root-cut";
         case AlphaMuOptimization::WinCut: return "win-cut";
         case AlphaMuOptimization::TargetBounds: return "target-bounds";
+        case AlphaMuOptimization::ForcedMoves: return "forced-moves";
         case AlphaMuOptimization::ForcedTrumpRun: return "forced-trump";
         case AlphaMuOptimization::LeafDdsBatch: return "leaf-dds-batch";
     }
@@ -61,6 +62,7 @@ std::optional<AlphaMuOptimization> parse_alpha_mu_optimization(std::string_view 
              AlphaMuOptimization::RootCut,
              AlphaMuOptimization::WinCut,
              AlphaMuOptimization::TargetBounds,
+             AlphaMuOptimization::ForcedMoves,
              AlphaMuOptimization::ForcedTrumpRun,
              AlphaMuOptimization::LeafDdsBatch}) {
         if (normalized == to_string(optimization)) {
@@ -100,6 +102,8 @@ bool optimization_enabled(
             return optimizations.win_cut;
         case AlphaMuOptimization::TargetBounds:
             return optimizations.target_bounds;
+        case AlphaMuOptimization::ForcedMoves:
+            return optimizations.forced_moves;
         case AlphaMuOptimization::ForcedTrumpRun:
             return optimizations.forced_trump_run;
         case AlphaMuOptimization::LeafDdsBatch:
@@ -152,6 +156,9 @@ void set_optimization_enabled(
         case AlphaMuOptimization::TargetBounds:
             optimizations.target_bounds = enabled;
             return;
+        case AlphaMuOptimization::ForcedMoves:
+            optimizations.forced_moves = enabled;
+            return;
         case AlphaMuOptimization::ForcedTrumpRun:
             optimizations.forced_trump_run = enabled;
             return;
@@ -176,6 +183,7 @@ AlphaMuOptimizations disabled_alpha_mu_optimizations() {
         .root_cut = false,
         .win_cut = false,
         .target_bounds = false,
+        .forced_moves = false,
         .forced_trump_run = false,
         .leaf_dds_batch = false,
     };

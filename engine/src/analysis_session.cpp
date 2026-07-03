@@ -390,6 +390,26 @@ SessionAnalysis AnalysisSession::analyze() {
         throw std::logic_error("alpha-mu recommendations are available only for North/South");
     }
 
+    const Hand legal = legal_plays(
+        position_.current_trick,
+        hand_of(position_.deal, player));
+    if (settings_.optimizations.forced_moves && is_single_card(legal)) {
+        SessionAnalysis analysis;
+        analysis.possible_deals = possible_deals();
+        if (analysis.possible_deals == 0) {
+            throw std::logic_error("the public constraints admit no defender layouts");
+        }
+        analysis.search.best_move = legal;
+        analysis.search.root_moves.push_back(AlphaMuRootMove {.move = legal});
+        analysis.search.stats.forced_root_recommendations = 1;
+        if (settings_.collect_audit_log) {
+            analysis.search.audit_log =
+                "M=0 forced-moves: root has only " + to_string(legal) + "\n";
+        }
+        policy_.reset();
+        return analysis;
+    }
+
     SampledWorlds sampled = sample_worlds();
     SessionAnalysis analysis {
         .possible_deals = sampled.possible_deals,

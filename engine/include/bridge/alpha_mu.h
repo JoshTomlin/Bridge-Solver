@@ -73,6 +73,7 @@ enum class AlphaMuOptimization : std::uint8_t {
     RootCut,
     WinCut,
     TargetBounds,
+    ForcedMoves,
     ForcedTrumpRun,
     LeafDdsBatch,
 };
@@ -91,6 +92,7 @@ struct AlphaMuOptimizations {
     bool root_cut {true};
     bool win_cut {true};
     bool target_bounds {true};
+    bool forced_moves {true};
     bool forced_trump_run {true};
     bool leaf_dds_batch {true};
 };
@@ -151,6 +153,10 @@ struct AlphaMuSearchStats {
     std::uint64_t equivalent_moves_skipped {};
     std::uint64_t max_equivalent_moves_skipped {};
     std::uint64_t min_equivalent_moves_skipped {};
+    std::uint64_t forced_move_nodes {};
+    std::uint64_t forced_max_nodes {};
+    std::uint64_t forced_min_nodes {};
+    std::uint64_t forced_root_recommendations {};
     std::uint64_t forced_trump_run_cuts {};
     std::uint64_t win_cuts {};
     std::uint64_t target_reached_cuts {};

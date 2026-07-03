@@ -322,6 +322,10 @@ void accumulate_search_stats(
     total.equivalent_moves_skipped += current.equivalent_moves_skipped;
     total.max_equivalent_moves_skipped += current.max_equivalent_moves_skipped;
     total.min_equivalent_moves_skipped += current.min_equivalent_moves_skipped;
+    total.forced_move_nodes += current.forced_move_nodes;
+    total.forced_max_nodes += current.forced_max_nodes;
+    total.forced_min_nodes += current.forced_min_nodes;
+    total.forced_root_recommendations += current.forced_root_recommendations;
     total.forced_trump_run_cuts += current.forced_trump_run_cuts;
     total.win_cuts += current.win_cuts;
     total.target_reached_cuts += current.target_reached_cuts;
@@ -586,6 +590,9 @@ void run_alpha_mu_playthrough_with_seed(
               << " equals-skipped=" << search_totals.equivalent_moves_skipped
               << " (MAX=" << search_totals.max_equivalent_moves_skipped
               << ", MIN=" << search_totals.min_equivalent_moves_skipped << ')'
+              << " forced-moves="
+              << search_totals.forced_move_nodes +
+                     search_totals.forced_root_recommendations
               << " win-cuts=" << search_totals.win_cuts
               << " DDS-batches=" << search_totals.leaf_dds_batches
               << " (" << search_totals.leaf_dds_worlds << " worlds)\n";
