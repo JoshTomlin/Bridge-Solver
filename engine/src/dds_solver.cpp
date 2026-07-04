@@ -2,6 +2,7 @@
 
 #include "dll.h"
 
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -45,6 +46,15 @@ constexpr int dds_suit(Suit suit) {
 
 constexpr int dds_rank(Rank rank) {
     return static_cast<int>(rank) + 2;
+}
+
+char suit_symbol(Suit suit) {
+    return to_string(suit).front();
+}
+
+std::size_t hold_priority(Suit suit, std::string_view hold_order) {
+    const std::size_t position = hold_order.find(suit_symbol(suit));
+    return position == std::string_view::npos ? hold_order.size() : position;
 }
 
 unsigned int dds_holding(Hand hand, Suit suit) {
@@ -201,6 +211,54 @@ std::vector<std::uint8_t> double_dummy_future_tricks_batch(
             positions[index], declarer, solved->solvedBoard[index].score[0]));
     }
     return result;
+}
+
+Card choose_double_dummy_defender_card(
+    const Position& position,
+    Seat declarer,
+    std::string_view hold_order) {
+    if (is_deal_finished(position)) {
+        throw std::logic_error("the deal is finished");
+    }
+    const Seat player = next_to_play(position.current_trick);
+    if (same_side(player, declarer)) {
+        throw std::logic_error("DDS defender move requested on declarer's turn");
+    }
+
+    const Hand hand = hand_of(position.deal, player);
+    const Hand legal = legal_plays(position.current_trick, hand);
+    const bool is_discard =
+        position.current_trick.card_count > 0 &&
+        cards_in_suit(hand, suit_of(position.current_trick.cards[0])) == kEmptyHand;
+    Card best = kNoCard;
+    std::uint8_t minimum = std::numeric_limits<std::uint8_t>::max();
+    std::size_t best_hold_priority = 0;
+
+    for (const Suit suit : {
+             Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs}) {
+        for (int rank = static_cast<int>(Rank::Two);
+             rank <= static_cast<int>(Rank::Ace);
+             ++rank) {
+            const Card card = make_card(suit, static_cast<Rank>(rank));
+            if (!contains(legal, card)) continue;
+
+            Position child = position;
+            play_card(child, card);
+            const std::uint8_t tricks = static_cast<std::uint8_t>(
+                child.score.north_south +
+                double_dummy_future_tricks(child, declarer));
+            const std::size_t priority = hold_priority(suit, hold_order);
+            const bool preferred_tied_discard =
+                is_discard && tricks == minimum &&
+                priority > best_hold_priority;
+            if (best == kNoCard || tricks < minimum || preferred_tied_discard) {
+                best = card;
+                minimum = tricks;
+                best_hold_priority = priority;
+            }
+        }
+    }
+    return best;
 }
 
 }  // namespace bridge

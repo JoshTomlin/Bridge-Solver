@@ -109,7 +109,7 @@ async function runFull(settings) {
         source = "alpha-mu";
       }
     } else {
-      card = parseResult(engine.ddsMove()).card;
+      card = parseResult(engine.ddsMove(settings.defenderHoldOrder || "SHDC")).card;
       source = "dds";
     }
 

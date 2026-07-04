@@ -55,6 +55,9 @@ For each possible suit:
 3. If partner owns it, search leads in that suit that transfer the lead to
    partner's top card.
 4. Recurse with one fewer required trick.
+5. If the defender pool still contains the led suit, remove its lowest card:
+   at least one defender had to follow, while retaining the highest card is the
+   most pessimistic legal assumption.
 
 Failed states are memoized. The search stops on the first proof and reports its
 first card. It has a 100,000-state safety budget; exhausting the budget simply
@@ -62,15 +65,18 @@ declines the optimization and falls back to normal alpha-mu.
 
 ## Why It Is Safe
 
-Defender cards are never removed in the hypothetical cashing line. A card such
-as the king therefore continues to block declarer's queen even if some actual
-layouts would force that king under the ace. This loses opportunities but does
-not manufacture winners.
+The proof removes at most one aggregate defender card per winner, even when both
+defenders would follow in many concrete layouts. It removes the lowest card, so
+a card such as the king continues to block declarer's queen until every lower
+card could already have been forced out. If X defender cards remain in a suit,
+X winning rounds necessarily exhaust them regardless of how they were split;
+the declaring side's remaining length is then established.
 
 In no trump, an absolute top card cannot lose. In a trump contract, a top trump
 is likewise safe, but a side-suit winner is rejected while any defender trump
 is outstanding: without knowing the split, one defender might be void and able
-to ruff.
+to ruff. Cashing top trumps consumes the aggregate trump pool in the same
+pessimistic way, after which side-suit winners can become safe.
 
 The proof models entries exactly because both declarer-side cards are removed
 on every trick and the winner becomes the next leader.
@@ -93,8 +99,8 @@ budget aborts.
 This first bound does not:
 
 - analyze a partial trick;
-- remove defender cards forced under winners;
-- prove that top trumps draw every outstanding trump before cashing side suits;
+- exploit the fact that both defenders sometimes have to follow on one round;
+- use known per-defender length bounds to deplete a suit faster;
 - calculate unavoidable losers from declarer/dummy alone.
 
 The last item is fundamentally harder: a missing top card is not necessarily a

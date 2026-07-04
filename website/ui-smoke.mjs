@@ -26,6 +26,8 @@ for (const required of [
   "target-tricks",
   "history-prev",
   "history-next",
+  "table-layout-select",
+  "defender-hold-order",
   "analysis-result",
   "analyze-layouts",
   "layout-count",
@@ -50,6 +52,13 @@ assert.ok(app.includes("tricksNeeded"), "world inspection must show the remainin
 assert.ok(worker.includes("async function runLayouts"), "the worker must support repeated true-layout runs");
 assert.ok(worker.includes("silentProgress"), "layout batches must suppress per-card progress updates");
 assert.ok(app.includes("syncAnalysisToTimeline"), "playback must synchronize analysis decisions");
+assert.ok(app.includes("timelineIndex - 4") && app.includes("timelineIndex + 4"),
+  "persistent history controls must move one full trick");
+assert.ok(!ids.includes("history-live"), "full-trick navigation must not add a moving live button");
+assert.ok(app.includes("activeTableLayoutIndex"),
+  "one alternative true layout must be selectable without a batch run");
+assert.ok(worker.includes("defenderHoldOrder"),
+  "full play must pass the defender suit-preservation order to DDS");
 assert.ok(app.includes("data-trick-seat"), "played cards must retain compass positions");
 assert.ok(app.includes("completedTrickForFrame"), "the completed trick must remain until the next lead");
 assert.ok(!html.includes("id=\"legal-cards\""), "legal cards must be played directly from hands");

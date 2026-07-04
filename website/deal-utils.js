@@ -1,6 +1,7 @@
 const SEATS = ["North", "East", "South", "West"];
 const SUITS = ["S", "H", "D", "C"];
 const RANKS = "AKQJT98765432";
+const HCP = { A: 4, K: 3, Q: 2, J: 1 };
 
 export function parseHandRecord(record) {
   const text = String(record || "").trim().toUpperCase();
@@ -30,6 +31,35 @@ export function handRecordFromCards(cards) {
     const holding = [...RANKS].filter((rank) => cardSet.has(`${suit}${rank}`)).join("");
     return holding || "-";
   }).join(".");
+}
+
+export function highCardPoints(record) {
+  return parseHandRecord(record).cards.reduce(
+    (total, card) => total + (HCP[card[1]] || 0),
+    0
+  );
+}
+
+export function complementaryDefenderBounds(source, eastRecord, westRecord) {
+  const east = parseHandRecord(eastRecord);
+  const west = parseHandRecord(westRecord);
+  const pool = [...east.cards, ...west.cards];
+  const result = {};
+
+  for (const suit of SUITS) {
+    const total = pool.filter((card) => card[0] === suit).length;
+    const sourceMin = Number(source[`min${suit}`] ?? 0);
+    const sourceMax = Number(source[`max${suit}`] ?? 13);
+    result[`min${suit}`] = Math.max(0, total - sourceMax);
+    result[`max${suit}`] = Math.max(0, Math.min(total, total - sourceMin));
+  }
+
+  const totalHcp = highCardPoints(eastRecord) + highCardPoints(westRecord);
+  const sourceMinHcp = Number(source.minHcp ?? 0);
+  const sourceMaxHcp = Number(source.maxHcp ?? 37);
+  result.minHcp = Math.max(0, totalHcp - sourceMaxHcp);
+  result.maxHcp = Math.max(0, Math.min(totalHcp, totalHcp - sourceMinHcp));
+  return result;
 }
 
 export function completeDefenderLayout(baseEastRecord, baseWestRecord, eastRecord, westRecord) {

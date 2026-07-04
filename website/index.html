@@ -51,13 +51,13 @@
             <div class="table-meta">
               <strong class="sr-only" id="current-deal-name">7NT spade guess</strong>
               <small id="current-deal-summary">NT &middot; 13 tricks</small>
+              <select class="table-layout-select is-hidden" id="table-layout-select" aria-label="True defender layout"></select>
             </div>
           </div>
           <div class="table-controls table-controls-right" aria-label="Play controls">
             <button class="table-icon" id="undo" type="button" aria-label="Undo last card" title="Undo last card">&#8630;</button>
-            <button class="table-icon" id="history-prev" type="button" aria-label="Previous card">&#8249;</button>
-            <button class="table-icon" id="history-next" type="button" aria-label="Next card">&#8250;</button>
-            <button class="table-icon is-hidden" id="history-live" type="button" aria-label="Return to live position" title="Return to live position">&raquo;</button>
+            <button class="table-icon history-step" id="history-prev" type="button" aria-label="Previous trick" title="Previous trick">&laquo;</button>
+            <button class="table-icon history-step" id="history-next" type="button" aria-label="Next trick" title="Next trick">&raquo;</button>
           </div>
           <strong class="sr-only" id="legal-summary">No active deal</strong>
           <strong class="sr-only" id="history-position">Opening position</strong>
@@ -231,6 +231,7 @@
             <label class="field"><span>Time limit</span><div class="input-suffix"><input id="time-limit" type="number" min="0" step="0.5" value="5"><span>s</span></div></label>
           </div>
           <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>
+          <label class="field"><span>Defender hold order</span><input id="defender-hold-order" value="SHDC" maxlength="4" spellcheck="false" aria-describedby="defender-hold-help"><small id="defender-hold-help">Most protected to least protected; only breaks equal-DD discards.</small></label>
         </div>
         <footer class="dialog-footer">
           <button class="button primary" id="apply-settings" type="button">Use these settings</button>

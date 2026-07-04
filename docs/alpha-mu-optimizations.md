@@ -93,8 +93,9 @@ fresh table would needlessly repeat the completed search depth.
 `target-bounds` counts remaining tricks from all cards still in hands plus the
 cards already committed to the partial trick. This makes the proof exact for
 full deals and shortened endings. For example, after one trick is lost, a
-13-trick target is rejected at M=1 before any DDS call because at most 12 tricks
-remain. The proof is depth-independent, so iterative deepening stops immediately.
+13-trick target is rejected before sampling because at most 12 tricks remain.
+The same proof runs at every tree node and is depth-independent, so iterative
+deepening stops immediately.
 
 `quick-tricks` handles the opposite easy case. At an empty trick with
 declarer/dummy on lead, it asks whether the target can be reached by cashing a
@@ -103,11 +104,13 @@ empty-trick MAX nodes inside alpha-mu. A successful proof is depth-independent
 and returns an all-one outcome vector.
 
 The implementation does not read East or West's hand. It derives their combined
-card pool as every unplayed card absent from declarer and dummy, then keeps that
-pool unchanged during the proof. Therefore it never assumes a defender card was
-forced out or assigns a void to a particular defender. In a trump contract it
-counts a side-suit winner only after no defender trump remains. These choices
-make the bound conservative but sound under hidden layouts. See
+card pool as every unplayed card absent from declarer and dummy. Each proven
+winner forces at least one card from that suit out of the combined pool; the
+lowest card is removed so a blocking honour is retained for as long as any
+hidden split permits. After X rounds exhaust X defender cards, the remaining
+length is established. In a trump contract it counts a side-suit winner only
+after this process has removed every defender trump. These choices make the
+bound conservative but sound under hidden layouts. See
 `docs/quick-tricks.md` for the algorithm and its relationship to DDS.
 
 ## Cache Lifetime And Repeatable Simulations

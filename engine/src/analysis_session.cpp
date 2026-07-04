@@ -32,6 +32,14 @@ Card first_card_in_bridge_order(Hand cards) {
     return kNoCard;
 }
 
+std::uint8_t remaining_tricks(const Position& position) {
+    std::uint16_t cards = position.current_trick.card_count;
+    for (const Hand hand : position.deal.hands) {
+        cards = static_cast<std::uint16_t>(cards + card_count(hand));
+    }
+    return cards % 4 == 0 ? static_cast<std::uint8_t>(cards / 4) : 0;
+}
+
 std::string trim(std::string_view text) {
     const auto first = std::find_if_not(text.begin(), text.end(), [](unsigned char c) {
         return std::isspace(c) != 0;
@@ -408,6 +416,37 @@ SessionAnalysis AnalysisSession::analyze() {
     const Hand legal = legal_plays(
         position_.current_trick,
         hand_of(position_.deal, player));
+
+    const auto bound_start = std::chrono::steady_clock::now();
+    const std::uint8_t won = position_.score.north_south;
+    const std::uint8_t remaining = remaining_tricks(position_);
+    const bool target_reached = won >= settings_.target_tricks;
+    const bool target_impossible =
+        static_cast<std::uint16_t>(won) + remaining < settings_.target_tricks;
+    if (settings_.optimizations.target_bounds &&
+        (target_reached || target_impossible)) {
+        SessionAnalysis analysis;
+        analysis.possible_deals = possible_deals();
+        if (analysis.possible_deals == 0) {
+            throw std::logic_error("the public constraints admit no defender layouts");
+        }
+        const Card move = first_card_in_bridge_order(legal);
+        analysis.search.best_move = move;
+        analysis.search.root_moves.push_back(AlphaMuRootMove {.move = move});
+        analysis.search.stats.target_reached_cuts = target_reached ? 1 : 0;
+        analysis.search.stats.target_impossible_cuts = target_impossible ? 1 : 0;
+        analysis.search.stats.completed_iterations = 1;
+        analysis.search_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - bound_start).count();
+        if (settings_.collect_audit_log) {
+            analysis.search.audit_log = target_reached
+                ? "M=0 target-bound: target already reached\n"
+                : "M=0 target-bound: target is no longer possible\n";
+        }
+        policy_.reset();
+        return analysis;
+    }
+
     Card forced_move = is_single_card(legal) ? legal : kNoCard;
     std::uint64_t equivalent_cards = 0;
     if (settings_.optimizations.forced_moves &&
@@ -443,7 +482,6 @@ SessionAnalysis AnalysisSession::analyze() {
         return analysis;
     }
 
-    const std::uint8_t won = position_.score.north_south;
     if (settings_.optimizations.quick_trick_bounds &&
         won < settings_.target_tricks) {
         const auto quick_start = std::chrono::steady_clock::now();

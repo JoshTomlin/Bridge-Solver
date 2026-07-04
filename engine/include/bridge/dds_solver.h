@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 #include "bridge/game.h"
@@ -25,5 +26,13 @@ std::uint8_t double_dummy_future_tricks(const Position& position, Seat declarer)
 std::vector<std::uint8_t> double_dummy_future_tricks_batch(
     const std::vector<Position>& positions,
     Seat declarer);
+
+// Chooses a defender card that minimizes declarer's double-dummy total.
+// hold_order is used only to break exact DD ties while discarding: suits later
+// in the string are released first, and low cards are preferred within a suit.
+Card choose_double_dummy_defender_card(
+    const Position& position,
+    Seat declarer,
+    std::string_view hold_order = "SHDC");
 
 }  // namespace bridge

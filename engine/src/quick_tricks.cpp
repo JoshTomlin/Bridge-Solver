@@ -29,6 +29,21 @@ Card highest_card(Hand cards, Suit suit) {
     return kNoCard;
 }
 
+Hand force_one_defender_card(Hand defender_pool, Suit suit) {
+    // At least one defender must follow while the combined pool contains this
+    // suit. Removing the lowest card is the adversarial choice: any blocking
+    // honour is retained for as long as a legal hidden split permits.
+    for (int rank = static_cast<int>(Rank::Two);
+         rank <= static_cast<int>(Rank::Ace);
+         ++rank) {
+        const Card card = make_card(suit, static_cast<Rank>(rank));
+        if (contains(defender_pool, card)) {
+            return remove_card(defender_pool, card);
+        }
+    }
+    return defender_pool;
+}
+
 std::vector<Card> cards_in_bridge_order(Hand cards) {
     std::vector<Card> result;
     result.reserve(card_count(cards));
@@ -47,12 +62,14 @@ std::vector<Card> cards_in_bridge_order(Hand cards) {
 struct CashingState {
     Hand declarer_hand {};
     Hand dummy_hand {};
+    Hand defender_pool {};
     Seat leader {Seat::South};
 };
 
 struct FailedState {
     Hand declarer_hand {};
     Hand dummy_hand {};
+    Hand defender_pool {};
     std::uint8_t leader {};
     std::uint8_t tricks_needed {};
 
@@ -63,6 +80,7 @@ struct FailedStateHash {
     std::size_t operator()(const FailedState& state) const {
         std::uint64_t hash = state.declarer_hand;
         hash ^= std::rotl(state.dummy_hand, 23);
+        hash ^= std::rotl(state.defender_pool, 41);
         hash ^= static_cast<std::uint64_t>(state.leader) << 3;
         hash ^= static_cast<std::uint64_t>(state.tricks_needed) << 11;
         return static_cast<std::size_t>(hash);
@@ -73,11 +91,8 @@ class CashingSearch {
 public:
     CashingSearch(
         Seat declarer,
-        Hand defender_pool,
         std::optional<Suit> trump_suit)
         : declarer_(declarer),
-          dummy_(partner_of(declarer)),
-          defender_pool_(defender_pool),
           trump_suit_(trump_suit) {}
 
     bool prove(
@@ -108,13 +123,13 @@ private:
         }
     }
 
-    bool suit_is_safe_to_cash(Suit suit) const {
+    bool suit_is_safe_to_cash(const CashingState& state, Suit suit) const {
         if (!trump_suit_.has_value() || suit == *trump_suit_) return true;
 
         // With no knowledge of the split, any outstanding defender trump may
         // be in the hand void in this side suit. Refusing the suit is
         // conservative; drawing trumps is left for a future stronger bound.
-        return cards_in_suit(defender_pool_, *trump_suit_) == kEmptyHand;
+        return cards_in_suit(state.defender_pool, *trump_suit_) == kEmptyHand;
     }
 
     bool can_cash(
@@ -136,6 +151,7 @@ private:
         const FailedState failed_key {
             .declarer_hand = state.declarer_hand,
             .dummy_hand = state.dummy_hand,
+            .defender_pool = state.defender_pool,
             .leader = seat_index(state.leader),
             .tricks_needed = tricks_needed,
         };
@@ -145,12 +161,12 @@ private:
         const Hand leader_hand = hand_for(state, state.leader);
         const Hand partner_hand = hand_for(state, partner);
         const Hand remaining_cards =
-            state.declarer_hand | state.dummy_hand | defender_pool_;
+            state.declarer_hand | state.dummy_hand | state.defender_pool;
 
         for (const Suit suit : {
                  Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs}) {
             const Hand leads = cards_in_suit(leader_hand, suit);
-            if (leads == kEmptyHand || !suit_is_safe_to_cash(suit)) continue;
+            if (leads == kEmptyHand || !suit_is_safe_to_cash(state, suit)) continue;
 
             const Card top = highest_card(remaining_cards, suit);
             if (contains(partner_hand, top)) {
@@ -166,6 +182,8 @@ private:
                         child,
                         partner,
                         remove_card(partner_hand, top));
+                    child.defender_pool =
+                        force_one_defender_card(child.defender_pool, suit);
                     child.leader = partner;
                     if (can_cash(child, tricks_needed - 1, nullptr)) {
                         if (selected_card != nullptr) *selected_card = lead;
@@ -192,6 +210,8 @@ private:
                     child,
                     partner,
                     remove_card(partner_hand, reply));
+                child.defender_pool =
+                    force_one_defender_card(child.defender_pool, suit);
                 if (can_cash(child, tricks_needed - 1, nullptr)) {
                     if (selected_card != nullptr) *selected_card = top;
                     return true;
@@ -204,8 +224,6 @@ private:
     }
 
     Seat declarer_;
-    Seat dummy_;
-    Hand defender_pool_;
     std::optional<Suit> trump_suit_;
     std::uint64_t states_examined_ {};
     bool budget_exhausted_ {};
@@ -236,13 +254,13 @@ QuickTrickProof prove_declarer_quick_tricks(
         kFullDeck & ~(declarer_hand | dummy_hand | position.played_cards);
     CashingSearch search(
         declarer,
-        defender_pool,
         position.current_trick.trump_suit);
     Card first_card = kNoCard;
     const bool proven = search.prove(
         CashingState {
             .declarer_hand = declarer_hand,
             .dummy_hand = dummy_hand,
+            .defender_pool = defender_pool,
             .leader = leader,
         },
         required_tricks,

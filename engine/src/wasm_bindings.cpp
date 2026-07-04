@@ -6,7 +6,6 @@
 #include <chrono>
 #include <cstdint>
 #include <iomanip>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -299,30 +298,6 @@ std::string analysis_json(const SessionAnalysis& analysis) {
     return output.str();
 }
 
-Card choose_dds_defender_card(const Position& position) {
-    const Seat player = next_to_play(position.current_trick);
-    const Hand legal = legal_plays(position.current_trick, hand_of(position.deal, player));
-    Card best = kNoCard;
-    std::uint8_t minimum = std::numeric_limits<std::uint8_t>::max();
-    for (const Suit suit : {Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs}) {
-        for (int rank = static_cast<int>(Rank::Two);
-             rank <= static_cast<int>(Rank::Ace);
-             ++rank) {
-            const Card card = make_card(suit, static_cast<Rank>(rank));
-            if (!contains(legal, card)) continue;
-            Position child = position;
-            play_card(child, card);
-            const std::uint8_t tricks = static_cast<std::uint8_t>(
-                child.score.north_south + double_dummy_future_tricks(child, Seat::South));
-            if (best == kNoCard || tricks < minimum) {
-                best = card;
-                minimum = tricks;
-            }
-        }
-    }
-    return best;
-}
-
 std::string error_json(const std::exception& error) {
     return "{\"ok\":false,\"error\":" + json_quote(error.what()) + '}';
 }
@@ -456,7 +431,7 @@ public:
         }
     }
 
-    std::string dds_move() const {
+    std::string dds_move(const std::string& hold_order) const {
         try {
             require_session();
             const Position& position = session_->position();
@@ -465,7 +440,8 @@ public:
                 throw std::logic_error("DDS defender move requested on declarer's turn");
             }
             return "{\"ok\":true,\"card\":" +
-                json_quote(to_string(choose_dds_defender_card(position))) + '}';
+                json_quote(to_string(choose_double_dummy_defender_card(
+                    position, Seat::South, hold_order))) + '}';
         } catch (const std::exception& error) {
             return error_json(error);
         }

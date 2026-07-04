@@ -1,5 +1,5 @@
 import { EngineClient } from "./engine-client.js";
-import { completeDefenderLayout, fourthHandCompletion, handRecordFromCards, parseHandRecord } from "./deal-utils.js";
+import { complementaryDefenderBounds, completeDefenderLayout, fourthHandCompletion, handRecordFromCards, parseHandRecord } from "./deal-utils.js";
 import { clearRuns, deleteDeal, loadDeals, loadRuns, saveDeal, saveRun } from "./storage.js";
 
 const byId = (id) => document.getElementById(id);
@@ -46,13 +46,14 @@ const elements = {
   scoreEw: byId("score-ew"),
   historyPrev: byId("history-prev"),
   historyNext: byId("history-next"),
-  historyLive: byId("history-live"),
   historyPosition: byId("history-position"),
+  tableLayoutSelect: byId("table-layout-select"),
   worlds: byId("world-count"),
   depth: byId("max-depth"),
   target: byId("target-tricks"),
   timeLimit: byId("time-limit"),
   seed: byId("random-seed"),
+  defenderHoldOrder: byId("defender-hold-order"),
   analyze: byId("analyze-position"),
   analyzeFull: byId("analyze-full"),
   analyzeLayouts: byId("analyze-layouts"),
@@ -92,6 +93,7 @@ let retainedTrick = [];
 let additionalLayouts = [];
 let activeLayoutBatch = null;
 let activeLayoutResultIndex = 0;
+let activeTableLayoutIndex = 0;
 
 function defaultSeatRestrictions() {
   return {
@@ -136,6 +138,18 @@ function hasSeatRestrictions(source = {}) {
   return value.required || value.forbidden ||
     restrictionSuits.some((suit) => value[`min${suit}`] !== 0 || value[`max${suit}`] !== 13) ||
     value.minHcp !== 0 || value.maxHcp !== 37;
+}
+
+function syncComplementaryBounds(sourcePrefix) {
+  const targetPrefix = sourcePrefix === "east" ? "west" : "east";
+  const complement = complementaryDefenderBounds(
+    collectSeatRestrictions(sourcePrefix),
+    elements.east.value,
+    elements.west.value
+  );
+  const target = collectSeatRestrictions(targetPrefix);
+  applySeatRestrictions(targetPrefix, { ...target, ...complement });
+  elements.restrictionStatus.textContent = "Load to count";
 }
 
 const engine = new EngineClient({
@@ -229,6 +243,7 @@ function populateDealForm(deal) {
     id: layout.id || layoutIdentifier()
   }));
   activeAlternativeIndex = 0;
+  activeTableLayoutIndex = 0;
   applySeatRestrictions("east", deal.restrictions?.east);
   applySeatRestrictions("west", deal.restrictions?.west);
   elements.restrictionStatus.textContent = "Load to count";
@@ -237,12 +252,17 @@ function populateDealForm(deal) {
 }
 
 function analysisSettings() {
+  const defenderHoldOrder = elements.defenderHoldOrder.value.trim().toUpperCase();
+  if (!/^(?!.*(.).*\1)[SHDC]{4}$/.test(defenderHoldOrder)) {
+    throw new Error("Defender hold order must contain S, H, D, and C once each");
+  }
   return {
     worlds: Number(elements.worlds.value),
     depth: Number(elements.depth.value),
     target: Number(elements.target.value),
     timeLimit: Number(elements.timeLimit.value),
-    seed: String(elements.seed.value || "0")
+    seed: String(elements.seed.value || "0"),
+    defenderHoldOrder
   };
 }
 
@@ -397,6 +417,18 @@ function renderDealSummary() {
   elements.currentDealName.textContent = deal.name || "Untitled deal";
   elements.currentDealSummary.textContent =
     `${deal.trump} | ${deal.target || elements.target.value} tricks`;
+  const layouts = [
+    { name: "Layout 1" },
+    ...additionalLayouts.map((layout, index) => ({
+      name: layout.name || `Layout ${index + 2}`
+    }))
+  ];
+  activeTableLayoutIndex = Math.min(activeTableLayoutIndex, layouts.length - 1);
+  elements.tableLayoutSelect.innerHTML = layouts.map((layout, index) =>
+    `<option value="${index}">${escapeHtml(layout.name)}</option>`
+  ).join("");
+  elements.tableLayoutSelect.value = String(activeTableLayoutIndex);
+  elements.tableLayoutSelect.classList.toggle("is-hidden", layouts.length < 2);
 }
 
 function renderTable(override) {
@@ -430,7 +462,6 @@ function renderTable(override) {
   elements.historyPosition.textContent = frameLabel(frame, timelineIndex);
   elements.historyPrev.disabled = busy || timelineIndex <= 0;
   elements.historyNext.disabled = busy || timelineIndex < 0 || timelineIndex >= timelineFrames.length - 1;
-  elements.historyLive.classList.toggle("is-hidden", timelineIndex < 0 || timelineIndex === timelineFrames.length - 1);
   renderDealSummary();
   updateActionState();
 }
@@ -496,6 +527,36 @@ function moveStatus(move, analysis) {
 
 function isForcedAnalysis(analysis) {
   return Number(analysis?.stats?.forcedRootMoves || 0) > 0;
+}
+
+function preSamplingBound(analysis) {
+  if (Number(analysis?.stats?.quickTrickRootCuts || 0) > 0) {
+    return {
+      summary: "Guaranteed cashing line | no world search needed",
+      score: "Guaranteed in every layout",
+      detail: "Public quick-trick proof",
+      label: "Proven"
+    };
+  }
+  if (Number(analysis?.stats?.targetImpossibleCuts || 0) > 0 &&
+      !(analysis.sampledWorlds?.length)) {
+    return {
+      summary: "Target already impossible | no world search needed",
+      score: "Target cannot be reached",
+      detail: "Remaining-trick upper bound",
+      label: "Bound"
+    };
+  }
+  if (Number(analysis?.stats?.targetReachedCuts || 0) > 0 &&
+      !(analysis.sampledWorlds?.length)) {
+    return {
+      summary: "Target already reached | no world search needed",
+      score: "Target already secured",
+      detail: "Current-score lower bound",
+      label: "Bound"
+    };
+  }
+  return null;
 }
 
 function worldHandRecordMarkup(hand) {
@@ -588,14 +649,16 @@ function moveDetailMarkup(analysis, move) {
 function analysisMarkup(analysis) {
   const rootMoves = analysis.rootMoves || [];
   const forced = isForcedAnalysis(analysis);
+  const bound = preSamplingBound(analysis);
+  const noWorldSearch = forced || Boolean(bound);
   const bestScore = Math.max(0, ...rootMoves.map((move) => move.winningWorlds));
   const bestOptions = rootMoves.filter((move) => move.winningWorlds === bestScore).length;
   const selected = rootMoves.find((move) => move.card === activeMoveCard) ||
     rootMoves.find((move) => move.card === analysis.bestMove) || rootMoves[0];
   activeMoveCard = selected?.card || null;
   const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
-  const recommendationSummary = forced
-    ? "Only legal card | no world search needed"
+  const recommendationSummary = noWorldSearch
+    ? bound?.summary || "Only legal card | no world search needed"
     : `${analysis.winningWorlds}/${worldCount} sampled worlds | ${bestOptions} best option${bestOptions === 1 ? "" : "s"}`;
   return `
     <div class="recommendation">
@@ -604,7 +667,7 @@ function analysisMarkup(analysis) {
       <p>${recommendationSummary}</p>
     </div>
     <div class="analysis-meta">
-      <span>${forced ? "Forced play" : `M reached ${analysis.stats.completedDepth}`}</span>
+      <span>${noWorldSearch ? bound?.label || "Forced play" : `M reached ${analysis.stats.completedDepth}`}</span>
       <span>${formatMs(analysis.searchMs)} search</span>
       <span>${formatMs(analysis.samplingMs)} sampling</span>
       <span>${formatNumber(analysis.possibleDeals)} possible deals</span>
@@ -614,9 +677,9 @@ function analysisMarkup(analysis) {
       ${rootMoves.map((move) => {
         const status = moveStatus(move, analysis);
         const red = move.card?.startsWith("H") || move.card?.startsWith("D");
-        const scoreLabel = forced ? "Only legal card" : `${move.winningWorlds}/${worldCount} worlds`;
-        const scoreDetail = forced ? "No sampling or DDS" : `${move.paretoVectors} Pareto strateg${move.paretoVectors === 1 ? "y" : "ies"}`;
-        const scoreBar = forced ? "" : `<span class="move-bar"><span style="width:${worldCount ? (move.winningWorlds / worldCount) * 100 : 0}%"></span></span>`;
+        const scoreLabel = noWorldSearch ? bound?.score || "Only legal card" : `${move.winningWorlds}/${worldCount} worlds`;
+        const scoreDetail = noWorldSearch ? bound?.detail || "No sampling or DDS" : `${move.paretoVectors} Pareto strateg${move.paretoVectors === 1 ? "y" : "ies"}`;
+        const scoreBar = noWorldSearch ? "" : `<span class="move-bar"><span style="width:${worldCount ? (move.winningWorlds / worldCount) * 100 : 0}%"></span></span>`;
         return `<button class="move-option ${move.card === activeMoveCard ? "is-selected" : ""}" data-analysis-move="${escapeHtml(move.card)}" type="button">
           <span class="move-card ${red ? "red" : ""}">${escapeHtml(move.card)}</span>
           <span class="move-score"><strong>${scoreLabel}</strong><small>${scoreDetail}</small>${scoreBar}</span>
@@ -624,7 +687,7 @@ function analysisMarkup(analysis) {
         </button>`;
       }).join("")}
     </div>
-    ${selected && !forced ? moveDetailMarkup(analysis, selected) : ""}
+    ${selected && !noWorldSearch ? moveDetailMarkup(analysis, selected) : ""}
     <dl class="stat-grid">
       <div><dt>Nodes</dt><dd>${formatNumber(analysis.stats.nodes)}</dd></div>
       <div><dt>DDS worlds</dt><dd>${formatNumber(analysis.stats.ddsWorlds)}</dd></div>
@@ -634,23 +697,25 @@ function analysisMarkup(analysis) {
       <div><dt>Useful removed</dt><dd>${formatNumber(analysis.stats.usefulWorldsRemoved)}</dd></div>
       <div><dt>Paper cuts</dt><dd>${formatNumber((analysis.stats.earlyCuts || 0) + (analysis.stats.deepAlphaCuts || 0) + (analysis.stats.worldCuts || 0) + (analysis.stats.winCuts || 0))}</dd></div>
       <div><dt>Target bounds</dt><dd>${formatNumber((analysis.stats.targetReachedCuts || 0) + (analysis.stats.targetImpossibleCuts || 0))}</dd></div>
+      <div><dt>Quick tricks</dt><dd>${formatNumber(analysis.stats.quickTrickCuts || 0)}</dd></div>
     </dl>`;
 }
 
 function analysisDockMarkup(analysis) {
   const rootMoves = analysis.rootMoves || [];
   const forced = isForcedAnalysis(analysis);
+  const bound = preSamplingBound(analysis);
   const bestScore = Math.max(0, ...rootMoves.map((move) => move.winningWorlds));
   const bestOptions = rootMoves.filter((move) => move.winningWorlds === bestScore).length;
   const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
   const display = suitDisplay[analysis.bestMove?.[0]];
-  const outcomeSummary = forced
-    ? "No world search needed"
+  const outcomeSummary = forced || bound
+    ? bound?.score || "No world search needed"
     : `${analysis.winningWorlds}/${worldCount} worlds${bestOptions > 1 ? ` | ${bestOptions} tied` : ""}`;
   return `<button class="analysis-recommendation" data-open-inspector type="button">
     <span class="recommendation-card suit-${display?.className || "spades"}">${analysis.bestMove ? cardFaceMarkup(analysis.bestMove) : "-"}</span>
-    <span class="recommendation-copy"><small>${forced ? "Only legal card" : "Suggested play"}</small><strong>${escapeHtml(analysis.bestMove)}</strong><span>${outcomeSummary}</span></span>
-    <span class="recommendation-stats"><b>${forced ? "Forced" : `M${analysis.stats.completedDepth}`}</b><small>${formatMs(analysis.searchMs)}</small></span>
+    <span class="recommendation-copy"><small>${bound?.label || (forced ? "Only legal card" : "Suggested play")}</small><strong>${escapeHtml(analysis.bestMove)}</strong><span>${outcomeSummary}</span></span>
+    <span class="recommendation-stats"><b>${bound?.label || (forced ? "Forced" : `M${analysis.stats.completedDepth}`)}</b><small>${formatMs(analysis.searchMs)}</small></span>
     <span class="inspector-chevron" aria-hidden="true">&#8250;</span>
   </button>`;
 }
@@ -1026,7 +1091,13 @@ function setBusy(value, full = false) {
 async function putDealOnTable(quiet = false) {
   fillFourthHand(false);
   const deal = collectDeal();
-  const response = await engine.createSession(deal);
+  const selectedLayout = activeTableLayoutIndex === 0
+    ? null
+    : deal.additionalLayouts[activeTableLayoutIndex - 1];
+  const sessionDeal = selectedLayout
+    ? { ...deal, east: selectedLayout.east, west: selectedLayout.west }
+    : deal;
+  const response = await engine.createSession(sessionDeal);
   resetTimeline(response.state);
   let state = response.state;
   for (const card of parsePlayPrefix(deal.playPrefix)) {
@@ -1194,6 +1265,13 @@ elements.dealDialog.addEventListener("click", (event) => {
   if (tabName === "alternatives") renderAlternativeEditor();
 });
 
+elements.dealDialog.addEventListener("input", (event) => {
+  const match = event.target.id?.match(
+    /^(east|west)-(?:min|max)-(?:s|h|d|c|hcp)$/
+  );
+  if (match) syncComplementaryBounds(match[1]);
+});
+
 byId("add-layout").addEventListener("click", () => {
   try {
     const completed = completeDefenderLayout(
@@ -1343,19 +1421,20 @@ byId("undo").addEventListener("click", safely(async () => {
 
 byId("replay").addEventListener("click", safely(() => putDealOnTable(false)));
 elements.historyPrev.addEventListener("click", () => {
-  if (timelineIndex > 0) timelineIndex -= 1;
+  timelineIndex = Math.max(0, timelineIndex - 4);
   renderTable();
   syncAnalysisToTimeline();
 });
 elements.historyNext.addEventListener("click", () => {
-  if (timelineIndex < timelineFrames.length - 1) timelineIndex += 1;
+  timelineIndex = Math.min(timelineFrames.length - 1, timelineIndex + 4);
   renderTable();
   syncAnalysisToTimeline();
 });
-elements.historyLive.addEventListener("click", () => {
-  timelineIndex = timelineFrames.length - 1;
-  renderTable();
-});
+elements.tableLayoutSelect.addEventListener("change", safely(async () => {
+  activeTableLayoutIndex = Number(elements.tableLayoutSelect.value);
+  await putDealOnTable(true);
+  toast(`${elements.tableLayoutSelect.selectedOptions[0]?.textContent || "Layout"} loaded`, "success");
+}));
 
 elements.analyze.addEventListener("click", safely(analyzePosition));
 elements.analyzeFull.addEventListener("click", safely(analyzeFullDeal));
@@ -1465,12 +1544,12 @@ byId("clear-runs").addEventListener("click", () => {
 document.addEventListener("keydown", (event) => {
   if (event.target.matches("input, textarea, select") || elements.dealDialog.open || elements.settingsDialog.open || elements.analysisDialog.open) return;
   if (event.key === "ArrowLeft" && timelineIndex > 0) {
-    timelineIndex -= 1;
+    timelineIndex = Math.max(0, timelineIndex - 4);
     renderTable();
     syncAnalysisToTimeline();
   }
   if (event.key === "ArrowRight" && timelineIndex < timelineFrames.length - 1) {
-    timelineIndex += 1;
+    timelineIndex = Math.min(timelineFrames.length - 1, timelineIndex + 4);
     renderTable();
     syncAnalysisToTimeline();
   }

@@ -308,6 +308,7 @@ void test_analysis_session_autoplays_one_equivalent_class() {
     settings.world_count = 4;
     settings.max_declarer_plies = 1;
     settings.optimizations.max_equivalent_cards = false;
+    settings.optimizations.quick_trick_bounds = false;
     reference_session.set_settings(settings);
     const bridge::SessionAnalysis reference = reference_session.analyze();
     require(reference.worlds.size() == settings.world_count &&
@@ -1909,6 +1910,122 @@ void test_quick_tricks_does_not_assume_a_safe_side_suit() {
             "the same two top clubs should be a safe no-trump cashing run");
 }
 
+void test_quick_tricks_establishes_a_suit_from_aggregate_length() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Ace),
+            bridge::make_card(Suit::Spades, Rank::King),
+            bridge::make_card(Suit::Spades, Rank::Queen),
+            bridge::make_card(Suit::Spades, Rank::Jack),
+            bridge::make_card(Suit::Spades, Rank::Seven),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Ten),
+            bridge::make_card(Suit::Spades, Rank::Nine),
+            bridge::make_card(Suit::Spades, Rank::Eight),
+            bridge::make_card(Suit::Clubs, Rank::Three),
+            bridge::make_card(Suit::Clubs, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Hearts, Rank::Ace),
+            bridge::make_card(Suit::Hearts, Rank::King),
+            bridge::make_card(Suit::Hearts, Rank::Queen),
+            bridge::make_card(Suit::Hearts, Rank::Jack),
+            bridge::make_card(Suit::Hearts, Rank::Seven),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Diamonds, Rank::Five),
+            bridge::make_card(Suit::Diamonds, Rank::Four),
+            bridge::make_card(Suit::Diamonds, Rank::Three),
+            bridge::make_card(Suit::Diamonds, Rank::Two),
+            bridge::make_card(Suit::Clubs, Rank::Four),
+        }),
+    }};
+    const bridge::Position position {
+        .deal = deal,
+        .current_trick = bridge::Trick {.leader = Seat::North},
+        .played_cards = bridge::kFullDeck & ~(
+            deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+    };
+
+    const bridge::QuickTrickProof proof =
+        bridge::prove_declarer_quick_tricks(position, Seat::South, 5);
+    require(proof.proven &&
+                proof.first_card == bridge::make_card(Suit::Spades, Rank::Ace),
+            "three top winners should exhaust three defender spades and establish S7");
+}
+
+void test_dds_defender_uses_hold_order_only_for_equal_discards() {
+    const Card opening_lead = bridge::make_card(Suit::Spades, Rank::Ace);
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({bridge::make_card(Suit::Spades, Rank::Two)}),
+        bridge::make_hand({
+            bridge::make_card(Suit::Hearts, Rank::Two),
+            bridge::make_card(Suit::Clubs, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::King),
+            bridge::make_card(Suit::Hearts, Rank::Three),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Three),
+            bridge::make_card(Suit::Diamonds, Rank::Two),
+        }),
+    }};
+    const bridge::Position position {
+        .deal = deal,
+        .current_trick = bridge::Trick {
+            .leader = Seat::North,
+            .cards = {opening_lead, bridge::kNoCard, bridge::kNoCard, bridge::kNoCard},
+            .card_count = 1,
+        },
+        .played_cards = bridge::kFullDeck & ~(
+            deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+    };
+
+    require(
+        bridge::choose_double_dummy_defender_card(
+            position, Seat::South, "HSCD") ==
+            bridge::make_card(Suit::Clubs, Rank::Two),
+        "HSCD should preserve hearts over clubs when both discards are DD-equal");
+    require(
+        bridge::choose_double_dummy_defender_card(
+            position, Seat::South, "CSHD") ==
+            bridge::make_card(Suit::Hearts, Rank::Two),
+        "CSHD should preserve clubs over hearts when both discards are DD-equal");
+}
+
+void test_analysis_session_rejects_lost_grand_slam_before_sampling() {
+    const bridge::Deal deal {.hands = {
+        bridge::suit_mask(Suit::Hearts),
+        bridge::suit_mask(Suit::Diamonds),
+        bridge::suit_mask(Suit::Spades),
+        bridge::suit_mask(Suit::Clubs),
+    }};
+    bridge::AnalysisSession session(deal, Seat::East, std::nullopt);
+    bridge::BotSettings settings = session.settings();
+    settings.world_count = 64;
+    settings.max_declarer_plies = bridge::kMaxDeclarerPlies;
+    settings.target_tricks = 13;
+    session.set_settings(settings);
+
+    for (const Card card : {
+             bridge::make_card(Suit::Diamonds, Rank::Ace),
+             bridge::make_card(Suit::Spades, Rank::Two),
+             bridge::make_card(Suit::Clubs, Rank::Two),
+             bridge::make_card(Suit::Hearts, Rank::Two),
+             bridge::make_card(Suit::Diamonds, Rank::King)}) {
+        session.play(card);
+    }
+
+    const bridge::SessionAnalysis analysis = session.analyze();
+    require(analysis.worlds.empty() &&
+                analysis.search.best_move != bridge::kNoCard &&
+                analysis.search.stats.target_impossible_cuts == 1 &&
+                analysis.search.stats.dds_worlds == 0,
+            "after losing trick one in a grand slam, root analysis should skip sampling");
+}
+
 void test_alpha_mu_supports_full_26_ply_ceiling() {
     const bridge::Deal deal {.hands = {
         bridge::make_hand({bridge::make_card(Suit::Spades, Rank::Ace)}),
@@ -1983,6 +2100,9 @@ int main() {
         test_alpha_mu_target_bounds_cut_impossible_contract();
         test_quick_tricks_proves_thirteen_running_winners();
         test_quick_tricks_does_not_assume_a_safe_side_suit();
+        test_quick_tricks_establishes_a_suit_from_aggregate_length();
+        test_dds_defender_uses_hold_order_only_for_equal_discards();
+        test_analysis_session_rejects_lost_grand_slam_before_sampling();
         test_alpha_mu_supports_full_26_ply_ceiling();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << "\n";

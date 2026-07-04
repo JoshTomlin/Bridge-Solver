@@ -138,12 +138,15 @@ h3 { font-size: 1rem; }
   opacity: 0.18;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
 }
-.table-meta { display: grid; padding: 4px 9px; color: #fff; background: rgba(6, 37, 31, 0.42); border-radius: 999px; backdrop-filter: blur(8px); white-space: nowrap; }
+.table-meta { display: flex; align-items: center; gap: 5px; padding: 4px 9px; color: #fff; background: rgba(6, 37, 31, 0.42); border-radius: 999px; backdrop-filter: blur(8px); white-space: nowrap; }
 .table-meta small { color: rgba(255, 255, 255, 0.78); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.04em; }
+.table-layout-select { width: 68px; padding: 1px 12px 1px 4px; color: #fff; background: rgba(255, 255, 255, 0.1); border: 0; border-radius: 999px; font-size: 0.52rem; font-weight: 700; }
+.table-layout-select option { color: var(--ink); background: #fffdf8; }
 .table-controls { position: absolute; z-index: 5; bottom: 6px; display: flex; align-items: center; gap: 4px; }
 .table-controls-left { left: 8px; }
 .table-controls-right { right: 8px; }
 .table-icon { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; color: var(--forest-deep); background: rgba(255, 250, 240, 0.9); border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 8px; box-shadow: 0 3px 10px rgba(4, 29, 23, 0.18); cursor: pointer; font-size: 0.95rem; line-height: 1; }
+.table-icon.history-step { width: 36px; height: 32px; font-size: 1.12rem; font-weight: 700; }
 .table-icon:hover:not(:disabled) { color: #fff; background: var(--forest-deep); }
 .seat { position: relative; align-self: center; min-width: 0; padding: 5px; border-radius: 12px; transition: background 160ms ease, box-shadow 160ms ease; }
 .seat.north { grid-area: 1 / 1 / 2 / 4; justify-self: center; width: min(100%, 440px); }
@@ -167,7 +170,7 @@ h3 { font-size: 1rem; }
 .suit-diamonds { color: var(--table-diamond); }
 .suit-clubs { color: var(--table-club); }
 .suit-cards { display: flex; align-items: center; min-width: 0; }
-.mini-card { position: relative; display: inline-grid; grid-template-rows: auto auto; place-items: center; width: 24px; height: 42px; margin: 0; padding: 3px 1px; overflow: hidden; color: var(--ink); background: #fffdf8; border: 1px solid #d8d2c7; border-radius: 4px; box-shadow: 0 2px 5px rgba(5, 30, 24, 0.2); font-family: "DM Sans", sans-serif; line-height: 1; }
+.mini-card { position: relative; display: inline-grid; grid-template-rows: auto auto; place-items: center; width: 24px; height: 38px; margin: 0; padding: 2px 1px; overflow: hidden; color: var(--ink); background: #fffdf8; border: 1px solid #d8d2c7; border-radius: 4px; box-shadow: 0 2px 5px rgba(5, 30, 24, 0.2); font-family: "DM Sans", sans-serif; line-height: 1; }
 .holding-inline .mini-card + .mini-card { margin-left: 0; }
 .holding-stacked .mini-card + .mini-card { margin-left: var(--side-card-overlap, 0); }
 .holding-stacked .cards-2, .holding-stacked .cards-3,
@@ -537,17 +540,18 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
   .table-controls-left { left: 6px; }
   .table-controls-right { right: 6px; }
   .table-icon { width: 28px; height: 28px; border-radius: 7px; font-size: 0.9rem; }
+  .table-icon.history-step { width: 34px; height: 30px; font-size: 1.08rem; }
   .seat { padding: 3px; border-radius: 9px; }
   .seat.north, .seat.south { width: 100%; }
   .seat.west, .seat.east { width: 134px; }
-  .mini-card { width: 20px; height: 56px; border-radius: 3px; }
+  .mini-card { width: 20px; height: 40px; border-radius: 3px; }
   .holding-inline .mini-card + .mini-card { margin-left: 0; }
-  .holding-stacked .mini-card { width: 20px; height: 48px; }
+  .holding-stacked .mini-card { width: 20px; height: 38px; }
   .mini-card b { font-size: 0.8rem; }
   .mini-card i { font-size: 0.84rem; }
   .table-centre { width: 100px; min-height: 152px; padding: 2px; }
   .current-trick { width: 100px; height: 112px; }
-  .trick-card { width: 38px; height: 50px; padding: 3px; }
+  .trick-card { width: 38px; height: 46px; padding: 2px; }
   .scoreline { gap: 8px; margin-top: 2px; font-size: 0.5rem; }
   .analysis-panel { min-height: 176px; max-height: none; padding: 10px 12px 12px; }
   .panel-heading h2 { font-size: 1.2rem; }

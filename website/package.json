@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node deal-utils.test.mjs",
     "start": "node server.js",
     "build": "node build.js",
     "preview": "node server.js dist",
