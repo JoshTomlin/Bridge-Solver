@@ -39,6 +39,7 @@ std::string_view to_string(AlphaMuOptimization optimization) {
         case AlphaMuOptimization::RootCut: return "root-cut";
         case AlphaMuOptimization::WinCut: return "win-cut";
         case AlphaMuOptimization::TargetBounds: return "target-bounds";
+        case AlphaMuOptimization::QuickTrickBounds: return "quick-tricks";
         case AlphaMuOptimization::ForcedMoves: return "forced-moves";
         case AlphaMuOptimization::ForcedTrumpRun: return "forced-trump";
         case AlphaMuOptimization::LeafDdsBatch: return "leaf-dds-batch";
@@ -62,6 +63,7 @@ std::optional<AlphaMuOptimization> parse_alpha_mu_optimization(std::string_view 
              AlphaMuOptimization::RootCut,
              AlphaMuOptimization::WinCut,
              AlphaMuOptimization::TargetBounds,
+             AlphaMuOptimization::QuickTrickBounds,
              AlphaMuOptimization::ForcedMoves,
              AlphaMuOptimization::ForcedTrumpRun,
              AlphaMuOptimization::LeafDdsBatch}) {
@@ -102,6 +104,8 @@ bool optimization_enabled(
             return optimizations.win_cut;
         case AlphaMuOptimization::TargetBounds:
             return optimizations.target_bounds;
+        case AlphaMuOptimization::QuickTrickBounds:
+            return optimizations.quick_trick_bounds;
         case AlphaMuOptimization::ForcedMoves:
             return optimizations.forced_moves;
         case AlphaMuOptimization::ForcedTrumpRun:
@@ -156,6 +160,9 @@ void set_optimization_enabled(
         case AlphaMuOptimization::TargetBounds:
             optimizations.target_bounds = enabled;
             return;
+        case AlphaMuOptimization::QuickTrickBounds:
+            optimizations.quick_trick_bounds = enabled;
+            return;
         case AlphaMuOptimization::ForcedMoves:
             optimizations.forced_moves = enabled;
             return;
@@ -183,6 +190,7 @@ AlphaMuOptimizations disabled_alpha_mu_optimizations() {
         .root_cut = false,
         .win_cut = false,
         .target_bounds = false,
+        .quick_trick_bounds = false,
         .forced_moves = false,
         .forced_trump_run = false,
         .leaf_dds_batch = false,

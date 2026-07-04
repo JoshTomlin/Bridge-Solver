@@ -1,6 +1,7 @@
 #include "alpha_mu_internal.h"
 
 #include "bridge/dds_solver.h"
+#include "bridge/quick_tricks.h"
 
 #include <algorithm>
 #include <bit>
@@ -142,6 +143,56 @@ std::optional<ParetoFront> evaluate_target_bound(
     return std::nullopt;
 }
 
+struct QuickTrickBound {
+    ParetoFront front;
+    Card first_card {kNoCard};
+};
+
+// Proves a target from the public declaring-side cards before expanding any
+// hidden-world branches. This is target-directed, like DDS QuickTricks, but
+// deliberately weaker because it never reads the E/W split.
+std::optional<QuickTrickBound> evaluate_quick_trick_bound(
+    const Position& position,
+    WorldMask useful_worlds,
+    SearchContext& context,
+    std::size_t search_depth) {
+    if (!context.config.optimizations.quick_trick_bounds ||
+        position.current_trick.card_count != 0 ||
+        !same_side(player_to_act(position), context.config.declarer)) {
+        return std::nullopt;
+    }
+
+    const std::uint8_t won =
+        tricks_won_by_declarer(position, context.config.declarer);
+    if (won >= context.config.target_tricks) return std::nullopt;
+
+    ++context.stats.quick_trick_probes;
+    const std::uint8_t needed = static_cast<std::uint8_t>(
+        context.config.target_tricks - won);
+    const QuickTrickProof proof =
+        prove_declarer_quick_tricks(position, context.config.declarer, needed);
+    context.stats.quick_trick_states += proof.states_examined;
+    if (proof.budget_exhausted) {
+        ++context.stats.quick_trick_budget_aborts;
+    }
+    if (!proof.proven) return std::nullopt;
+
+    ++context.stats.quick_trick_cuts;
+    audit_line(
+        context,
+        search_depth,
+        "quick-tricks",
+        "proved " + std::to_string(needed) +
+            " consecutive declaring-side winner(s), starting with " +
+            to_string(proof.first_card));
+    return QuickTrickBound {
+        .front = ParetoFront {
+            .vectors = {OutcomeVector {.wins = useful_worlds}},
+        },
+        .first_card = proof.first_card,
+    };
+}
+
 // This is an exact terminal proof, not a heuristic: the MAX leader has only
 // trumps and every defender is void, so MAX wins every remaining trick.
 std::optional<ParetoFront> evaluate_forced_trump_run(
@@ -206,12 +257,11 @@ NodeEvaluation evaluate_max_node(
     WorldMask useful_worlds,
     std::uint8_t max_moves_left,
     SearchContext& context,
-    Card preferred_move,
+    const std::vector<Card>& moves,
     const AlphaBounds& alpha_bounds,
     std::ostringstream* trace,
     std::size_t trace_depth) {
-    const Hand legal_moves = shared_declarer_moves(worlds, active_worlds);
-    if (legal_moves == kEmptyHand) {
+    if (moves.empty()) {
         return NodeEvaluation {.front = evaluate_leaf(worlds, useful_worlds, context)};
     }
 
@@ -219,13 +269,7 @@ NodeEvaluation evaluate_max_node(
     Card best_move = kNoCard;
     std::size_t best_score = 0;
     bool pruned = false;
-    const Position& public_position = worlds[first_world(active_worlds)].position;
-    for (const Card move : representative_cards(
-             public_position,
-             legal_moves,
-             preferred_move,
-             context,
-             trace_depth)) {
+    for (const Card move : moves) {
         trace_line(trace, trace_depth + 1, "move " + to_string(move));
         auto child_worlds = worlds;
         for (std::size_t world = 0; world < child_worlds.size(); ++world) {
@@ -435,7 +479,7 @@ struct RootIteration {
     NodeEvaluation evaluation;
     std::vector<AlphaMuRootMove> root_moves;
     bool cut {};
-    bool terminal_target_bound {};
+    bool terminal_depth_independent_bound {};
 };
 
 RootIteration search_root_iteration(
@@ -493,7 +537,26 @@ RootIteration search_root_iteration(
                 .best_move = moves.front(),
             },
             .root_moves = std::move(root_moves),
-            .terminal_target_bound = true,
+            .terminal_depth_independent_bound = true,
+        };
+    }
+
+    if (const std::optional<QuickTrickBound> bound =
+            evaluate_quick_trick_bound(root, active_worlds, context, 0);
+        bound.has_value()) {
+        ++context.stats.quick_trick_root_cuts;
+        return RootIteration {
+            .evaluation = NodeEvaluation {
+                .front = bound->front,
+                .best_move = bound->first_card,
+            },
+            .root_moves = {AlphaMuRootMove {
+                .move = bound->first_card,
+                .winning_worlds = worlds.size(),
+                .pareto_vectors = bound->front.vectors.size(),
+                .front = bound->front,
+            }},
+            .terminal_depth_independent_bound = true,
         };
     }
 
@@ -651,6 +714,15 @@ NodeEvaluation alpha_mu_node(
         bound.has_value()) {
         return NodeEvaluation {.front = *bound};
     }
+    if (const std::optional<QuickTrickBound> bound =
+            evaluate_quick_trick_bound(
+                position, useful_worlds, context, trace_depth);
+        bound.has_value()) {
+        return NodeEvaluation {
+            .front = bound->front,
+            .best_move = bound->first_card,
+        };
+    }
 
     std::optional<NodeKey> key;
     Card preferred_move = kNoCard;
@@ -805,12 +877,24 @@ NodeEvaluation alpha_mu_node(
         return NodeEvaluation {.front = *cut};
     }
 
+    std::vector<Card> max_moves;
+    Hand min_moves = kEmptyHand;
+    if (is_max) {
+        max_moves = representative_cards(
+            position,
+            shared_declarer_moves(worlds, active_worlds),
+            preferred_move,
+            context,
+            trace_depth);
+    } else {
+        min_moves = union_of_defender_moves(worlds, useful_worlds);
+    }
+
     if (context.config.optimizations.forced_moves) {
-        const Hand forced_candidates = is_max
-            ? shared_declarer_moves(worlds, active_worlds)
-            : union_of_defender_moves(worlds, useful_worlds);
-        if (is_single_card(forced_candidates)) {
-            const Card move = forced_candidates;
+        const bool forced_max = is_max && max_moves.size() == 1;
+        const bool forced_min = !is_max && is_single_card(min_moves);
+        if (forced_max || forced_min) {
+            const Card move = forced_max ? max_moves.front() : min_moves;
             auto child_worlds = worlds;
             WorldMask child_active_worlds = 0;
             WorldMask child_useful_worlds = 0;
@@ -900,7 +984,7 @@ NodeEvaluation alpha_mu_node(
               useful_worlds,
               max_moves_left,
               context,
-              preferred_move,
+              max_moves,
               alpha_bounds,
               trace,
               trace_depth)
@@ -954,7 +1038,8 @@ AlphaMuResult run_search(
             "starting M=" + std::to_string(depth));
         RootIteration iteration =
             search_root_iteration(worlds, depth, previous_score, context);
-        const bool terminal_target_bound = iteration.terminal_target_bound;
+        const bool terminal_depth_independent_bound =
+            iteration.terminal_depth_independent_bound;
         final_evaluation = std::move(iteration.evaluation);
         final_root_moves = std::move(iteration.root_moves);
         previous_score = best_winning_world_count(final_evaluation.front);
@@ -969,12 +1054,12 @@ AlphaMuResult run_search(
             "iteration",
             "completed M=" + std::to_string(depth) +
                 " with best score " + std::to_string(*previous_score));
-        if (terminal_target_bound) {
+        if (terminal_depth_independent_bound) {
             audit_line(
                 context,
                 0,
                 "iteration",
-                "target bound is depth-independent; stopped iterative deepening");
+                "terminal bound is depth-independent; stopped iterative deepening");
             break;
         }
         if (depth == config.max_declarer_plies) {

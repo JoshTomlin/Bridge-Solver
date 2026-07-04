@@ -68,6 +68,7 @@ add_library(bridge_engine
     src/dds_solver.cpp
     src/engine.cpp
     src/game.cpp
+    src/quick_tricks.cpp
 )
 
 target_include_directories(bridge_engine

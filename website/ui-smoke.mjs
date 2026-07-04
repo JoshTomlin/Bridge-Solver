@@ -29,7 +29,10 @@ for (const required of [
   "analysis-result",
   "analyze-layouts",
   "layout-count",
-  "additional-layout-list"
+  "alternative-layout-tabs",
+  "alternative-compass",
+  "alternative-card-palette",
+  "delete-layout"
 ]) {
   assert.ok(ids.includes(required), `redesign requires #${required}`);
 }
@@ -55,6 +58,17 @@ assert.ok(app.includes("data-picker-card"), "deal entry must expose a duplicate-
 assert.ok(app.includes("completion.ready"), "the fourth hand must complete automatically");
 assert.ok(!ids.includes("complete-fourth-hand"), "automatic completion must not require a button");
 assert.ok(html.includes("data-editor-holding"), "deal entry must preview cards on a bridge table");
+assert.ok(app.includes("editorHandDiagramMarkup"), "deal editing must use compact hand diagrams");
+assert.ok(html.includes("data-deal-editor-tab=\"alternatives\""), "alternative layouts must be a peer editor tab");
+assert.ok(html.includes("data-alternative-holding"), "alternative layouts must show all four hand diagrams");
+assert.ok(app.includes("data-alternative-card"), "alternative East/West cards must use a visual picker");
+assert.ok(!ids.includes("layout-east") && !ids.includes("layout-west"),
+  "alternative layouts must not fall back to SHDC text inputs");
+assert.match(
+  html,
+  /<select id="leader">[\s\S]*?<option selected>West<\/option>/,
+  "West should be the default opening leader"
+);
 assert.ok(html.includes("analysis-inspector-body"), "detailed decisions belong in the inspector");
 assert.ok(html.includes("table-controls-left"), "table must expose compact edit controls");
 assert.ok(html.includes("table-controls-right"), "table must expose compact playback controls");

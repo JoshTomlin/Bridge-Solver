@@ -29,10 +29,11 @@ The older paper's early and root cuts were already present.
    equivalent-card representatives, and exact/canonical transposition keys.
 5. `engine/src/alpha_mu.cpp`: DDS leaves, `evaluate_max_node`,
    `evaluate_min_node`, `alpha_mu_node`, and iterative root search.
-6. `engine/src/alpha_mu_policy.cpp`: reconstructs one selected strategy for the
+6. `engine/src/quick_tricks.cpp`: layout-independent declarer cashing proofs.
+7. `engine/src/alpha_mu_policy.cpp`: reconstructs one selected strategy for the
    rest of the current trick.
-7. `engine/src/analysis_session.cpp`: samples worlds and invokes the search.
-8. `engine/src/interactive_cli.cpp`: user controls, audit display, and A/B
+8. `engine/src/analysis_session.cpp`: samples worlds and invokes the search.
+9. `engine/src/interactive_cli.cpp`: user controls, audit display, and A/B
    benchmark display.
 
 The search uses plain structs and free functions intentionally. These states are
@@ -76,7 +77,8 @@ intended for short endings and regression tests.
 | `root-cut` | `root_cut` | `search_root_iteration` | The previous iteration's root score is an upper bound; reaching it proves the current best score | `root_cuts` |
 | `win-cut` | `win_cut` | `evaluate_max_node`, `search_root_iteration` | A binary vector winning every active world cannot be improved | `win_cuts` |
 | `target-bounds` | `target_bounds` | `evaluate_target_bound` | If the target is already reached every continuation succeeds; if tricks won plus all remaining tricks is below target, no continuation can succeed | `target_reached_cuts`, `target_impossible_cuts` |
-| `forced-moves` | `forced_moves` | `AnalysisSession::analyze`, `alpha_mu_node` | A single legal root card needs no world sample; a single child at MAX or MIN can be followed without combining sibling fronts | `forced_root_recommendations`, `forced_move_nodes` |
+| `quick-tricks` | `quick_trick_bounds` | `prove_declarer_quick_tricks`, `evaluate_quick_trick_bound` | A two-hand cashing search proves a continuous winner sequence without inspecting the E/W split | `quick_trick_probes`, `quick_trick_states`, `quick_trick_cuts` |
+| `forced-moves` | `forced_moves` | `AnalysisSession::analyze`, `alpha_mu_node` | One legal equivalence class at the root needs no world sample; one representative MAX child or physical MIN card can be followed without combining sibling fronts | `forced_root_recommendations`, `forced_move_nodes` |
 | `forced-trump` | `forced_trump_run` | `evaluate_forced_trump_run` | With only trumps in the MAX leader and no opposing trumps, every remaining trick is proven | `forced_trump_run_cuts` |
 | `leaf-dds-batch` | `leaf_dds_batch` | `evaluate_leaf`, `double_dummy_future_tricks_batch` | DDS solves the same independent world positions; only their scheduling changes | `leaf_dds_batches`, `leaf_dds_worlds` |
 
@@ -93,6 +95,20 @@ cards already committed to the partial trick. This makes the proof exact for
 full deals and shortened endings. For example, after one trick is lost, a
 13-trick target is rejected at M=1 before any DDS call because at most 12 tricks
 remain. The proof is depth-independent, so iterative deepening stops immediately.
+
+`quick-tricks` handles the opposite easy case. At an empty trick with
+declarer/dummy on lead, it asks whether the target can be reached by cashing a
+continuous run. The root check happens before sampling; the same check runs at
+empty-trick MAX nodes inside alpha-mu. A successful proof is depth-independent
+and returns an all-one outcome vector.
+
+The implementation does not read East or West's hand. It derives their combined
+card pool as every unplayed card absent from declarer and dummy, then keeps that
+pool unchanged during the proof. Therefore it never assumes a defender card was
+forced out or assigns a void to a particular defender. In a trump contract it
+counts a side-suit winner only after no defender trump remains. These choices
+make the bound conservative but sound under hidden layouts. See
+`docs/quick-tricks.md` for the algorithm and its relationship to DDS.
 
 ## Cache Lifetime And Repeatable Simulations
 
@@ -197,12 +213,14 @@ No binary vector can improve on all ones, so remaining cards are skipped. The
 root applies the same proof over all sampled worlds.
 
 `forced-moves` has two levels. At the public root, the recommendation is
-returned before sampling because no hidden layout can change which card is
-legal. Inside the tree, the forced card is played and search continues from its
-child because later choices still need an exact outcome vector for the
-ancestor. MAX forced moves consume one unit of M; MIN forced moves do not. At
-MIN, different forced cards in different worlds remain separate,
-information-bearing branches.
+returned before sampling when all legal cards belong to one class under
+`equivalent_play_groups`. Inside the tree, MAX equivalence representatives
+are generated once; a single representative is played directly and search
+continues from its child because later choices still need an exact outcome
+vector for the ancestor. MAX forced moves consume one unit of M; MIN forced
+moves do not. At MIN, different observed cards in different worlds remain
+separate, information-bearing branches unless the existing canonical-successor
+test proves them identical.
 
 ### Batched DDS Leaves
 
@@ -236,7 +254,7 @@ useful work:
 - `root-cut` needs a previous root iteration, so it is inert without
   `iterative`.
 - `max-equals`, `min-equals`, `win-cut`, `forced-moves`,
-  `forced-trump`, and `leaf-dds-batch`
+  `quick-tricks`, `forced-trump`, and `leaf-dds-batch`
   are independent of the table.
 
 An inert optimization has a zero counter. Disabling a dependency never changes

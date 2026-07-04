@@ -109,10 +109,16 @@
         <div class="dialog-body deal-dialog-grid">
           <section class="editor-fields">
             <div class="contract-grid">
-              <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option selected>South</option><option>West</option></select></label>
+              <label class="field"><span>Leader</span><select id="leader"><option>North</option><option>East</option><option>South</option><option selected>West</option></select></label>
               <label class="field"><span>Trump</span><select id="trump"><option selected>NT</option><option>S</option><option>H</option><option>D</option><option>C</option></select></label>
               <label class="field"><span>Target</span><input id="target-tricks" type="number" min="1" max="13" value="13"></label>
             </div>
+            <div class="deal-editor-tabs" role="tablist" aria-label="Deal editor sections">
+              <button class="deal-editor-tab is-selected" data-deal-editor-tab="deal" type="button" role="tab" aria-selected="true">Deal</button>
+              <button class="deal-editor-tab" data-deal-editor-tab="knowledge" type="button" role="tab" aria-selected="false">Defender knowledge</button>
+              <button class="deal-editor-tab" data-deal-editor-tab="alternatives" type="button" role="tab" aria-selected="false">Alternative layouts <span id="layout-count">1</span></button>
+            </div>
+            <section class="deal-editor-panel" data-deal-editor-panel="deal">
             <div class="deal-entry">
               <input id="north-hand" type="hidden" value="AJT9.AKQ.AKQ.432">
               <input id="east-hand" type="hidden" value="Q5.T65.T865.J985">
@@ -139,14 +145,10 @@
               <span>Play already made</span>
               <input id="play-prefix" placeholder="D6 DA D7 D4" spellcheck="false">
             </label>
+            </section>
 
-            <details class="knowledge-panel" id="defender-knowledge">
-              <summary><span>Defender knowledge</span><small id="restriction-status">Unrestricted</small></summary>
-              <div class="knowledge-tabs" role="tablist" aria-label="Defender knowledge sections">
-                <button class="knowledge-tab is-selected" data-knowledge-tab="constraints" type="button" role="tab" aria-selected="true">Constraints</button>
-                <button class="knowledge-tab" data-knowledge-tab="layouts" type="button" role="tab" aria-selected="false">Test layouts <span id="layout-count">0</span></button>
-              </div>
-              <div class="knowledge-tab-panel" data-knowledge-panel="constraints">
+            <section class="deal-editor-panel knowledge-panel is-hidden" id="defender-knowledge" data-deal-editor-panel="knowledge">
+              <div class="knowledge-heading"><strong>Defender knowledge</strong><small id="restriction-status">Unrestricted</small></div>
                 <section class="restriction-seat" data-restriction-seat="east">
                 <h3>East</h3>
                 <div class="two-up restriction-cards">
@@ -177,18 +179,29 @@
                   <b>HCP</b><input id="west-min-hcp" type="number" min="0" max="37" value="0" aria-label="West minimum HCP"><input id="west-max-hcp" type="number" min="0" max="37" value="37" aria-label="West maximum HCP">
                 </div>
                 </section>
+            </section>
+
+            <section class="deal-editor-panel alternative-editor is-hidden" data-deal-editor-panel="alternatives">
+              <div class="alternative-toolbar">
+                <div class="alternative-tabs" id="alternative-layout-tabs"></div>
+                <button class="button dark compact" id="add-layout" type="button">+ Layout</button>
               </div>
-              <section class="knowledge-tab-panel layout-editor is-hidden" data-knowledge-panel="layouts">
-                <p class="field-help">Add exact East/West layouts for repeated full-play tests. Leave one hand empty to fill it from the remaining defender cards.</p>
-                <div class="layout-entry-grid">
-                  <label class="field"><span>Name</span><input id="layout-name" placeholder="Queen with East" autocomplete="off"></label>
-                  <label class="field"><span>East (SHDC)</span><input id="layout-east" placeholder="Q5.T65.T865.J985" spellcheck="false"></label>
-                  <label class="field"><span>West (SHDC)</span><input id="layout-west" placeholder="432.J987.J97.T76" spellcheck="false"></label>
-                  <button class="button dark" id="add-layout" type="button">Add layout</button>
+              <div class="deal-compass alternative-compass" id="alternative-compass" aria-label="Alternative defender layout">
+                <div class="deal-seat north is-fixed"><span>N</span><div class="editor-holding" data-alternative-holding="North"></div><small>Fixed</small></div>
+                <button class="deal-seat west" data-alternative-seat="West" type="button" aria-pressed="false"><span>W</span><div class="editor-holding" data-alternative-holding="West"></div><small data-alternative-summary="West"></small></button>
+                <div class="deal-compass-centre"><small id="alternative-layout-status">Layout 1 is the true deal</small></div>
+                <button class="deal-seat east is-active" data-alternative-seat="East" type="button" aria-pressed="true"><span>E</span><div class="editor-holding" data-alternative-holding="East"></div><small data-alternative-summary="East"></small></button>
+                <div class="deal-seat south is-fixed"><span>S</span><div class="editor-holding" data-alternative-holding="South"></div><small>Fixed</small></div>
+              </div>
+              <section class="card-picker alternative-picker" aria-label="Alternative layout card selector">
+                <div class="card-picker-heading">
+                  <div><span class="micro-label">Editing</span><strong id="alternative-seat-name">East</strong></div>
+                  <span id="alternative-seat-count">13 / 13 cards</span>
                 </div>
-                <div class="additional-layout-list" id="additional-layout-list"></div>
+                <div class="card-palette" id="alternative-card-palette"></div>
               </section>
-            </details>
+              <button class="text-button alternative-delete is-hidden" id="delete-layout" type="button">Delete this layout</button>
+            </section>
           </section>
 
           <aside class="saved-block">

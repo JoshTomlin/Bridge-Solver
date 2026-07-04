@@ -1,4 +1,5 @@
 #include "bridge/analysis_session.h"
+#include "bridge/quick_tricks.h"
 
 #include <algorithm>
 #include <chrono>
@@ -16,6 +17,20 @@ constexpr std::array<Suit, 4> kHandRecordSuits {
     Suit::Diamonds,
     Suit::Clubs,
 };
+
+Card first_card_in_bridge_order(Hand cards) {
+    for (const Suit suit : kHandRecordSuits) {
+        for (int rank = static_cast<int>(Rank::Ace);
+             rank >= static_cast<int>(Rank::Two);
+             --rank) {
+            const Card card = make_card(suit, static_cast<Rank>(rank));
+            if (contains(cards, card)) {
+                return card;
+            }
+        }
+    }
+    return kNoCard;
+}
 
 std::string trim(std::string_view text) {
     const auto first = std::find_if_not(text.begin(), text.end(), [](unsigned char c) {
@@ -393,21 +408,75 @@ SessionAnalysis AnalysisSession::analyze() {
     const Hand legal = legal_plays(
         position_.current_trick,
         hand_of(position_.deal, player));
-    if (settings_.optimizations.forced_moves && is_single_card(legal)) {
+    Card forced_move = is_single_card(legal) ? legal : kNoCard;
+    std::uint64_t equivalent_cards = 0;
+    if (settings_.optimizations.forced_moves &&
+        settings_.optimizations.max_equivalent_cards &&
+        forced_move == kNoCard) {
+        const std::vector<Hand> groups = equivalent_play_groups(
+            position_.current_trick,
+            legal,
+            hand_of(position_.deal, player),
+            position_.played_cards);
+        if (groups.size() == 1) {
+            forced_move = first_card_in_bridge_order(groups.front());
+            equivalent_cards = card_count(groups.front()) - 1;
+        }
+    }
+    if (settings_.optimizations.forced_moves && forced_move != kNoCard) {
         SessionAnalysis analysis;
         analysis.possible_deals = possible_deals();
         if (analysis.possible_deals == 0) {
             throw std::logic_error("the public constraints admit no defender layouts");
         }
-        analysis.search.best_move = legal;
-        analysis.search.root_moves.push_back(AlphaMuRootMove {.move = legal});
+        analysis.search.best_move = forced_move;
+        analysis.search.root_moves.push_back(AlphaMuRootMove {.move = forced_move});
         analysis.search.stats.forced_root_recommendations = 1;
+        analysis.search.stats.equivalent_moves_skipped = equivalent_cards;
+        analysis.search.stats.max_equivalent_moves_skipped = equivalent_cards;
         if (settings_.collect_audit_log) {
             analysis.search.audit_log =
-                "M=0 forced-moves: root has only " + to_string(legal) + "\n";
+                "M=0 forced-moves: root has one legal equivalence class; kept " +
+                to_string(forced_move) + "\n";
         }
         policy_.reset();
         return analysis;
+    }
+
+    const std::uint8_t won = position_.score.north_south;
+    if (settings_.optimizations.quick_trick_bounds &&
+        won < settings_.target_tricks) {
+        const auto quick_start = std::chrono::steady_clock::now();
+        const std::uint8_t needed = static_cast<std::uint8_t>(
+            settings_.target_tricks - won);
+        const QuickTrickProof proof =
+            prove_declarer_quick_tricks(position_, Seat::South, needed);
+        if (proof.proven) {
+            SessionAnalysis analysis;
+            analysis.possible_deals = possible_deals();
+            if (analysis.possible_deals == 0) {
+                throw std::logic_error(
+                    "the public constraints admit no defender layouts");
+            }
+            analysis.search.best_move = proof.first_card;
+            analysis.search.root_moves.push_back(
+                AlphaMuRootMove {.move = proof.first_card});
+            analysis.search.stats.quick_trick_probes = 1;
+            analysis.search.stats.quick_trick_states = proof.states_examined;
+            analysis.search.stats.quick_trick_cuts = 1;
+            analysis.search.stats.quick_trick_root_cuts = 1;
+            analysis.search.stats.completed_iterations = 1;
+            analysis.search_ms = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - quick_start).count();
+            if (settings_.collect_audit_log) {
+                analysis.search.audit_log =
+                    "M=0 quick-tricks: proved " + std::to_string(needed) +
+                    " consecutive winner(s), starting with " +
+                    to_string(proof.first_card) + "\n";
+            }
+            policy_.reset();
+            return analysis;
+        }
     }
 
     SampledWorlds sampled = sample_worlds();

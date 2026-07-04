@@ -19,7 +19,7 @@
 namespace bridge::cli {
 namespace {
 
-constexpr std::array<AlphaMuOptimization, 16> kOptimizations {
+constexpr std::array<AlphaMuOptimization, 17> kOptimizations {
     AlphaMuOptimization::IterativeDeepening,
     AlphaMuOptimization::TranspositionTable,
     AlphaMuOptimization::CanonicalTranspositionKeys,
@@ -33,6 +33,7 @@ constexpr std::array<AlphaMuOptimization, 16> kOptimizations {
     AlphaMuOptimization::RootCut,
     AlphaMuOptimization::WinCut,
     AlphaMuOptimization::TargetBounds,
+    AlphaMuOptimization::QuickTrickBounds,
     AlphaMuOptimization::ForcedMoves,
     AlphaMuOptimization::ForcedTrumpRun,
     AlphaMuOptimization::LeafDdsBatch,
@@ -157,6 +158,8 @@ std::uint64_t optimization_event_count(
             return stats.win_cuts;
         case AlphaMuOptimization::TargetBounds:
             return stats.target_reached_cuts + stats.target_impossible_cuts;
+        case AlphaMuOptimization::QuickTrickBounds:
+            return stats.quick_trick_cuts;
         case AlphaMuOptimization::ForcedMoves:
             return stats.forced_move_nodes + stats.forced_root_recommendations;
         case AlphaMuOptimization::ForcedTrumpRun:

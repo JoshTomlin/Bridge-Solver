@@ -10,6 +10,7 @@
 
 #include "bridge/analysis_session.h"
 #include "bridge/engine.h"
+#include "bridge/quick_tricks.h"
 
 namespace {
 
@@ -186,6 +187,7 @@ void test_analysis_session_tracks_public_play() {
     settings.world_count = 6;
     settings.max_declarer_plies = 2;
     settings.target_tricks = 1;
+    settings.optimizations.quick_trick_bounds = false;
     session.set_settings(settings);
 
     const bridge::SessionAnalysis analysis = session.analyze();
@@ -267,6 +269,52 @@ void test_analysis_session_returns_forced_move_without_sampling() {
             "disabling forced moves should restore sampling without changing the card");
 }
 
+void test_analysis_session_autoplays_one_equivalent_class() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Nine),
+            bridge::make_card(Suit::Spades, Rank::Eight),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Two),
+            bridge::make_card(Suit::Hearts, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Hearts, Rank::Ace),
+            bridge::make_card(Suit::Hearts, Rank::King),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Three),
+            bridge::make_card(Suit::Hearts, Rank::Three),
+        }),
+    }};
+    bridge::AnalysisSession session(deal, Seat::North, std::nullopt);
+    bridge::BotSettings settings = session.settings();
+    settings.world_count = 64;
+    settings.max_declarer_plies = 10;
+    settings.target_tricks = 1;
+    session.set_settings(settings);
+
+    const bridge::SessionAnalysis analysis = session.analyze();
+    require(analysis.search.best_move ==
+                bridge::make_card(Suit::Spades, Rank::Nine) &&
+                analysis.worlds.empty(),
+            "touching equivalent cards should produce an instant representative");
+    require(analysis.search.stats.forced_root_recommendations == 1 &&
+                analysis.search.stats.max_equivalent_moves_skipped == 1,
+            "the forced root should report the equivalent card it skipped");
+
+    bridge::AnalysisSession reference_session(deal, Seat::North, std::nullopt);
+    settings.world_count = 4;
+    settings.max_declarer_plies = 1;
+    settings.optimizations.max_equivalent_cards = false;
+    reference_session.set_settings(settings);
+    const bridge::SessionAnalysis reference = reference_session.analyze();
+    require(reference.worlds.size() == settings.world_count &&
+                reference.search.stats.forced_root_recommendations == 0,
+            "disabling MAX equivalents should restore normal world sampling");
+}
+
 void test_alpha_mu_collapses_forced_internal_nodes() {
     const bridge::Deal deal {.hands = {
         bridge::make_hand({
@@ -278,8 +326,8 @@ void test_alpha_mu_collapses_forced_internal_nodes() {
             bridge::make_card(Suit::Hearts, Rank::Two),
         }),
         bridge::make_hand({
-            bridge::make_card(Suit::Spades, Rank::King),
-            bridge::make_card(Suit::Hearts, Rank::King),
+            bridge::make_card(Suit::Spades, Rank::Nine),
+            bridge::make_card(Suit::Spades, Rank::Eight),
         }),
         bridge::make_hand({
             bridge::make_card(Suit::Spades, Rank::Three),
@@ -300,6 +348,7 @@ void test_alpha_mu_collapses_forced_internal_nodes() {
         .optimizations = bridge::disabled_alpha_mu_optimizations(),
     };
     forced_config.optimizations.forced_moves = true;
+    forced_config.optimizations.max_equivalent_cards = true;
     const bridge::AlphaMuResult forced =
         bridge::alpha_mu_search(worlds, forced_config);
 
@@ -315,8 +364,9 @@ void test_alpha_mu_collapses_forced_internal_nodes() {
             "forced-node collapse must preserve the exact search result");
     require(forced.stats.forced_min_nodes > 0 &&
                 forced.stats.forced_max_nodes > 0 &&
+                forced.stats.max_equivalent_moves_skipped > 0 &&
                 reference.stats.forced_move_nodes == 0,
-            "forced MAX and MIN nodes should be counted and independently disabled");
+            "forced equivalent MAX and physical MIN nodes should be counted");
 }
 
 void test_alpha_mu_skips_touching_equal_cards() {
@@ -359,6 +409,7 @@ void test_alpha_mu_skips_touching_equal_cards() {
         .collect_audit_log = true,
     };
     config.optimizations.root_cut = false;
+    config.optimizations.quick_trick_bounds = false;
     const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
     require(result.root_moves.size() == 1 &&
                 result.root_moves.front().move ==
@@ -397,12 +448,13 @@ void test_alpha_mu_all_equal_suits_are_trivial() {
             },
         },
     };
-    const bridge::AlphaMuConfig config {
+    bridge::AlphaMuConfig config {
         .declarer = Seat::South,
         .trump_suit = Suit::Spades,
         .target_tricks = 13,
         .max_declarer_plies = 3,
     };
+    config.optimizations.quick_trick_bounds = false;
 
     const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
     require(result.best_move == bridge::make_card(Suit::Spades, Rank::Ace),
@@ -466,6 +518,7 @@ void test_alpha_mu_cuts_max_node_on_all_winning_vector() {
         .max_declarer_plies = 1,
     };
     config.optimizations.root_cut = false;
+    config.optimizations.quick_trick_bounds = false;
 
     const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
     require(result.best_move == bridge::make_card(Suit::Spades, Rank::Ace),
@@ -496,6 +549,7 @@ void test_alpha_mu_optimization_controls() {
              bridge::AlphaMuOptimization::RootCut,
              bridge::AlphaMuOptimization::WinCut,
              bridge::AlphaMuOptimization::TargetBounds,
+             bridge::AlphaMuOptimization::QuickTrickBounds,
              bridge::AlphaMuOptimization::ForcedMoves,
              bridge::AlphaMuOptimization::ForcedTrumpRun,
              bridge::AlphaMuOptimization::LeafDdsBatch}) {
@@ -1759,6 +1813,102 @@ void test_alpha_mu_target_bounds_cut_impossible_contract() {
             "disabling target bounds should preserve the result but require DDS");
 }
 
+void test_quick_tricks_proves_thirteen_running_winners() {
+    const bridge::Deal deal {.hands = {
+        bridge::suit_mask(Suit::Spades),
+        bridge::suit_mask(Suit::Diamonds),
+        bridge::suit_mask(Suit::Hearts),
+        bridge::suit_mask(Suit::Clubs),
+    }};
+    const bridge::Position position {
+        .deal = deal,
+        .current_trick = bridge::Trick {.leader = Seat::North},
+    };
+
+    const bridge::QuickTrickProof proof =
+        bridge::prove_declarer_quick_tricks(position, Seat::South, 13);
+    require(proof.proven &&
+                proof.first_card == bridge::make_card(Suit::Spades, Rank::Ace) &&
+                !proof.budget_exhausted,
+            "the public two-hand proof should recognize thirteen running spades");
+
+    const std::vector<bridge::AlphaMuWorld> worlds {
+        bridge::AlphaMuWorld {.position = position},
+    };
+    bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .target_tricks = 13,
+        .max_declarer_plies = bridge::kMaxDeclarerPlies,
+        .collect_audit_log = true,
+    };
+    const bridge::AlphaMuResult bounded =
+        bridge::alpha_mu_search(worlds, config);
+    require(bounded.best_move == proof.first_card &&
+                bridge::best_winning_world_count(bounded.front) == 1 &&
+                bounded.stats.quick_trick_root_cuts == 1 &&
+                bounded.stats.dds_worlds == 0 &&
+                bounded.stats.nodes == 1 &&
+                bounded.stats.completed_depth == 1,
+            "quick tricks should end iterative alpha-mu before DDS or card expansion");
+    require(bounded.audit_log.find("[quick-tricks]") != std::string::npos,
+            "the quick-trick proof should be visible in the audit log");
+
+    config.optimizations.quick_trick_bounds = false;
+    config.optimizations.iterative_deepening = false;
+    config.max_declarer_plies = 1;
+    config.collect_audit_log = false;
+    const bridge::AlphaMuResult unbounded =
+        bridge::alpha_mu_search(worlds, config);
+    require(bridge::best_winning_world_count(unbounded.front) == 1 &&
+                unbounded.stats.quick_trick_cuts == 0 &&
+                unbounded.stats.dds_worlds > 0,
+            "disabling quick tricks should preserve the result and restore DDS work");
+}
+
+void test_quick_tricks_does_not_assume_a_safe_side_suit() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Clubs, Rank::Ace),
+            bridge::make_card(Suit::Clubs, Rank::King),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Two),
+            bridge::make_card(Suit::Diamonds, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Hearts, Rank::Ace),
+            bridge::make_card(Suit::Hearts, Rank::King),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Three),
+            bridge::make_card(Suit::Diamonds, Rank::Three),
+        }),
+    }};
+    const bridge::Position trump_position {
+        .deal = deal,
+        .current_trick = bridge::Trick {
+            .leader = Seat::North,
+            .trump_suit = Suit::Spades,
+        },
+        .played_cards = bridge::kFullDeck & ~(
+            deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+    };
+    const bridge::QuickTrickProof unsafe =
+        bridge::prove_declarer_quick_tricks(
+            trump_position, Seat::South, 1);
+    require(!unsafe.proven,
+            "a side-suit ace is not layout-independent while defenders hold trumps");
+
+    bridge::Position no_trump_position = trump_position;
+    no_trump_position.current_trick.trump_suit.reset();
+    const bridge::QuickTrickProof safe =
+        bridge::prove_declarer_quick_tricks(
+            no_trump_position, Seat::South, 2);
+    require(safe.proven &&
+                safe.first_card == bridge::make_card(Suit::Clubs, Rank::Ace),
+            "the same two top clubs should be a safe no-trump cashing run");
+}
+
 void test_alpha_mu_supports_full_26_ply_ceiling() {
     const bridge::Deal deal {.hands = {
         bridge::make_hand({bridge::make_card(Suit::Spades, Rank::Ace)}),
@@ -1802,6 +1952,7 @@ int main() {
         test_alpha_mu_cuts_max_node_on_all_winning_vector();
         test_alpha_mu_optimization_controls();
         test_analysis_session_returns_forced_move_without_sampling();
+        test_analysis_session_autoplays_one_equivalent_class();
         test_alpha_mu_collapses_forced_internal_nodes();
         test_card_bitmask_layout_and_operations();
         test_legal_plays_follow_suit();
@@ -1830,6 +1981,8 @@ int main() {
         test_second_paper_cuts_are_observable();
         test_alpha_mu_soft_time_limit_stops_between_iterations();
         test_alpha_mu_target_bounds_cut_impossible_contract();
+        test_quick_tricks_proves_thirteen_running_winners();
+        test_quick_tricks_does_not_assume_a_safe_side_suit();
         test_alpha_mu_supports_full_26_ply_ceiling();
     } catch (const std::exception& error) {
         std::cerr << "Test failure: " << error.what() << "\n";

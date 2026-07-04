@@ -23,10 +23,13 @@ const elements = {
   playPrefix: byId("play-prefix"),
   restrictionStatus: byId("restriction-status"),
   layoutCount: byId("layout-count"),
-  layoutName: byId("layout-name"),
-  layoutEast: byId("layout-east"),
-  layoutWest: byId("layout-west"),
-  additionalLayoutList: byId("additional-layout-list"),
+  alternativeLayoutTabs: byId("alternative-layout-tabs"),
+  alternativeCompass: byId("alternative-compass"),
+  alternativeCardPalette: byId("alternative-card-palette"),
+  alternativeSeatName: byId("alternative-seat-name"),
+  alternativeSeatCount: byId("alternative-seat-count"),
+  alternativeLayoutStatus: byId("alternative-layout-status"),
+  deleteLayout: byId("delete-layout"),
   savedDeals: byId("saved-deals"),
   dealCount: byId("deal-count"),
   tableStage: byId("table"),
@@ -83,6 +86,8 @@ let activeWorldIndex = null;
 let activeFullResult = null;
 let activeDecisionIndex = 0;
 let activeEditSeat = "North";
+let activeAlternativeIndex = 0;
+let activeAlternativeSeat = "East";
 let retainedTrick = [];
 let additionalLayouts = [];
 let activeLayoutBatch = null;
@@ -178,6 +183,16 @@ function toast(message, tone = "info") {
 }
 
 function collectDeal() {
+  const normalizedLayouts = additionalLayouts.map((layout, index) => ({
+    ...layout,
+    name: `Layout ${index + 2}`,
+    ...completeDefenderLayout(
+      elements.east.value,
+      elements.west.value,
+      layout.east,
+      layout.west
+    )
+  }));
   return {
     id: draftDealId,
     name: elements.name.value.trim() || "Untitled deal",
@@ -189,7 +204,7 @@ function collectDeal() {
     trump: elements.trump.value,
     target: Number(elements.target.value),
     playPrefix: elements.playPrefix.value.trim().toUpperCase(),
-    additionalLayouts: additionalLayouts.map((layout) => ({ ...layout })),
+    additionalLayouts: normalizedLayouts,
     restrictions: {
       east: collectSeatRestrictions("east"),
       west: collectSeatRestrictions("west")
@@ -204,21 +219,18 @@ function populateDealForm(deal) {
   elements.east.value = deal.east || "-.-.-.-";
   elements.south.value = deal.south || "-.-.-.-";
   elements.west.value = deal.west || "-.-.-.-";
-  elements.leader.value = deal.leader || "South";
+  elements.leader.value = deal.leader || "West";
   elements.trump.value = deal.trump || "NT";
   elements.target.value = deal.target || 13;
   elements.playPrefix.value = deal.playPrefix || "";
-  additionalLayouts = (deal.additionalLayouts || []).map((layout) => ({
+  additionalLayouts = (deal.additionalLayouts || []).map((layout, index) => ({
     ...layout,
+    name: `Layout ${index + 2}`,
     id: layout.id || layoutIdentifier()
   }));
+  activeAlternativeIndex = 0;
   applySeatRestrictions("east", deal.restrictions?.east);
   applySeatRestrictions("west", deal.restrictions?.west);
-  byId("defender-knowledge").open = Boolean(
-    hasSeatRestrictions(deal.restrictions?.east) ||
-    hasSeatRestrictions(deal.restrictions?.west) ||
-    additionalLayouts.length
-  );
   elements.restrictionStatus.textContent = "Load to count";
   renderDealEditor();
   renderAdditionalLayouts();
@@ -258,26 +270,11 @@ function layoutIdentifier() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 }
 
-function completeAlternativeLayout(eastText, westText) {
-  return completeDefenderLayout(
-    elements.east.value,
-    elements.west.value,
-    eastText,
-    westText
-  );
-}
-
 function renderAdditionalLayouts() {
-  elements.layoutCount.textContent = additionalLayouts.length;
+  elements.layoutCount.textContent = additionalLayouts.length + 1;
   elements.analyzeLayouts.classList.toggle("is-hidden", additionalLayouts.length === 0);
   elements.analyzeLayouts.textContent = `Test ${additionalLayouts.length + 1} layouts`;
-  elements.additionalLayoutList.innerHTML = additionalLayouts.length
-    ? additionalLayouts.map((layout, index) => `
-      <article class="additional-layout">
-        <div><strong>${escapeHtml(layout.name || `Layout ${index + 1}`)}</strong><small>E ${escapeHtml(layout.east)} | W ${escapeHtml(layout.west)}</small></div>
-        <button type="button" data-delete-layout="${escapeHtml(layout.id)}" aria-label="Delete ${escapeHtml(layout.name)}">&times;</button>
-      </article>`).join("")
-    : "<p class=\"muted-copy\">No additional true layouts.</p>";
+  renderAlternativeEditor();
   updateActionState();
 }
 
@@ -287,6 +284,13 @@ const suitDisplay = {
   D: { symbol: "&diams;", className: "diamonds", name: "diamonds" },
   C: { symbol: "&clubs;", className: "clubs", name: "clubs" }
 };
+
+function editorHandDiagramMarkup(hand) {
+  return `<div class="editor-hand-record">${Object.entries(suitDisplay).map(([suit, display]) => {
+    const holding = hand?.[suit] && hand[suit] !== "-" ? hand[suit] : "&mdash;";
+    return `<div class="editor-suit suit-${display.className}"><span>${display.symbol}</span><strong>${holding}</strong></div>`;
+  }).join("")}</div>`;
+}
 
 function cardFaceMarkup(card) {
   const suit = suitDisplay[card[0]];
@@ -842,6 +846,102 @@ function editorHandState() {
   return parsed;
 }
 
+function alternativeHandState() {
+  const layout = activeAlternativeIndex === 0
+    ? { east: elements.east.value, west: elements.west.value }
+    : additionalLayouts[activeAlternativeIndex - 1];
+  const values = {
+    North: elements.north.value,
+    East: layout?.east || "-.-.-.-",
+    South: elements.south.value,
+    West: layout?.west || "-.-.-.-"
+  };
+  const parsed = {};
+  for (const seat of ["North", "East", "South", "West"]) {
+    try {
+      parsed[seat] = parseHandRecord(values[seat]);
+    } catch {
+      parsed[seat] = { count: 0, cards: [] };
+    }
+  }
+  return { values, parsed };
+}
+
+function renderAlternativeEditor() {
+  if (!elements.alternativeLayoutTabs) return;
+  const layouts = [
+    { id: "true-deal", name: "Layout 1" },
+    ...additionalLayouts.map((layout, index) => ({
+      id: layout.id,
+      name: `Layout ${index + 2}`
+    }))
+  ];
+  activeAlternativeIndex = Math.min(activeAlternativeIndex, layouts.length - 1);
+  elements.alternativeLayoutTabs.innerHTML = layouts.map((layout, index) => `
+    <button class="alternative-tab ${index === activeAlternativeIndex ? "is-selected" : ""}"
+      data-alternative-index="${index}" type="button">
+      ${escapeHtml(layout.name)}${index === 0 ? "<small>True deal</small>" : ""}
+    </button>`).join("");
+
+  const { values, parsed } = alternativeHandState();
+  const owners = new Map();
+  for (const seat of ["North", "East", "South", "West"]) {
+    for (const card of parsed[seat].cards) owners.set(card, seat);
+    document.querySelector(`[data-alternative-holding="${seat}"]`).innerHTML =
+      editorHandDiagramMarkup(parsePreviewHand(values[seat]));
+  }
+  for (const seat of ["East", "West"]) {
+    document.querySelector(`[data-alternative-summary="${seat}"]`).textContent =
+      `${parsed[seat].count}/13`;
+  }
+  for (const button of elements.alternativeCompass.querySelectorAll("[data-alternative-seat]")) {
+    const selected = button.dataset.alternativeSeat === activeAlternativeSeat;
+    button.classList.toggle("is-active", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  }
+
+  elements.alternativeSeatName.textContent = activeAlternativeSeat;
+  elements.alternativeSeatCount.textContent =
+    `${parsed[activeAlternativeSeat].count} / 13 cards`;
+  elements.alternativeLayoutStatus.textContent = activeAlternativeIndex === 0
+    ? "Layout 1 is the true deal"
+    : `Editing Layout ${activeAlternativeIndex + 1}`;
+  elements.deleteLayout.classList.toggle("is-hidden", activeAlternativeIndex === 0);
+
+  const ranks = "AKQJT98765432";
+  elements.alternativeCardPalette.innerHTML =
+    Object.entries(suitDisplay).map(([suit, display]) => `
+      <div class="palette-row suit-${display.className}">
+        <span class="palette-suit">${display.symbol}</span>
+        <div class="palette-cards">
+          ${[...ranks].map((rank) => {
+            const card = `${suit}${rank}`;
+            const owner = owners.get(card);
+            const selected = owner === activeAlternativeSeat;
+            const unavailable = Boolean(owner && !selected);
+            const title = selected
+              ? `Remove ${card} from ${activeAlternativeSeat}`
+              : unavailable ? `${card} is held by ${owner}` : `Add ${card} to ${activeAlternativeSeat}`;
+            return `<button class="picker-card ${selected ? "is-selected" : ""} ${unavailable ? "is-unavailable" : ""}"
+              data-alternative-card="${card}" type="button" title="${title}" ${unavailable ? "disabled" : ""}>
+              ${cardFaceMarkup(card)}${owner ? `<small>${owner[0]}</small>` : ""}
+            </button>`;
+          }).join("")}
+        </div>
+      </div>`).join("");
+}
+
+function updateAlternativeHand(seat, cards) {
+  const record = handRecordFromCards(cards);
+  if (activeAlternativeIndex === 0) {
+    elements[seat.toLowerCase()].value = record;
+    renderDealEditor();
+    return;
+  }
+  additionalLayouts[activeAlternativeIndex - 1][seat.toLowerCase()] = record;
+  renderAlternativeEditor();
+}
+
 function updateFourthHandControl() {
   const completion = fourthHandCompletion(handFormValues());
   elements.completeHandStatus.textContent = completion.ready
@@ -864,7 +964,7 @@ function renderDealEditor() {
     const summary = document.querySelector(`[data-seat-summary="${seat}"]`);
     summary.textContent = `${hands[seat].count}/13`;
     document.querySelector(`[data-editor-holding="${seat}"]`).innerHTML =
-      holdingMarkup(parsePreviewHand(elements[seat.toLowerCase()].value), [], false);
+      editorHandDiagramMarkup(parsePreviewHand(elements[seat.toLowerCase()].value));
   }
 
   for (const button of elements.dealCompass.querySelectorAll("[data-edit-seat]")) {
@@ -895,6 +995,7 @@ function renderDealEditor() {
       </div>
     </div>`).join("");
   updateFourthHandControl();
+  renderAlternativeEditor();
 }
 
 function updateEditorHand(seat, cards) {
@@ -1078,55 +1179,90 @@ byId("apply-settings").addEventListener("click", () => {
   toast("Analysis settings updated");
 });
 
-byId("defender-knowledge").addEventListener("click", (event) => {
-  const selected = event.target.closest("[data-knowledge-tab]");
+elements.dealDialog.addEventListener("click", (event) => {
+  const selected = event.target.closest("[data-deal-editor-tab]");
   if (!selected) return;
-  const tabName = selected.dataset.knowledgeTab;
-  for (const tab of document.querySelectorAll("[data-knowledge-tab]")) {
-    const active = tab.dataset.knowledgeTab === tabName;
+  const tabName = selected.dataset.dealEditorTab;
+  for (const tab of document.querySelectorAll("[data-deal-editor-tab]")) {
+    const active = tab.dataset.dealEditorTab === tabName;
     tab.classList.toggle("is-selected", active);
     tab.setAttribute("aria-selected", String(active));
   }
-  for (const panel of document.querySelectorAll("[data-knowledge-panel]")) {
-    panel.classList.toggle("is-hidden", panel.dataset.knowledgePanel !== tabName);
+  for (const panel of document.querySelectorAll("[data-deal-editor-panel]")) {
+    panel.classList.toggle("is-hidden", panel.dataset.dealEditorPanel !== tabName);
   }
+  if (tabName === "alternatives") renderAlternativeEditor();
 });
 
 byId("add-layout").addEventListener("click", () => {
   try {
-    const completed = completeAlternativeLayout(
-      elements.layoutEast.value.trim(),
-      elements.layoutWest.value.trim()
+    const completed = completeDefenderLayout(
+      elements.east.value,
+      elements.west.value,
+      elements.east.value,
+      elements.west.value
     );
     additionalLayouts.push({
       id: layoutIdentifier(),
-      name: elements.layoutName.value.trim() || `Layout ${additionalLayouts.length + 1}`,
+      name: `Layout ${additionalLayouts.length + 2}`,
       ...completed
     });
-    elements.layoutName.value = "";
-    elements.layoutEast.value = "";
-    elements.layoutWest.value = "";
+    activeAlternativeIndex = additionalLayouts.length;
     renderAdditionalLayouts();
   } catch (error) {
     toast(error.message || String(error), "error");
   }
 });
 
-elements.additionalLayoutList.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-delete-layout]");
-  if (!button) return;
-  additionalLayouts = additionalLayouts.filter((layout) => layout.id !== button.dataset.deleteLayout);
+elements.deleteLayout.addEventListener("click", () => {
+  if (activeAlternativeIndex === 0) return;
+  additionalLayouts.splice(activeAlternativeIndex - 1, 1);
+  additionalLayouts.forEach((layout, index) => {
+    layout.name = `Layout ${index + 2}`;
+  });
+  activeAlternativeIndex = Math.min(activeAlternativeIndex, additionalLayouts.length);
   renderAdditionalLayouts();
 });
 
+elements.alternativeLayoutTabs.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-alternative-index]");
+  if (!button) return;
+  activeAlternativeIndex = Number(button.dataset.alternativeIndex);
+  renderAlternativeEditor();
+});
+
+elements.alternativeCompass.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-alternative-seat]");
+  if (!button) return;
+  activeAlternativeSeat = button.dataset.alternativeSeat;
+  renderAlternativeEditor();
+});
+
+elements.alternativeCardPalette.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-alternative-card]");
+  if (!button || button.disabled) return;
+  const card = button.dataset.alternativeCard;
+  const hand = alternativeHandState().parsed[activeAlternativeSeat];
+  const selected = hand.cards.includes(card);
+  const targetCount = parseHandRecord(elements.north.value).count;
+  if (!selected && hand.count >= targetCount) {
+    toast(`${activeAlternativeSeat} already has ${targetCount} cards`, "error");
+    return;
+  }
+  const cards = selected
+    ? hand.cards.filter((held) => held !== card)
+    : [...hand.cards, card];
+  updateAlternativeHand(activeAlternativeSeat, cards);
+});
+
 byId("load-deal").addEventListener("click", safely(() => putDealOnTable(false)));
-byId("save-deal").addEventListener("click", () => {
+byId("save-deal").addEventListener("click", safely(async () => {
   const stored = saveDeal(collectDeal());
   populateDealForm(stored);
   renderSavedDeals();
   renderDealSummary();
   toast("Deal saved on this device", "success");
-});
+}));
 byId("new-deal").addEventListener("click", () => {
   populateDealForm({
     name: "Untitled deal",
@@ -1134,7 +1270,7 @@ byId("new-deal").addEventListener("click", () => {
     east: "-.-.-.-",
     south: "-.-.-.-",
     west: "-.-.-.-",
-    leader: "South",
+    leader: "West",
     trump: "NT",
     target: 13,
     playPrefix: "",

@@ -237,6 +237,11 @@ std::string stats_json(const AlphaMuSearchStats& stats) {
            << ",\"winCuts\":" << stats.win_cuts
            << ",\"targetReachedCuts\":" << stats.target_reached_cuts
            << ",\"targetImpossibleCuts\":" << stats.target_impossible_cuts
+           << ",\"quickTrickProbes\":" << stats.quick_trick_probes
+           << ",\"quickTrickStates\":" << stats.quick_trick_states
+           << ",\"quickTrickCuts\":" << stats.quick_trick_cuts
+           << ",\"quickTrickRootCuts\":" << stats.quick_trick_root_cuts
+           << ",\"quickTrickBudgetAborts\":" << stats.quick_trick_budget_aborts
            << ",\"equivalentMoves\":" << stats.equivalent_moves_skipped
            << ",\"maxEquivalentMoves\":" << stats.max_equivalent_moves_skipped
            << ",\"minEquivalentMoves\":" << stats.min_equivalent_moves_skipped
