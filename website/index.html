@@ -48,6 +48,7 @@
           <div class="table-controls table-controls-left">
             <button class="table-icon" id="edit-deal" type="button" aria-label="Edit deal" title="Edit deal">&#9998;</button>
             <button class="table-icon" id="replay" type="button" aria-label="Restart deal" title="Restart deal">&#8635;</button>
+            <button class="table-icon" id="undo" type="button" aria-label="Undo last card" title="Undo last card">&#8630;</button>
             <div class="table-meta">
               <strong class="sr-only" id="current-deal-name">7NT spade guess</strong>
               <small id="current-deal-summary">NT &middot; 13 tricks</small>
@@ -55,8 +56,9 @@
             </div>
           </div>
           <div class="table-controls table-controls-right" aria-label="Play controls">
-            <button class="table-icon" id="undo" type="button" aria-label="Undo last card" title="Undo last card">&#8630;</button>
             <button class="table-icon history-step" id="history-prev" type="button" aria-label="Previous trick" title="Previous trick">&laquo;</button>
+            <button class="table-icon history-step" id="history-prev-card" type="button" aria-label="Previous card" title="Previous card">&lsaquo;</button>
+            <button class="table-icon history-step" id="history-next-card" type="button" aria-label="Next card" title="Next card">&rsaquo;</button>
             <button class="table-icon history-step" id="history-next" type="button" aria-label="Next trick" title="Next trick">&raquo;</button>
           </div>
           <strong class="sr-only" id="legal-summary">No active deal</strong>

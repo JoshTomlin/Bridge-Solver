@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { completeDefenderLayout, fourthHandCompletion } from "./deal-utils.js";
 
-const [html, app, worker] = await Promise.all([
+const [html, app, worker, wasmBindings] = await Promise.all([
   fs.readFile(new URL("./index.html", import.meta.url), "utf8"),
   fs.readFile(new URL("./app.js", import.meta.url), "utf8"),
-  fs.readFile(new URL("./engine-worker.js", import.meta.url), "utf8")
+  fs.readFile(new URL("./engine-worker.js", import.meta.url), "utf8"),
+  fs.readFile(new URL("../engine/src/wasm_bindings.cpp", import.meta.url), "utf8")
 ]);
 
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
@@ -25,6 +26,8 @@ for (const required of [
   "card-palette",
   "target-tricks",
   "history-prev",
+  "history-prev-card",
+  "history-next-card",
   "history-next",
   "table-layout-select",
   "defender-hold-order",
@@ -48,12 +51,35 @@ assert.ok(runFull.includes("frames.push"), "bot continuation must retain playbac
 assert.ok(app.includes("data-world-index"), "analysis must expose sampled-world drill-down");
 assert.ok(app.includes("is-regressed"), "suboptimal moves must identify worlds lost versus the best move");
 assert.ok(app.includes("is-gained"), "suboptimal moves must identify worlds gained versus the best move");
+assert.ok(app.includes("Why are there several plans?"),
+  "the inspector must explain why multiple Pareto plans survive");
+assert.ok(app.includes("strategyGains") && app.includes("strategyLosses"),
+  "Pareto plans must list worlds gained and lost versus Plan 1");
+assert.ok(app.includes("fullResultTricks") && app.includes("trickViewerMarkup"),
+  "full analysis must be navigable as a trick-by-trick play review");
+assert.ok(app.includes("policyResponseMarkup") && app.includes("possibleWorlds"),
+  "the inspector must show retained responses to defender cards");
+assert.ok(wasmBindings.includes("policy_json") && wasmBindings.includes('\\"policy\\":'),
+  "WASM analysis JSON must serialize the selected trick policy");
+assert.ok(worker.includes("result.analysis"),
+  "full play must retain each serialized analysis and policy");
 assert.ok(app.includes("tricksNeeded"), "world inspection must show the remaining target");
 assert.ok(worker.includes("async function runLayouts"), "the worker must support repeated true-layout runs");
 assert.ok(worker.includes("silentProgress"), "layout batches must suppress per-card progress updates");
 assert.ok(app.includes("syncAnalysisToTimeline"), "playback must synchronize analysis decisions");
 assert.ok(app.includes("timelineIndex - 4") && app.includes("timelineIndex + 4"),
   "persistent history controls must move one full trick");
+assert.ok(app.includes("timelineIndex - 1") && app.includes("timelineIndex + 1"),
+  "persistent history controls must also move one card");
+assert.ok(
+  html.indexOf('id="history-prev"') <
+    html.indexOf('id="history-prev-card"') &&
+  html.indexOf('id="history-prev-card"') <
+    html.indexOf('id="history-next-card"') &&
+  html.indexOf('id="history-next-card"') <
+    html.indexOf('id="history-next"'),
+  "play controls must remain ordered as << < > >>"
+);
 assert.ok(!ids.includes("history-live"), "full-trick navigation must not add a moving live button");
 assert.ok(app.includes("activeTableLayoutIndex"),
   "one alternative true layout must be selectable without a batch run");

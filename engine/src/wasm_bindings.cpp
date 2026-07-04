@@ -180,6 +180,39 @@ std::string world_indices_json(WorldMask worlds, std::size_t world_count) {
     return output.str();
 }
 
+std::string policy_json(
+    const std::shared_ptr<const AlphaMuPolicyNode>& node,
+    std::size_t world_count) {
+    if (node == nullptr) return "null";
+
+    std::ostringstream output;
+    output << "{\"player\":" << json_quote(to_string(node->player))
+           << ",\"possibleWorlds\":"
+           << world_indices_json(node->possible_worlds, world_count)
+           << ",\"wins\":"
+           << world_indices_json(node->outcome.wins, world_count)
+           << ",\"move\":"
+           << (node->declarer_move == kNoCard
+                   ? "null"
+                   : json_quote(to_string(node->declarer_move)))
+           << ",\"continuation\":"
+           << policy_json(node->continuation, world_count)
+           << ",\"defenderBranches\":[";
+    for (std::size_t index = 0;
+         index < node->defender_branches.size();
+         ++index) {
+        if (index != 0) output << ',';
+        const AlphaMuPolicyBranch& branch = node->defender_branches[index];
+        output << "{\"card\":" << json_quote(to_string(branch.card))
+               << ",\"possibleWorlds\":"
+               << world_indices_json(branch.possible_worlds, world_count)
+               << ",\"continuation\":"
+               << policy_json(branch.continuation, world_count) << '}';
+    }
+    output << "]}";
+    return output.str();
+}
+
 std::string state_json(const AnalysisSession& session) {
     const Position& position = session.position();
     const bool finished = is_deal_finished(position);
@@ -294,7 +327,9 @@ std::string analysis_json(const SessionAnalysis& analysis) {
                << ",\"east\":" << hand_json(hand_of(deal, Seat::East))
                << ",\"west\":" << hand_json(hand_of(deal, Seat::West)) << '}';
     }
-    output << "],\"stats\":" << stats_json(analysis.search.stats) << '}';
+    output << "],\"policy\":"
+           << policy_json(analysis.search.trick_policy, analysis.worlds.size())
+           << ",\"stats\":" << stats_json(analysis.search.stats) << '}';
     return output.str();
 }
 

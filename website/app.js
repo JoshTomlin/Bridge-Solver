@@ -45,6 +45,8 @@ const elements = {
   scoreLabel: byId("score-label"),
   scoreEw: byId("score-ew"),
   historyPrev: byId("history-prev"),
+  historyPrevCard: byId("history-prev-card"),
+  historyNextCard: byId("history-next-card"),
   historyNext: byId("history-next"),
   historyPosition: byId("history-position"),
   tableLayoutSelect: byId("table-layout-select"),
@@ -86,6 +88,7 @@ let activeStrategyIndex = 0;
 let activeWorldIndex = null;
 let activeFullResult = null;
 let activeDecisionIndex = 0;
+let activeInspectorTrickIndex = 0;
 let activeEditSeat = "North";
 let activeAlternativeIndex = 0;
 let activeAlternativeSeat = "East";
@@ -461,6 +464,8 @@ function renderTable(override) {
   const frame = currentFrame();
   elements.historyPosition.textContent = frameLabel(frame, timelineIndex);
   elements.historyPrev.disabled = busy || timelineIndex <= 0;
+  elements.historyPrevCard.disabled = busy || timelineIndex <= 0;
+  elements.historyNextCard.disabled = busy || timelineIndex < 0 || timelineIndex >= timelineFrames.length - 1;
   elements.historyNext.disabled = busy || timelineIndex < 0 || timelineIndex >= timelineFrames.length - 1;
   renderDealSummary();
   updateActionState();
@@ -602,10 +607,17 @@ function moveDetailMarkup(analysis, move) {
   activeStrategyIndex = Math.min(activeStrategyIndex, outcomes.length - 1);
   const outcome = outcomes[activeStrategyIndex];
   const winningSet = new Set(outcome);
+  const baselineOutcome = outcomes[0] || [];
+  const baselineWinningSet = new Set(baselineOutcome);
+  const strategyGains = outcome.filter((world) => !baselineWinningSet.has(world));
+  const strategyLosses = baselineOutcome.filter((world) => !winningSet.has(world));
   const bestMove = analysis.rootMoves.find((candidate) => candidate.card === analysis.bestMove);
   const bestOutcome = bestMove?.outcomes?.[bestOutcomeIndex(bestMove)] || [];
   const bestWinningSet = new Set(bestOutcome);
   const comparesWithBest = move.card !== analysis.bestMove;
+  const comparesWithPlanOne = outcomes.length > 1 && activeStrategyIndex !== 0;
+  const comparisonSet = comparesWithPlanOne ? baselineWinningSet : bestWinningSet;
+  const comparisonLabel = comparesWithPlanOne ? "Plan 1" : "best card";
   const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
   if (activeWorldIndex === null || activeWorldIndex >= worldCount) {
     activeWorldIndex = outcome[0] ?? 0;
@@ -626,19 +638,32 @@ function moveDetailMarkup(analysis, move) {
         <div><h3>${escapeHtml(move.card)} at M=${analysis.stats.completedDepth}</h3><p>${escapeHtml(explanation)}</p></div>
         <b>${outcome.length}/${worldCount}</b>
       </div>
-      ${outcomes.length > 1 ? `<div class="strategy-tabs">${outcomes.map((vector, index) => `
-        <button class="strategy-tab ${index === activeStrategyIndex ? "is-selected" : ""}" data-strategy-index="${index}" type="button">Strategy ${index + 1} | ${vector.length}</button>`).join("")}</div>` : ""}
+      ${outcomes.length > 1 ? `
+        <div class="pareto-explainer">
+          <strong>Why are there several plans?</strong>
+          <span>Each plan is a different non-dominated continuation after ${escapeHtml(move.card)}. None wins every world won by another plan, so alpha-mu must retain all of them.</span>
+        </div>
+        <div class="strategy-tabs">${outcomes.map((vector, index) => `
+          <button class="strategy-tab ${index === activeStrategyIndex ? "is-selected" : ""}" data-strategy-index="${index}" type="button">Plan ${index + 1} · ${vector.length} wins</button>`).join("")}</div>
+        <div class="strategy-comparison">
+          <strong>Plan ${activeStrategyIndex + 1} compared with Plan 1</strong>
+          ${activeStrategyIndex === 0
+            ? "<span>Select another plan to highlight the worlds where their outcomes differ.</span>"
+            : `<span class="gained">Gains: ${strategyGains.length ? strategyGains.map((world) => world + 1).join(", ") : "none"}</span>
+               <span class="regressed">Loses: ${strategyLosses.length ? strategyLosses.map((world) => world + 1).join(", ") : "none"}</span>`}
+        </div>` : ""}
       <div class="world-key">
         <span>Target made</span><span class="lost">Target failed</span>
-        ${comparesWithBest ? "<span class=\"regressed\">Lost vs best</span><span class=\"gained\">Won vs best</span>" : ""}
+        ${comparesWithPlanOne || comparesWithBest ? `<span class="regressed">Lost vs ${comparisonLabel}</span><span class="gained">Won vs ${comparisonLabel}</span>` : ""}
       </div>
       <div class="world-grid" aria-label="Sampled world outcomes">
         ${Array.from({ length: worldCount }, (_, index) => {
           const selectedWins = winningSet.has(index);
-          const bestWins = bestWinningSet.has(index);
-          const comparison = comparesWithBest && !selectedWins && bestWins
+          const comparisonWins = comparisonSet.has(index);
+          const compares = comparesWithPlanOne || comparesWithBest;
+          const comparison = compares && !selectedWins && comparisonWins
             ? "is-regressed"
-            : comparesWithBest && selectedWins && !bestWins ? "is-gained" : "";
+            : compares && selectedWins && !comparisonWins ? "is-gained" : "";
           return `<button class="world-cell ${selectedWins ? "" : "is-lost"} ${comparison} ${activeWorldIndex === index ? "is-selected" : ""}" data-world-index="${index}" type="button" title="World ${index + 1}">${index + 1}</button>`;
         }).join("")}
       </div>
@@ -737,13 +762,123 @@ function layoutBatchTabsMarkup() {
   </section>`;
 }
 
+function fullResultTricks(result) {
+  if (!result) return [];
+  const groups = [];
+  let completedTricks = Number(result.startState?.completedTricks || 0);
+  let group = {
+    number: completedTricks + 1,
+    plays: [...(result.startState?.trick || [])],
+    analysisIndexes: [],
+    firstTimelineIndex: 0,
+    lastTimelineIndex: 0
+  };
+
+  (result.frames || []).forEach((frame, index) => {
+    const play = frame.play;
+    if (play) {
+      group.plays.push(play);
+      if (Number.isInteger(play.analysisIndex) &&
+          !group.analysisIndexes.includes(play.analysisIndex)) {
+        group.analysisIndexes.push(play.analysisIndex);
+      }
+    }
+    group.lastTimelineIndex = index + 1;
+    if (Number(frame.state?.completedTricks || 0) > completedTricks) {
+      groups.push(group);
+      completedTricks = Number(frame.state.completedTricks);
+      group = {
+        number: completedTricks + 1,
+        plays: [],
+        analysisIndexes: [],
+        firstTimelineIndex: index + 2,
+        lastTimelineIndex: index + 2
+      };
+    }
+  });
+
+  if (group.plays.length) groups.push(group);
+  return groups;
+}
+
+function firstPolicyMove(node) {
+  if (!node) return null;
+  if (node.move) return { player: node.player, card: node.move };
+  return firstPolicyMove(node.continuation);
+}
+
+function policyResponseMarkup(policy) {
+  if (!policy?.move) {
+    return `<section class="policy-view"><p class="muted-copy">No retained response policy is available for this decision.</p></section>`;
+  }
+  const defenderNode = policy.continuation;
+  const branches = defenderNode?.defenderBranches || [];
+  return `
+    <section class="policy-view">
+      <div class="policy-heading">
+        <div><span>Selected trick policy</span><strong>${escapeHtml(policy.player)} plays ${escapeHtml(policy.move)}</strong></div>
+        <small>${policy.wins?.length || 0} winning worlds</small>
+      </div>
+      ${branches.length ? `
+        <p>Declarer cannot see the world. These are the planned responses to each defender card that might be observed.</p>
+        <div class="policy-response-list">
+          ${branches.map((branch) => {
+            const response = firstPolicyMove(branch.continuation);
+            return `<div class="policy-response">
+              <span><b>If ${escapeHtml(defenderNode.player)} plays ${escapeHtml(branch.card)}</b><small>${branch.possibleWorlds.length} possible world${branch.possibleWorlds.length === 1 ? "" : "s"}</small></span>
+              <i aria-hidden="true">&rarr;</i>
+              <strong>${response ? `${escapeHtml(response.player)} plays ${escapeHtml(response.card)}` : "No further declarer play this trick"}</strong>
+            </div>`;
+          }).join("")}
+        </div>` : `<p>No defender choice remains before the trick policy ends.</p>`}
+    </section>`;
+}
+
+function trickViewerMarkup(trick, trickIndex, trickCount) {
+  return `
+    <section class="trick-review">
+      <div class="trick-review-nav">
+        <button data-inspector-trick-step="-1" type="button" aria-label="Previous trick" ${trickIndex === 0 ? "disabled" : ""}>&lsaquo;</button>
+        <div><small>Play review</small><strong>Trick ${trick.number}</strong><span>${trickIndex + 1} of ${trickCount}</span></div>
+        <button data-inspector-trick-step="1" type="button" aria-label="Next trick" ${trickIndex + 1 >= trickCount ? "disabled" : ""}>&rsaquo;</button>
+      </div>
+      <div class="trick-review-cards">
+        ${trick.plays.map((play) => {
+          const display = suitDisplay[play.card?.[0]];
+          return `<div class="review-play">
+            <small>${escapeHtml(play.seat)}</small>
+            <span class="review-card suit-${display?.className || "spades"}">${cardFaceMarkup(play.card)}</span>
+            <em>${play.source === "alpha-mu" ? "chosen" : play.source || "played"}</em>
+          </div>`;
+        }).join("")}
+      </div>
+    </section>`;
+}
+
 function renderAnalysisInspector() {
   if (activeFullResult) {
     const result = activeFullResult;
     const totals = aggregateFull(result);
     const analyses = result.analyses || [];
-    activeDecisionIndex = Math.min(activeDecisionIndex, Math.max(0, analyses.length - 1));
+    const tricks = fullResultTricks(result);
+    activeInspectorTrickIndex = Math.min(
+      activeInspectorTrickIndex,
+      Math.max(0, tricks.length - 1)
+    );
+    const trick = tricks[activeInspectorTrickIndex];
+    const decisionIndexes = trick?.analysisIndexes || [];
+    if (decisionIndexes.length && !decisionIndexes.includes(activeDecisionIndex)) {
+      activeDecisionIndex = decisionIndexes[0];
+      activeMoveCard = analyses[activeDecisionIndex]?.bestMove || null;
+      activeStrategyIndex = bestOutcomeIndex(
+        analyses[activeDecisionIndex]?.rootMoves?.find(
+          (candidate) => candidate.card === activeMoveCard
+        )
+      );
+      activeWorldIndex = null;
+    }
     const selected = analyses[activeDecisionIndex];
+    activeAnalysis = selected || null;
     elements.analysisInspectorBody.innerHTML = `
       ${layoutBatchTabsMarkup()}
       <div class="recommendation full-result">
@@ -757,10 +892,12 @@ function renderAnalysisInspector() {
         <div><dt>Nodes</dt><dd>${formatNumber(totals.nodes)}</dd></div>
         <div><dt>DDS worlds</dt><dd>${formatNumber(totals.ddsWorlds)}</dd></div>
       </dl>
-      ${analyses.length ? `
-        <div class="analysis-subhead"><h3>Decisions</h3><small>Choose a play to inspect</small></div>
-        <div class="decision-list">${analyses.map((analysis, index) => `<button class="decision-chip ${index === activeDecisionIndex ? "is-selected" : ""}" data-decision-index="${index}" type="button">${index + 1}. ${escapeHtml(analysis.bestMove)}</button>`).join("")}</div>
-        ${analysisMarkup(selected)}` : "<p class=\"muted-copy\">No declarer decisions remained in this continuation.</p>"}`;
+      ${trick ? trickViewerMarkup(trick, activeInspectorTrickIndex, tricks.length) : ""}
+      ${decisionIndexes.length > 1 ? `
+        <div class="decision-list trick-decisions">${decisionIndexes.map((index) => `<button class="decision-chip ${index === activeDecisionIndex ? "is-selected" : ""}" data-decision-index="${index}" type="button">${escapeHtml(analyses[index].turn)}: ${escapeHtml(analyses[index].bestMove)}</button>`).join("")}</div>` : ""}
+      ${selected && decisionIndexes.includes(activeDecisionIndex)
+        ? `${policyResponseMarkup(selected.policy)}${analysisMarkup(selected)}`
+        : "<p class=\"muted-copy no-trick-decision\">No new alpha-mu decision was needed in this trick.</p>"}`;
     return;
   }
   elements.analysisInspectorBody.innerHTML = activeAnalysis
@@ -815,6 +952,7 @@ function showFullResult(result, preserveBatch = false) {
   if (!preserveBatch) activeLayoutBatch = null;
   activeFullResult = result;
   activeDecisionIndex = 0;
+  activeInspectorTrickIndex = 0;
   activeMoveCard = result.analyses?.[0]?.bestMove || null;
   activeStrategyIndex = 0;
   activeWorldIndex = null;
@@ -1425,6 +1563,16 @@ elements.historyPrev.addEventListener("click", () => {
   renderTable();
   syncAnalysisToTimeline();
 });
+elements.historyPrevCard.addEventListener("click", () => {
+  timelineIndex = Math.max(0, timelineIndex - 1);
+  renderTable();
+  syncAnalysisToTimeline();
+});
+elements.historyNextCard.addEventListener("click", () => {
+  timelineIndex = Math.min(timelineFrames.length - 1, timelineIndex + 1);
+  renderTable();
+  syncAnalysisToTimeline();
+});
 elements.historyNext.addEventListener("click", () => {
   timelineIndex = Math.min(timelineFrames.length - 1, timelineIndex + 4);
   renderTable();
@@ -1467,6 +1615,35 @@ elements.analysisInspectorBody.addEventListener("click", (event) => {
   const strategy = event.target.closest("[data-strategy-index]");
   const world = event.target.closest("[data-world-index]");
   const decision = event.target.closest("[data-decision-index]");
+  const trickStep = event.target.closest("[data-inspector-trick-step]");
+  if (trickStep && activeFullResult) {
+    const tricks = fullResultTricks(activeFullResult);
+    activeInspectorTrickIndex = Math.max(
+      0,
+      Math.min(
+        tricks.length - 1,
+        activeInspectorTrickIndex + Number(trickStep.dataset.inspectorTrickStep)
+      )
+    );
+    const trick = tricks[activeInspectorTrickIndex];
+    if (trick.analysisIndexes.length) {
+      activeDecisionIndex = trick.analysisIndexes[0];
+      activeMoveCard = activeFullResult.analyses[activeDecisionIndex].bestMove;
+      activeStrategyIndex = bestOutcomeIndex(
+        activeFullResult.analyses[activeDecisionIndex].rootMoves.find(
+          (candidate) => candidate.card === activeMoveCard
+        )
+      );
+      activeWorldIndex = null;
+    }
+    timelineIndex = Math.min(
+      timelineFrames.length - 1,
+      trick.lastTimelineIndex
+    );
+    renderTable();
+    renderFullResult();
+    return;
+  }
   if (decision && activeFullResult) {
     activeDecisionIndex = Number(decision.dataset.decisionIndex);
     activeMoveCard = activeFullResult.analyses[activeDecisionIndex].bestMove;
@@ -1544,12 +1721,15 @@ byId("clear-runs").addEventListener("click", () => {
 document.addEventListener("keydown", (event) => {
   if (event.target.matches("input, textarea, select") || elements.dealDialog.open || elements.settingsDialog.open || elements.analysisDialog.open) return;
   if (event.key === "ArrowLeft" && timelineIndex > 0) {
-    timelineIndex = Math.max(0, timelineIndex - 4);
+    timelineIndex = Math.max(0, timelineIndex - (event.shiftKey ? 4 : 1));
     renderTable();
     syncAnalysisToTimeline();
   }
   if (event.key === "ArrowRight" && timelineIndex < timelineFrames.length - 1) {
-    timelineIndex = Math.min(timelineFrames.length - 1, timelineIndex + 4);
+    timelineIndex = Math.min(
+      timelineFrames.length - 1,
+      timelineIndex + (event.shiftKey ? 4 : 1)
+    );
     renderTable();
     syncAnalysisToTimeline();
   }
@@ -1557,10 +1737,26 @@ document.addEventListener("keydown", (event) => {
 
 function syncAnalysisToTimeline() {
   if (!activeFullResult) return;
+  const tricks = fullResultTricks(activeFullResult);
+  const trickIndex = tricks.findIndex(
+    (trick) =>
+      timelineIndex >= trick.firstTimelineIndex &&
+      timelineIndex <= trick.lastTimelineIndex
+  );
+  const trickChanged =
+    trickIndex >= 0 && trickIndex !== activeInspectorTrickIndex;
+  if (trickIndex >= 0) activeInspectorTrickIndex = trickIndex;
+
   const analysisIndex = currentFrame()?.play?.analysisIndex;
   if (!Number.isInteger(analysisIndex) || analysisIndex < 0 ||
-      analysisIndex >= activeFullResult.analyses.length ||
-      analysisIndex === activeDecisionIndex) return;
+      analysisIndex >= activeFullResult.analyses.length) {
+    if (trickChanged) renderFullResult();
+    return;
+  }
+  if (analysisIndex === activeDecisionIndex) {
+    if (trickChanged) renderFullResult();
+    return;
+  }
   activeDecisionIndex = analysisIndex;
   activeMoveCard = activeFullResult.analyses[analysisIndex].bestMove;
   activeStrategyIndex = bestOutcomeIndex(
