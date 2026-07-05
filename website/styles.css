@@ -268,12 +268,13 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
 .trick-review-nav small { grid-column: 1 / -1; color: rgba(255, 255, 255, 0.58); font-size: 0.52rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .trick-review-nav strong { justify-self: end; font-family: "Fraunces", serif; font-size: 1.1rem; }
 .trick-review-nav span { justify-self: start; color: rgba(255, 255, 255, 0.65); font-size: 0.6rem; }
-.trick-policy-table { background: radial-gradient(circle at center, var(--felt-light), var(--felt) 66%, #164c41); }
-.policy-trick-play { position: absolute; display: grid; justify-items: center; gap: 1px; }
-.policy-trick-play[data-trick-seat="North"] { top: 0; left: 50%; transform: translateX(-50%); }
-.policy-trick-play[data-trick-seat="East"] { top: 50%; right: 0; transform: translateY(-50%); }
-.policy-trick-play[data-trick-seat="South"] { bottom: 0; left: 50%; transform: translateX(-50%); }
-.policy-trick-play[data-trick-seat="West"] { top: 50%; left: 0; transform: translateY(-50%); }
+.trick-policy-table { grid-template: 94px 168px 94px / minmax(126px, 1fr) 140px minmax(126px, 1fr); background: radial-gradient(circle at center, var(--felt-light), var(--felt) 66%, #164c41); }
+.policy-trick { display: grid; grid-template: repeat(3, 52px) / repeat(3, 44px); place-content: center; width: 140px; height: 168px; }
+.policy-trick-play { position: static; display: grid; align-self: center; justify-items: center; gap: 2px; min-width: 0; transform: none; }
+.policy-trick-play[data-trick-seat="North"] { grid-area: 1 / 2; }
+.policy-trick-play[data-trick-seat="East"] { grid-area: 2 / 3; }
+.policy-trick-play[data-trick-seat="South"] { grid-area: 3 / 2; }
+.policy-trick-play[data-trick-seat="West"] { grid-area: 2 / 1; }
 .policy-trick-play small { padding: 1px 3px; color: rgba(255, 255, 255, 0.78); background: rgba(5, 37, 31, 0.72); border-radius: 3px; font-size: 0.42rem; font-weight: 700; white-space: nowrap; }
 .policy-review-card { display: inline-grid; grid-template-rows: auto auto; place-items: center; width: 28px; height: 36px; color: var(--ink); background: #fffdf8; border: 1px solid #d8d2c7; border-radius: 4px; box-shadow: 0 3px 8px rgba(5, 32, 26, 0.28); font-family: "DM Sans", sans-serif; line-height: 1; }
 .policy-review-card b { font-size: 0.62rem; }
@@ -621,6 +622,8 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
   .world-position-heading .status-chip { flex: 0 0 auto; padding: 4px 6px; font-size: 0.5rem; }
   .world-table { grid-template: 82px 142px 82px / minmax(105px, 1fr) 70px minmax(105px, 1fr); min-height: 306px; padding: 4px; }
   .world-trick { width: 66px; height: 76px; }
+  .trick-policy-table { grid-template: 82px 150px 82px / minmax(105px, 1fr) 100px minmax(105px, 1fr); }
+  .trick-policy-table .policy-trick { grid-template: repeat(3, 48px) / repeat(3, 33px); width: 100px; height: 150px; }
   .world-hand-record { width: clamp(106px, 30vw, 126px); padding: 5px 6px; }
   .world-suit { grid-template-columns: 15px minmax(0, 1fr); min-height: 14px; font-size: 0.66rem; }
   .world-suit span { font-size: 0.73rem; }

@@ -61,6 +61,12 @@ assert.ok(app.includes("policyResponseMarkup") && app.includes("possibleWorlds")
   "the inspector must show retained responses to defender cards");
 assert.ok(app.includes("groupPolicyResponses") && app.includes("policyConditionLabel"),
   "equivalent policy responses must be grouped into concise follow/discard instructions");
+assert.ok(app.includes("left.branches.length - right.branches.length") &&
+  app.includes("plays anything else"),
+  "the broadest policy response must appear last as the catch-all");
+assert.ok(app.includes("groupDiscards.length === discards.length") &&
+  app.includes("discards or plays"),
+  "an all-discard response must take precedence over the generic catch-all");
 assert.ok(app.includes("trick-policy-table") && app.includes("worldHandRecordMarkup(hands.North)"),
   "the trick viewer must show the full four-hand position");
 assert.ok(wasmBindings.includes("policy_json") && wasmBindings.includes('\\"policy\\":'),

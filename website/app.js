@@ -824,22 +824,40 @@ function groupPolicyResponses(branches) {
     group.branches.push(branch);
     for (const world of branch.possibleWorlds || []) group.possibleWorlds.add(world);
   }
-  return [...groups.values()];
+  // Put narrow exceptions first so the broadest response can read "anything else".
+  return [...groups.values()].sort(
+    (left, right) => left.branches.length - right.branches.length
+  );
 }
 
-function policyConditionLabel(group, allBranches, defender, leadSuit) {
+function policyConditionLabel(
+  group,
+  allBranches,
+  defender,
+  leadSuit,
+  isCatchAll
+) {
   if (group.branches.length === allBranches.length) {
     return `Whatever ${defender} plays`;
   }
   const follows = allBranches.filter((branch) => branch.card?.[0] === leadSuit);
   const discards = allBranches.filter((branch) => branch.card?.[0] !== leadSuit);
   const groupFollows = group.branches.filter((branch) => branch.card?.[0] === leadSuit);
+  const groupDiscards = group.branches.filter((branch) => branch.card?.[0] !== leadSuit);
+
+  // "Any discard" is more informative than treating the same cards as a catch-all.
+  if (discards.length && groupDiscards.length === discards.length) {
+    const extraFollowCards = groupFollows.map((branch) => branch.card);
+    return extraFollowCards.length
+      ? `If ${defender} discards or plays ${extraFollowCards.join(", ")}`
+      : `If ${defender} discards`;
+  }
+  if (isCatchAll) {
+    return `If ${defender} plays anything else`;
+  }
   if (groupFollows.length === group.branches.length &&
       group.branches.length === follows.length) {
     return `If ${defender} follows suit`;
-  }
-  if (!groupFollows.length && group.branches.length === discards.length) {
-    return `If ${defender} discards`;
   }
   return `If ${defender} plays ${group.branches.map((branch) => branch.card).join(", ")}`;
 }
@@ -861,13 +879,14 @@ function policyResponseMarkup(policy, trick) {
       </div>
       ${branches.length ? `
         <div class="policy-response-list">
-          ${responseGroups.map((group) => {
+          ${responseGroups.map((group, index) => {
             const response = group.response;
             const condition = policyConditionLabel(
               group,
               branches,
               defender,
-              leadSuit
+              leadSuit,
+              responseGroups.length > 1 && index === responseGroups.length - 1
             );
             const always = responseGroups.length === 1 && response;
             return `<div class="policy-response">
