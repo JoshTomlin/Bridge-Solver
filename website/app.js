@@ -221,6 +221,7 @@ function collectDeal() {
     trump: elements.trump.value,
     target: Number(elements.target.value),
     playPrefix: elements.playPrefix.value.trim().toUpperCase(),
+    defenderHoldOrder: elements.defenderHoldOrder.value.trim().toUpperCase() || "SHDC",
     additionalLayouts: normalizedLayouts,
     restrictions: {
       east: collectSeatRestrictions("east"),
@@ -240,6 +241,7 @@ function populateDealForm(deal) {
   elements.trump.value = deal.trump || "NT";
   elements.target.value = deal.target || 13;
   elements.playPrefix.value = deal.playPrefix || "";
+  elements.defenderHoldOrder.value = deal.defenderHoldOrder || "SHDC";
   additionalLayouts = (deal.additionalLayouts || []).map((layout, index) => ({
     ...layout,
     name: `Layout ${index + 2}`,
@@ -771,7 +773,8 @@ function fullResultTricks(result) {
     plays: [...(result.startState?.trick || [])],
     analysisIndexes: [],
     firstTimelineIndex: 0,
-    lastTimelineIndex: 0
+    lastTimelineIndex: 0,
+    state: result.startState
   };
 
   (result.frames || []).forEach((frame, index) => {
@@ -784,6 +787,7 @@ function fullResultTricks(result) {
       }
     }
     group.lastTimelineIndex = index + 1;
+    group.state = frame.state;
     if (Number(frame.state?.completedTricks || 0) > completedTricks) {
       groups.push(group);
       completedTricks = Number(frame.state.completedTricks);
@@ -792,7 +796,8 @@ function fullResultTricks(result) {
         plays: [],
         analysisIndexes: [],
         firstTimelineIndex: index + 2,
-        lastTimelineIndex: index + 2
+        lastTimelineIndex: index + 2,
+        state: frame.state
       };
     }
   });
@@ -807,12 +812,47 @@ function firstPolicyMove(node) {
   return firstPolicyMove(node.continuation);
 }
 
-function policyResponseMarkup(policy) {
+function groupPolicyResponses(branches) {
+  const groups = new Map();
+  for (const branch of branches) {
+    const response = firstPolicyMove(branch.continuation);
+    const key = response ? `${response.player}:${response.card}` : "no-response";
+    if (!groups.has(key)) {
+      groups.set(key, { response, branches: [], possibleWorlds: new Set() });
+    }
+    const group = groups.get(key);
+    group.branches.push(branch);
+    for (const world of branch.possibleWorlds || []) group.possibleWorlds.add(world);
+  }
+  return [...groups.values()];
+}
+
+function policyConditionLabel(group, allBranches, defender, leadSuit) {
+  if (group.branches.length === allBranches.length) {
+    return `Whatever ${defender} plays`;
+  }
+  const follows = allBranches.filter((branch) => branch.card?.[0] === leadSuit);
+  const discards = allBranches.filter((branch) => branch.card?.[0] !== leadSuit);
+  const groupFollows = group.branches.filter((branch) => branch.card?.[0] === leadSuit);
+  if (groupFollows.length === group.branches.length &&
+      group.branches.length === follows.length) {
+    return `If ${defender} follows suit`;
+  }
+  if (!groupFollows.length && group.branches.length === discards.length) {
+    return `If ${defender} discards`;
+  }
+  return `If ${defender} plays ${group.branches.map((branch) => branch.card).join(", ")}`;
+}
+
+function policyResponseMarkup(policy, trick) {
   if (!policy?.move) {
     return `<section class="policy-view"><p class="muted-copy">No retained response policy is available for this decision.</p></section>`;
   }
   const defenderNode = policy.continuation;
   const branches = defenderNode?.defenderBranches || [];
+  const defender = defenderNode?.player || "the defender";
+  const leadSuit = trick?.plays?.[0]?.card?.[0] || policy.move[0];
+  const responseGroups = groupPolicyResponses(branches);
   return `
     <section class="policy-view">
       <div class="policy-heading">
@@ -820,21 +860,37 @@ function policyResponseMarkup(policy) {
         <small>${policy.wins?.length || 0} winning worlds</small>
       </div>
       ${branches.length ? `
-        <p>Declarer cannot see the world. These are the planned responses to each defender card that might be observed.</p>
         <div class="policy-response-list">
-          ${branches.map((branch) => {
-            const response = firstPolicyMove(branch.continuation);
+          ${responseGroups.map((group) => {
+            const response = group.response;
+            const condition = policyConditionLabel(
+              group,
+              branches,
+              defender,
+              leadSuit
+            );
+            const always = responseGroups.length === 1 && response;
             return `<div class="policy-response">
-              <span><b>If ${escapeHtml(defenderNode.player)} plays ${escapeHtml(branch.card)}</b><small>${branch.possibleWorlds.length} possible world${branch.possibleWorlds.length === 1 ? "" : "s"}</small></span>
+              <span><b>${escapeHtml(condition)}</b><small>${group.possibleWorlds.size} possible world${group.possibleWorlds.size === 1 ? "" : "s"}</small></span>
               <i aria-hidden="true">&rarr;</i>
-              <strong>${response ? `${escapeHtml(response.player)} plays ${escapeHtml(response.card)}` : "No further declarer play this trick"}</strong>
+              <strong>${response ? `${always ? "Always play" : "Play"} ${escapeHtml(response.card)} from ${escapeHtml(response.player)}` : "No further declarer choice this trick"}</strong>
             </div>`;
           }).join("")}
         </div>` : `<p>No defender choice remains before the trick policy ends.</p>`}
     </section>`;
 }
 
+function policyTrickCardMarkup(play) {
+  const display = suitDisplay[play.card?.[0]];
+  const action = play.source === "alpha-mu" ? "chosen" : play.source || "played";
+  return `<div class="policy-trick-play" data-trick-seat="${escapeHtml(play.seat)}">
+    <span class="policy-review-card suit-${display?.className || "spades"}">${cardFaceMarkup(play.card)}</span>
+    <small>${escapeHtml(play.seat?.[0] || "?")} | ${escapeHtml(action)}</small>
+  </div>`;
+}
+
 function trickViewerMarkup(trick, trickIndex, trickCount) {
+  const hands = trick.state?.hands || {};
   return `
     <section class="trick-review">
       <div class="trick-review-nav">
@@ -842,15 +898,12 @@ function trickViewerMarkup(trick, trickIndex, trickCount) {
         <div><small>Play review</small><strong>Trick ${trick.number}</strong><span>${trickIndex + 1} of ${trickCount}</span></div>
         <button data-inspector-trick-step="1" type="button" aria-label="Next trick" ${trickIndex + 1 >= trickCount ? "disabled" : ""}>&rsaquo;</button>
       </div>
-      <div class="trick-review-cards">
-        ${trick.plays.map((play) => {
-          const display = suitDisplay[play.card?.[0]];
-          return `<div class="review-play">
-            <small>${escapeHtml(play.seat)}</small>
-            <span class="review-card suit-${display?.className || "spades"}">${cardFaceMarkup(play.card)}</span>
-            <em>${play.source === "alpha-mu" ? "chosen" : play.source || "played"}</em>
-          </div>`;
-        }).join("")}
+      <div class="world-table trick-policy-table" aria-label="Position after trick ${trick.number}">
+        <div class="world-seat north">${worldHandRecordMarkup(hands.North)}</div>
+        <div class="world-seat west">${worldHandRecordMarkup(hands.West)}</div>
+        <div class="world-trick policy-trick">${trick.plays.map(policyTrickCardMarkup).join("")}</div>
+        <div class="world-seat east">${worldHandRecordMarkup(hands.East)}</div>
+        <div class="world-seat south">${worldHandRecordMarkup(hands.South)}</div>
       </div>
     </section>`;
 }
@@ -896,7 +949,7 @@ function renderAnalysisInspector() {
       ${decisionIndexes.length > 1 ? `
         <div class="decision-list trick-decisions">${decisionIndexes.map((index) => `<button class="decision-chip ${index === activeDecisionIndex ? "is-selected" : ""}" data-decision-index="${index}" type="button">${escapeHtml(analyses[index].turn)}: ${escapeHtml(analyses[index].bestMove)}</button>`).join("")}</div>` : ""}
       ${selected && decisionIndexes.includes(activeDecisionIndex)
-        ? `${policyResponseMarkup(selected.policy)}${analysisMarkup(selected)}`
+        ? `${policyResponseMarkup(selected.policy, trick)}${analysisMarkup(selected)}`
         : "<p class=\"muted-copy no-trick-decision\">No new alpha-mu decision was needed in this trick.</p>"}`;
     return;
   }
@@ -1490,6 +1543,7 @@ byId("new-deal").addEventListener("click", () => {
     trump: "NT",
     target: 13,
     playPrefix: "",
+    defenderHoldOrder: "SHDC",
     additionalLayouts: [],
     restrictions: {}
   });

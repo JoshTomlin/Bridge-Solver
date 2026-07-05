@@ -17,7 +17,7 @@ namespace bridge {
 std::optional<Hand> parse_hand_record(std::string_view text);
 
 struct BotSettings {
-    std::size_t world_count {20};
+    std::size_t world_count {30};
     std::uint8_t max_declarer_plies {2};
     std::uint8_t target_tricks {1};
     std::uint64_t random_seed {0xB07B07ULL};

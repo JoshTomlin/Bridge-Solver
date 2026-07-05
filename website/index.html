@@ -69,7 +69,7 @@
           <div class="panel-heading">
             <h2>Analysis</h2>
             <div class="analysis-settings-inline">
-              <small id="settings-summary">64 worlds &middot; M 26 &middot; 5s</small>
+              <small id="settings-summary">30 worlds &middot; M 26 &middot; 5s</small>
               <button class="icon-button" id="edit-settings" type="button" aria-label="Analysis settings" title="Analysis settings">&#9881;</button>
             </div>
           </div>
@@ -181,6 +181,9 @@
                   <b>HCP</b><input id="west-min-hcp" type="number" min="0" max="37" value="0" aria-label="West minimum HCP"><input id="west-max-hcp" type="number" min="0" max="37" value="37" aria-label="West maximum HCP">
                 </div>
                 </section>
+                <section class="defender-play-preference">
+                  <label class="field"><span>Discard hold order</span><input id="defender-hold-order" value="SHDC" maxlength="4" spellcheck="false" aria-describedby="defender-hold-help"><small id="defender-hold-help">Most protected to least protected; only breaks equal-DD discards.</small></label>
+                </section>
             </section>
 
             <section class="deal-editor-panel alternative-editor is-hidden" data-deal-editor-panel="alternatives">
@@ -228,12 +231,11 @@
         </header>
         <div class="dialog-body">
           <div class="settings-grid">
-            <label class="field"><span>Worlds</span><input id="world-count" type="number" min="1" max="64" value="64"></label>
+            <label class="field"><span>Worlds</span><input id="world-count" type="number" min="1" max="64" value="30"></label>
             <label class="field"><span>Maximum M</span><input id="max-depth" type="number" min="1" max="26" value="26"></label>
             <label class="field"><span>Time limit</span><div class="input-suffix"><input id="time-limit" type="number" min="0" step="0.5" value="5"><span>s</span></div></label>
           </div>
           <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>
-          <label class="field"><span>Defender hold order</span><input id="defender-hold-order" value="SHDC" maxlength="4" spellcheck="false" aria-describedby="defender-hold-help"><small id="defender-hold-help">Most protected to least protected; only breaks equal-DD discards.</small></label>
         </div>
         <footer class="dialog-footer">
           <button class="button primary" id="apply-settings" type="button">Use these settings</button>

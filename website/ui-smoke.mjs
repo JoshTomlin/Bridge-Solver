@@ -59,6 +59,10 @@ assert.ok(app.includes("fullResultTricks") && app.includes("trickViewerMarkup"),
   "full analysis must be navigable as a trick-by-trick play review");
 assert.ok(app.includes("policyResponseMarkup") && app.includes("possibleWorlds"),
   "the inspector must show retained responses to defender cards");
+assert.ok(app.includes("groupPolicyResponses") && app.includes("policyConditionLabel"),
+  "equivalent policy responses must be grouped into concise follow/discard instructions");
+assert.ok(app.includes("trick-policy-table") && app.includes("worldHandRecordMarkup(hands.North)"),
+  "the trick viewer must show the full four-hand position");
 assert.ok(wasmBindings.includes("policy_json") && wasmBindings.includes('\\"policy\\":'),
   "WASM analysis JSON must serialize the selected trick policy");
 assert.ok(worker.includes("result.analysis"),
@@ -85,6 +89,12 @@ assert.ok(app.includes("activeTableLayoutIndex"),
   "one alternative true layout must be selectable without a batch run");
 assert.ok(worker.includes("defenderHoldOrder"),
   "full play must pass the defender suit-preservation order to DDS");
+assert.match(html, /id="world-count"[^>]*value="30"/,
+  "the default analysis should sample 30 worlds");
+assert.ok(
+  html.indexOf('id="defender-hold-order"') < html.indexOf('id="settings-dialog"'),
+  "defender discard preference belongs with defender knowledge, not search settings"
+);
 assert.ok(app.includes("data-trick-seat"), "played cards must retain compass positions");
 assert.ok(app.includes("completedTrickForFrame"), "the completed trick must remain until the next lead");
 assert.ok(!html.includes("id=\"legal-cards\""), "legal cards must be played directly from hands");
