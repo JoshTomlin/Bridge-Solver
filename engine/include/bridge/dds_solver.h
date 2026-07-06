@@ -14,6 +14,11 @@ struct DoubleDummyTable {
     std::array<std::array<int, 4>, 5> tricks {};
 };
 
+struct DoubleDummyMoveScore {
+    Card card {kNoCard};
+    std::uint8_t future_tricks {};
+};
+
 DoubleDummyTable solve_double_dummy_table(const Deal& deal);
 int double_dummy_tricks(const Deal& deal, Seat declarer, std::optional<Suit> trump_suit);
 
@@ -24,6 +29,15 @@ std::uint8_t double_dummy_future_tricks(const Position& position, Seat declarer)
 // DDS may evaluate boards in parallel; the single-thread WASM build uses the
 // same API sequentially.
 std::vector<std::uint8_t> double_dummy_future_tricks_batch(
+    const std::vector<Position>& positions,
+    Seat declarer);
+
+// Scores every legal root card. DDS returns touching equals through a compact
+// rank mask; this wrapper expands them so callers receive one entry per card.
+std::vector<DoubleDummyMoveScore> double_dummy_move_scores(
+    const Position& position,
+    Seat declarer);
+std::vector<std::vector<DoubleDummyMoveScore>> double_dummy_move_scores_batch(
     const std::vector<Position>& positions,
     Seat declarer);
 

@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "bridge/alpha_mu2.h"
 #include "bridge/analysis_session.h"
 #include "bridge/engine.h"
 #include "bridge/quick_tricks.h"
@@ -991,6 +992,28 @@ void test_double_dummy_wrapper_smoke() {
                 batch[1] == bridge::double_dummy_future_tricks(
                     east_to_play, Seat::South),
             "batched DDS leaves should exactly match scalar DDS results");
+
+    const auto move_scores = bridge::double_dummy_move_scores(north_to_play, Seat::South);
+    const auto move_score_batch = bridge::double_dummy_move_scores_batch(
+        {north_to_play, east_to_play},
+        Seat::South);
+    require(move_scores.size() == bridge::card_count(
+                bridge::legal_plays(
+                    north_to_play.current_trick,
+                    bridge::hand_of(north_to_play.deal, Seat::North))),
+            "DDS all-move screening should expand every legal root card");
+    require(move_score_batch.size() == 2 &&
+                move_score_batch.front().size() == move_scores.size(),
+            "batched DDS all-move screening should return one vector per world");
+    for (const bridge::DoubleDummyMoveScore& score : move_scores) {
+        bridge::Position child = north_to_play;
+        bridge::play_card(child, score.card);
+        const std::uint8_t expected = static_cast<std::uint8_t>(
+            child.score.north_south - north_to_play.score.north_south +
+            bridge::double_dummy_future_tricks(child, Seat::South));
+        require(score.future_tricks == expected,
+                "each DDS root score should match manually playing that card");
+    }
 }
 
 std::vector<bridge::AlphaMuWorld> two_way_guess_worlds() {
@@ -1493,6 +1516,57 @@ void test_alpha_mu_preserves_two_way_guess() {
     require(four_trick_result.front.vectors.size() == 1 &&
                 four_trick_result.front.vectors.front().wins == 0b11,
             "duplicate winning vectors should collapse to one Pareto vector");
+}
+
+void test_alpha_mu2_adds_missing_two_way_guess_counterexample() {
+    const auto guesses = two_way_guess_worlds();
+    const std::vector<bridge::AlphaMuWorld> reservoir {
+        guesses[0],
+        guesses[0],
+        guesses[0],
+        guesses[1],
+        guesses[1],
+    };
+    const bridge::AlphaMu2Result result = bridge::alpha_mu2_search(
+        reservoir,
+        bridge::AlphaMu2Config {
+            .initial_world_count = 1,
+            .max_world_count = 2,
+            .max_refinement_rounds = 2,
+            .counterexamples_per_round = 1,
+            .search = bridge::AlphaMuConfig {
+                .declarer = Seat::South,
+                .trump_suit = std::nullopt,
+                .target_tricks = 5,
+                .max_declarer_plies = 1,
+            },
+        });
+
+    require(result.stats.distinct_screening_vectors == 2,
+            "opposite queen layouts should have different DDS root fingerprints");
+    require(result.stats.initial_worlds == 1 &&
+                result.stats.final_worlds == 2,
+            "AlphaMu2 should grow the active set when validation finds a missed layout");
+    require(result.stats.counterexamples_added == 1 &&
+                result.stats.search_runs == 2 &&
+                result.stats.policy_dds_leaves > 0,
+            "AlphaMu2 should validate the fixed policy, add one failure, and rerun");
+    require(std::find(
+                result.active_reservoir_indices.begin(),
+                result.active_reservoir_indices.end(),
+                3) != result.active_reservoir_indices.end(),
+            "the opposite queen layout should be retained as the counterexample");
+
+    bool wins_first_layout = false;
+    bool wins_second_layout = false;
+    bool leaks_hidden_information = false;
+    for (const bridge::OutcomeVector& outcome : result.search.front.vectors) {
+        wins_first_layout |= outcome.wins == 0b01;
+        wins_second_layout |= outcome.wins == 0b10;
+        leaks_hidden_information |= outcome.wins == 0b11;
+    }
+    require(wins_first_layout && wins_second_layout && !leaks_hidden_information,
+            "refined AlphaMu2 search should preserve the genuine two-way guess");
 }
 
 void test_alpha_mu_finds_spade_discovery_play() {
@@ -2089,6 +2163,7 @@ int main() {
         test_alpha_mu_leaf_front_uses_world_bits();
         test_alpha_mu_one_ply_returns_legal_declarer_move();
         test_alpha_mu_preserves_two_way_guess();
+        test_alpha_mu2_adds_missing_two_way_guess_counterexample();
         test_alpha_mu_finds_spade_discovery_play();
         test_alpha_mu_retains_globally_selected_trick_response();
         test_alpha_mu_exact_four_card_spade_distribution();

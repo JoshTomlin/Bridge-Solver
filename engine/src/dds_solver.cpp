@@ -2,6 +2,7 @@
 
 #include "dll.h"
 
+#include <algorithm>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -46,6 +47,16 @@ constexpr int dds_suit(Suit suit) {
 
 constexpr int dds_rank(Rank rank) {
     return static_cast<int>(rank) + 2;
+}
+
+constexpr Suit suit_from_dds(int suit) {
+    switch (suit) {
+        case 0: return Suit::Spades;
+        case 1: return Suit::Hearts;
+        case 2: return Suit::Diamonds;
+        case 3: return Suit::Clubs;
+        default: throw std::invalid_argument("DDS returned an invalid suit");
+    }
 }
 
 char suit_symbol(Suit suit) {
@@ -117,6 +128,63 @@ std::uint8_t declarer_future_tricks(
     return same_side(next_to_play(position.current_trick), declarer)
         ? static_cast<std::uint8_t>(side_to_play_tricks)
         : static_cast<std::uint8_t>(remaining_tricks - side_to_play_tricks);
+}
+
+std::vector<DoubleDummyMoveScore> decode_move_scores(
+    const Position& position,
+    Seat declarer,
+    const futureTricks& future) {
+    const Seat player = next_to_play(position.current_trick);
+    const Hand legal = legal_plays(
+        position.current_trick,
+        hand_of(position.deal, player));
+    std::vector<DoubleDummyMoveScore> result;
+    result.reserve(card_count(legal));
+
+    const auto append = [&](Suit suit, int rank, std::uint8_t tricks) {
+        if (rank < 2 || rank > 14) return;
+        const Card card = make_card(suit, static_cast<Rank>(rank - 2));
+        if (!contains(legal, card)) return;
+        const bool present = std::any_of(
+            result.begin(),
+            result.end(),
+            [&](const DoubleDummyMoveScore& score) {
+                return score.card == card;
+            });
+        if (!present) {
+            result.push_back(DoubleDummyMoveScore {
+                .card = card,
+                .future_tricks = tricks,
+            });
+        }
+    };
+
+    for (int index = 0; index < future.cards; ++index) {
+        const Suit suit = suit_from_dds(future.suit[index]);
+        const std::uint8_t tricks = declarer_future_tricks(
+            position,
+            declarer,
+            future.score[index]);
+        append(suit, future.rank[index], tricks);
+        for (int rank = 2; rank <= 14; ++rank) {
+            if ((future.equals[index] & (1 << rank)) != 0) {
+                append(suit, rank, tricks);
+            }
+        }
+    }
+
+    std::sort(
+        result.begin(),
+        result.end(),
+        [](const DoubleDummyMoveScore& left, const DoubleDummyMoveScore& right) {
+            if (suit_of(left.card) != suit_of(right.card)) {
+                return static_cast<int>(suit_of(left.card)) >
+                    static_cast<int>(suit_of(right.card));
+            }
+            return static_cast<int>(rank_of(left.card)) >
+                static_cast<int>(rank_of(right.card));
+        });
+    return result;
 }
 
 void throw_dds_error(int code) {
@@ -209,6 +277,57 @@ std::vector<std::uint8_t> double_dummy_future_tricks_batch(
     for (std::size_t index = 0; index < positions.size(); ++index) {
         result.push_back(declarer_future_tricks(
             positions[index], declarer, solved->solvedBoard[index].score[0]));
+    }
+    return result;
+}
+
+std::vector<DoubleDummyMoveScore> double_dummy_move_scores(
+    const Position& position,
+    Seat declarer) {
+    if (is_deal_finished(position)) return {};
+
+    ensure_dds_initialized();
+    futureTricks future {};
+    const int code = SolveBoard(to_dds_deal(position), -1, 3, 1, &future, 0);
+    if (code != RETURN_NO_FAULT) throw_dds_error(code);
+    return decode_move_scores(position, declarer, future);
+}
+
+std::vector<std::vector<DoubleDummyMoveScore>> double_dummy_move_scores_batch(
+    const std::vector<Position>& positions,
+    Seat declarer) {
+    if (positions.empty()) return {};
+
+    ensure_dds_initialized();
+    std::vector<std::vector<DoubleDummyMoveScore>> result(positions.size());
+    for (std::size_t offset = 0; offset < positions.size();
+         offset += MAXNOOFBOARDS) {
+        const std::size_t count = std::min<std::size_t>(
+            MAXNOOFBOARDS,
+            positions.size() - offset);
+        auto batch = std::make_unique<boards>();
+        batch->noOfBoards = static_cast<int>(count);
+        for (std::size_t index = 0; index < count; ++index) {
+            const Position& position = positions[offset + index];
+            if (is_deal_finished(position)) {
+                throw std::invalid_argument(
+                    "DDS move-score batch cannot contain a finished deal");
+            }
+            batch->deals[index] = to_dds_deal(position);
+            batch->target[index] = -1;
+            batch->solutions[index] = 3;
+            batch->mode[index] = 1;
+        }
+
+        auto solved = std::make_unique<solvedBoards>();
+        const int code = SolveAllBoardsBin(batch.get(), solved.get());
+        if (code != RETURN_NO_FAULT) throw_dds_error(code);
+        for (std::size_t index = 0; index < count; ++index) {
+            result[offset + index] = decode_move_scores(
+                positions[offset + index],
+                declarer,
+                solved->solvedBoard[index]);
+        }
     }
     return result;
 }

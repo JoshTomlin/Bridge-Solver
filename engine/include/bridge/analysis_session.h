@@ -9,6 +9,7 @@
 #include <string_view>
 #include <vector>
 
+#include "bridge/alpha_mu2.h"
 #include "bridge/engine.h"
 
 namespace bridge {
@@ -47,6 +48,21 @@ struct SessionAnalysis {
     double search_ms {};
 };
 
+struct AlphaMu2SessionSettings {
+    std::size_t reservoir_world_count {256};
+    std::size_t initial_active_worlds {30};
+    std::size_t max_active_worlds {30};
+    std::size_t max_refinement_rounds {2};
+    std::size_t counterexamples_per_round {3};
+};
+
+struct AlphaMu2SessionAnalysis {
+    AlphaMu2Result search;
+    std::uint64_t possible_deals {};
+    std::size_t unique_reservoir_worlds {};
+    double sampling_ms {};
+};
+
 struct OptimizationBenchmarkRun {
     AlphaMuResult search;
     double search_ms {};
@@ -75,6 +91,8 @@ public:
     std::uint64_t possible_deals() const;
 
     SessionAnalysis analyze();
+    AlphaMu2SessionAnalysis analyze2(
+        AlphaMu2SessionSettings settings = {});
     OptimizationBenchmark benchmark(AlphaMuOptimization optimization);
     std::optional<Card> policy_move() const;
     void play(Card card);
@@ -112,7 +130,7 @@ private:
 
     SeatRestrictions remaining_restrictions(Seat seat, Hand defender_cards) const;
     SamplingRequest sampling_request() const;
-    SampledWorlds sample_worlds();
+    SampledWorlds sample_worlds(std::size_t world_count);
     AlphaMuConfig search_config(bool build_policy) const;
     void advance_policy(Seat player, Card card);
 

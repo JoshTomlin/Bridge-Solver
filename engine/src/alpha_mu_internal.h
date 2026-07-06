@@ -3,6 +3,7 @@
 #include "bridge/alpha_mu.h"
 
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -38,6 +39,7 @@ struct SearchContext {
     AlphaMuSearchStats stats;
     std::unordered_map<NodeKey, TranspositionEntry, NodeKeyHash> table;
     std::ostringstream audit;
+    std::optional<std::chrono::steady_clock::time_point> deadline;
 };
 
 // A MAX ancestor's current front is an alpha bound. useful_worlds records the

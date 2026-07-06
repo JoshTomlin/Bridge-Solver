@@ -61,6 +61,7 @@ endif()
 add_library(bridge_engine
     src/analysis_session.cpp
     src/alpha_mu.cpp
+    src/alpha_mu2.cpp
     src/alpha_mu_pareto.cpp
     src/alpha_mu_policy.cpp
     src/alpha_mu_state.cpp
@@ -120,6 +121,12 @@ else()
     )
 
     target_link_libraries(bridge_engine_tests PRIVATE bridge_engine)
+
+    add_executable(bridge_alpha_mu2_report
+        src/alpha_mu2_report.cpp
+    )
+
+    target_link_libraries(bridge_alpha_mu2_report PRIVATE bridge_engine)
 
     add_test(
         NAME bridge_engine_tests

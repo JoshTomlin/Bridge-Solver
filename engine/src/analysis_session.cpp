@@ -346,7 +346,8 @@ std::uint64_t AnalysisSession::possible_deals() const {
         request.target_card_count);
 }
 
-AnalysisSession::SampledWorlds AnalysisSession::sample_worlds() {
+AnalysisSession::SampledWorlds AnalysisSession::sample_worlds(
+    std::size_t world_count) {
     const SamplingRequest request = sampling_request();
 
     SampledWorlds sampled;
@@ -361,9 +362,9 @@ AnalysisSession::SampledWorlds AnalysisSession::sample_worlds() {
     }
 
     const auto sampling_start = std::chrono::steady_clock::now();
-    sampled.worlds.reserve(settings_.world_count);
+    sampled.worlds.reserve(world_count);
     std::unordered_set<Hand> unique_east_hands;
-    for (std::size_t index = 0; index < settings_.world_count; ++index) {
+    for (std::size_t index = 0; index < world_count; ++index) {
         const std::uint64_t seed = settings_.random_seed +
             analysis_number_ * 0x9E3779B97F4A7C15ULL + index;
         const std::optional<Hand> east = sample_constrained_hand(
@@ -517,7 +518,7 @@ SessionAnalysis AnalysisSession::analyze() {
         }
     }
 
-    SampledWorlds sampled = sample_worlds();
+    SampledWorlds sampled = sample_worlds(settings_.world_count);
     SessionAnalysis analysis {
         .possible_deals = sampled.possible_deals,
         .unique_worlds = sampled.unique_worlds,
@@ -532,6 +533,39 @@ SessionAnalysis AnalysisSession::analyze() {
     return analysis;
 }
 
+AlphaMu2SessionAnalysis AnalysisSession::analyze2(
+    AlphaMu2SessionSettings settings) {
+    if (is_deal_finished(position_)) {
+        throw std::logic_error("the deal is finished");
+    }
+    if (!same_side(next_to_play(position_.current_trick), Seat::South)) {
+        throw std::logic_error(
+            "AlphaMu2 recommendations are available only for North/South");
+    }
+    if (settings.reservoir_world_count == 0) {
+        throw std::invalid_argument(
+            "AlphaMu2 reservoir world count must be positive");
+    }
+
+    SampledWorlds sampled = sample_worlds(settings.reservoir_world_count);
+    AlphaMu2SessionAnalysis analysis {
+        .possible_deals = sampled.possible_deals,
+        .unique_reservoir_worlds = sampled.unique_worlds,
+        .sampling_ms = sampled.sampling_ms,
+    };
+    analysis.search = alpha_mu2_search(
+        sampled.worlds,
+        AlphaMu2Config {
+            .initial_world_count = settings.initial_active_worlds,
+            .max_world_count = settings.max_active_worlds,
+            .max_refinement_rounds = settings.max_refinement_rounds,
+            .counterexamples_per_round = settings.counterexamples_per_round,
+            .search = search_config(true),
+        });
+    policy_ = analysis.search.search.trick_policy;
+    return analysis;
+}
+
 OptimizationBenchmark AnalysisSession::benchmark(AlphaMuOptimization optimization) {
     if (is_deal_finished(position_)) {
         throw std::logic_error("the deal is finished");
@@ -540,7 +574,7 @@ OptimizationBenchmark AnalysisSession::benchmark(AlphaMuOptimization optimizatio
         throw std::logic_error("alpha-mu benchmarks are available only for North/South");
     }
 
-    SampledWorlds sampled = sample_worlds();
+    SampledWorlds sampled = sample_worlds(settings_.world_count);
     OptimizationBenchmark benchmark {
         .optimization = optimization,
         .possible_deals = sampled.possible_deals,

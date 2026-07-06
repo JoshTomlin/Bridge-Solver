@@ -135,6 +135,11 @@ struct AlphaMuConfig {
     // is never discarded; measured growth is used to avoid starting a deeper M
     // that is unlikely to fit in the remaining budget.
     double max_search_seconds {};
+
+    // Opt-in cooperative deadline used by experimental callers. If a depth is
+    // interrupted, iterative deepening returns the last completed iteration.
+    // The normal engine leaves this false and retains soft-limit semantics.
+    bool hard_time_limit {false};
 };
 
 struct AlphaMuSearchStats {

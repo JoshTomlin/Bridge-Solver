@@ -14,6 +14,19 @@
 namespace bridge::alpha_mu_detail {
 namespace {
 
+struct SearchDeadlineReached {};
+
+void check_hard_deadline(SearchContext& context) {
+    if (!context.config.hard_time_limit ||
+        !context.deadline.has_value() ||
+        (context.stats.nodes & 0xFFU) != 0) {
+        return;
+    }
+    if (std::chrono::steady_clock::now() >= *context.deadline) {
+        throw SearchDeadlineReached {};
+    }
+}
+
 ParetoFront evaluate_leaf(
     const std::vector<AlphaMuWorld>& worlds,
     WorldMask useful_worlds,
@@ -702,6 +715,7 @@ NodeEvaluation alpha_mu_node(
     std::ostringstream* trace,
     std::size_t trace_depth) {
     ++context.stats.nodes;
+    check_hard_deadline(context);
     if (active_worlds == 0) {
         return NodeEvaluation {.front = zero_front()};
     }
@@ -1018,6 +1032,11 @@ AlphaMuResult run_search(
     const AlphaMuConfig& config) {
     SearchContext context {.config = config};
     const auto search_start = std::chrono::steady_clock::now();
+    if (config.hard_time_limit && config.max_search_seconds > 0.0) {
+        context.deadline = search_start +
+            std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                std::chrono::duration<double>(config.max_search_seconds));
+    }
     NodeEvaluation final_evaluation;
     std::vector<AlphaMuRootMove> final_root_moves;
     std::optional<std::size_t> previous_score;
@@ -1036,12 +1055,29 @@ AlphaMuResult run_search(
             0,
             "iteration",
             "starting M=" + std::to_string(depth));
-        RootIteration iteration =
-            search_root_iteration(worlds, depth, previous_score, context);
+        std::optional<RootIteration> iteration;
+        try {
+            iteration.emplace(
+                search_root_iteration(
+                    worlds,
+                    depth,
+                    previous_score,
+                    context));
+        } catch (const SearchDeadlineReached&) {
+            context.stats.stopped_by_time_limit = true;
+            audit_line(
+                context,
+                0,
+                "iteration",
+                "hard deadline interrupted M=" + std::to_string(depth) +
+                    "; retained completed M=" +
+                    std::to_string(context.stats.completed_depth));
+            break;
+        }
         const bool terminal_depth_independent_bound =
-            iteration.terminal_depth_independent_bound;
-        final_evaluation = std::move(iteration.evaluation);
-        final_root_moves = std::move(iteration.root_moves);
+            iteration->terminal_depth_independent_bound;
+        final_evaluation = std::move(iteration->evaluation);
+        final_root_moves = std::move(iteration->root_moves);
         previous_score = best_winning_world_count(final_evaluation.front);
         ++context.stats.completed_iterations;
         context.stats.completed_depth = depth;
@@ -1095,9 +1131,16 @@ AlphaMuResult run_search(
     }
     context.stats.tree_search_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - search_start).count();
+    if (context.stats.completed_iterations == 0) {
+        throw std::runtime_error(
+            "alpha-mu hard deadline expired before M=1 completed");
+    }
 
     std::shared_ptr<const AlphaMuPolicyNode> trick_policy;
     if (config.build_trick_policy) {
+        // Policy reconstruction mostly reuses exact table entries. Give it a
+        // short grace period rather than interrupting the policy we must play.
+        context.deadline.reset();
         const auto policy_start = std::chrono::steady_clock::now();
         AlphaMuConfig policy_config = config;
         policy_config.max_declarer_plies = context.stats.completed_depth;

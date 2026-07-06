@@ -93,6 +93,7 @@ void print_help(std::ostream& output) {
         "  show                Show public hands and current position\n"
         "  reveal              Show the hidden East/West hands\n"
         "  analyze             Sample worlds and ask alpha-mu for a move\n"
+        "  analyze2            Run experimental adaptive world selection\n"
         "  play CARD           Play a card, for example: play SA\n"
         "  bot                 Let alpha-mu or DDS play the current card\n"
         "  undo                Undo the most recent card\n"
@@ -289,6 +290,35 @@ SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
     return analysis;
 }
 
+AlphaMu2SessionAnalysis analyze2(
+    AnalysisSession& session,
+    std::ostream& output) {
+    const AlphaMu2SessionAnalysis analysis = session.analyze2();
+    const AlphaMu2Result& result = analysis.search;
+    output << "AlphaMu2 reservoir: " << result.stats.reservoir_worlds
+           << " worlds (" << analysis.unique_reservoir_worlds
+           << " unique), " << result.stats.distinct_screening_vectors
+           << " DDS root fingerprint(s)\n";
+    output << "Active worlds: " << result.stats.initial_worlds
+           << " -> " << result.stats.final_worlds
+           << "; counterexamples " << result.stats.counterexamples_added
+           << " added from " << result.stats.counterexamples_found
+           << " candidate(s)\n";
+    output << "Recommended: " << to_string(result.search.best_move) << '\n';
+    output << "AlphaMu2 work: searches=" << result.stats.search_runs
+           << " refinements=" << result.stats.refinement_rounds
+           << " reserve-checks=" << result.stats.reserve_worlds_checked
+           << " validation-DDS-leaves=" << result.stats.policy_dds_leaves
+           << '\n';
+    output << std::fixed << std::setprecision(3)
+           << "Timing: sample=" << analysis.sampling_ms
+           << " ms screen=" << result.stats.screening_ms
+           << " ms select=" << result.stats.selection_ms
+           << " ms search=" << result.stats.search_ms
+           << " ms validate=" << result.stats.validation_ms << " ms\n";
+    return analysis;
+}
+
 void print_benchmark(
     const OptimizationBenchmark& benchmark,
     std::ostream& output) {
@@ -428,6 +458,8 @@ void run_interactive(std::istream& input, std::ostream& output) {
                 output << session->full_diagram();
             } else if (command == "analyze") {
                 analyze(*session, output);
+            } else if (command == "analyze2") {
+                analyze2(*session, output);
             } else if (command == "optimizations") {
                 print_optimizations(*session, output);
             } else if (command == "benchmark") {
