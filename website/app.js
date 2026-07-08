@@ -50,11 +50,19 @@ const elements = {
   historyNext: byId("history-next"),
   historyPosition: byId("history-position"),
   tableLayoutSelect: byId("table-layout-select"),
+  engineChoice: byId("engine-choice"),
+  alphaMuSettings: byId("alpha-mu-settings"),
+  alphaMu2Settings: byId("alpha-mu2-settings"),
   worlds: byId("world-count"),
   depth: byId("max-depth"),
   target: byId("target-tricks"),
   timeLimit: byId("time-limit"),
   seed: byId("random-seed"),
+  alphaMu2ReservoirWorlds: byId("alpha-mu2-reservoir-worlds"),
+  alphaMu2InitialWorlds: byId("alpha-mu2-initial-worlds"),
+  alphaMu2MaxWorlds: byId("alpha-mu2-max-worlds"),
+  alphaMu2RefinementRounds: byId("alpha-mu2-refinement-rounds"),
+  alphaMu2Counterexamples: byId("alpha-mu2-counterexamples"),
   defenderHoldOrder: byId("defender-hold-order"),
   analyze: byId("analyze-position"),
   analyzeFull: byId("analyze-full"),
@@ -261,20 +269,39 @@ function analysisSettings() {
   if (!/^(?!.*(.).*\1)[SHDC]{4}$/.test(defenderHoldOrder)) {
     throw new Error("Defender hold order must contain S, H, D, and C once each");
   }
+  const engineName = elements.engineChoice.value || "alpha-mu";
   return {
+    engine: engineName,
     worlds: Number(elements.worlds.value),
     depth: Number(elements.depth.value),
     target: Number(elements.target.value),
     timeLimit: Number(elements.timeLimit.value),
     seed: String(elements.seed.value || "0"),
+    alphaMu2ReservoirWorlds: Number(elements.alphaMu2ReservoirWorlds.value),
+    alphaMu2InitialWorlds: Number(elements.alphaMu2InitialWorlds.value),
+    alphaMu2MaxWorlds: Number(elements.alphaMu2MaxWorlds.value),
+    alphaMu2RefinementRounds: Number(elements.alphaMu2RefinementRounds.value),
+    alphaMu2CounterexamplesPerRound: Number(elements.alphaMu2Counterexamples.value),
     defenderHoldOrder
   };
 }
 
+function settingsSummaryText(settings) {
+  if ((settings.engine || "alpha-mu") === "alpha-mu2") {
+    return `AM2 ${settings.alphaMu2MaxWorlds}/${settings.alphaMu2ReservoirWorlds} worlds | M ${settings.depth} | ${settings.timeLimit}s`;
+  }
+  return `${settings.worlds} worlds | M ${settings.depth} | ${settings.timeLimit}s`;
+}
+
 function renderSettingsSummary() {
   const settings = analysisSettings();
-  elements.settingsSummary.textContent =
-    `${settings.worlds} worlds | M ${settings.depth} | ${settings.timeLimit}s`;
+  elements.settingsSummary.textContent = settingsSummaryText(settings);
+}
+
+function syncEngineSettingsVisibility() {
+  const alphaMu2 = elements.engineChoice.value === "alpha-mu2";
+  elements.alphaMuSettings.classList.toggle("is-hidden", alphaMu2);
+  elements.alphaMu2Settings.classList.toggle("is-hidden", !alphaMu2);
 }
 
 function parsePlayPrefix(text) {
@@ -566,6 +593,100 @@ function preSamplingBound(analysis) {
   return null;
 }
 
+function isAlphaMu2Analysis(analysis) {
+  return analysis?.engine === "alpha-mu2" || Boolean(analysis?.alphaMu2);
+}
+
+function alphaMu2ReportMarkup(analysis) {
+  const detail = analysis.alphaMu2;
+  if (!detail) return "";
+  const stats = detail.stats || {};
+  const moves = detail.screeningMoves || [];
+  const screening = detail.screening || [];
+  const activeReservoir = detail.activeReservoirIndices || [];
+  const activeSet = new Set(activeReservoir);
+  const counterexampleSet = new Set(detail.counterexampleIndices || []);
+  const groups = new Map();
+  for (const item of screening) {
+    const key = (item.futureTricks || []).join("/");
+    if (!groups.has(key)) {
+      groups.set(key, {
+        futureTricks: item.futureTricks || [],
+        count: 0,
+        active: [],
+        counterexamples: [],
+        makingMoves: new Set()
+      });
+    }
+    const group = groups.get(key);
+    group.count += 1;
+    if (activeSet.has(item.reservoirIndex)) group.active.push(item.reservoirIndex);
+    if (counterexampleSet.has(item.reservoirIndex)) group.counterexamples.push(item.reservoirIndex);
+    for (const card of item.makingMoves || []) group.makingMoves.add(card);
+  }
+  const fingerprintRows = [...groups.values()]
+    .sort((left, right) => right.count - left.count || left.futureTricks.join("/").localeCompare(right.futureTricks.join("/")))
+    .slice(0, 12);
+  const screeningByReservoir = new Map(screening.map((item) => [item.reservoirIndex, item]));
+  const activeWeights = activeReservoir.map((reservoirIndex, localIndex) => {
+    const weight = screeningByReservoir.get(reservoirIndex)?.equivalentWorlds || 1;
+    return `<span>W${localIndex + 1}=R${reservoirIndex + 1}: ${weight}</span>`;
+  }).join("");
+  const rounds = detail.rounds || [];
+  const selectedCandidates = rounds.flatMap((round) =>
+    (round.candidates || [])
+      .filter((candidate) => candidate.selected)
+      .map((candidate) => ({ ...candidate, round: round.round }))
+  );
+  return `
+    <details class="alpha2-report">
+      <summary><strong>AlphaMu2 detailed report</strong><span>${formatNumber(stats.reservoirWorlds)} reservoir | ${formatNumber(stats.distinctScreeningVectors)} DDS fingerprints | ${formatNumber(stats.counterexamplesAdded)} counterexamples</span></summary>
+      <dl class="stat-grid alpha2-stat-grid">
+        <div><dt>Screening</dt><dd>${formatMs(stats.screeningMs || 0)}</dd></div>
+        <div><dt>Selection</dt><dd>${formatMs(stats.selectionMs || 0)}</dd></div>
+        <div><dt>Search runs</dt><dd>${formatNumber(stats.searchRuns)}</dd></div>
+        <div><dt>Validation</dt><dd>${formatMs(stats.validationMs || 0)}</dd></div>
+        <div><dt>Final active</dt><dd>${formatNumber(stats.finalWorlds)}</dd></div>
+        <div><dt>Policy leaves</dt><dd>${formatNumber(stats.policyDdsLeaves)}</dd></div>
+      </dl>
+      <section class="alpha2-subreport">
+        <h3>DDS root fingerprints</h3>
+        <p class="muted-copy">Columns are ${moves.length ? moves.map(escapeHtml).join(", ") : "the legal root cards"}. Weight is the number of reservoir worlds with that DDS vector.</p>
+        <div class="fingerprint-table">
+          ${fingerprintRows.map((group) => `
+            <div class="fingerprint-row">
+              <strong>${group.futureTricks.map((score) => String(score)).join(" ")}</strong>
+              <span>weight ${group.count}</span>
+              <small>active ${group.active.length ? group.active.map((index) => index + 1).join(", ") : "none"} | makes ${[...group.makingMoves].join(", ") || "none"}</small>
+            </div>`).join("")}
+        </div>
+      </section>
+      <section class="alpha2-subreport">
+        <h3>Active world weights</h3>
+        <div class="alpha2-chip-grid">${activeWeights || "<span>No active worlds recorded</span>"}</div>
+      </section>
+      <section class="alpha2-subreport">
+        <h3>Refinement rounds</h3>
+        <div class="round-list">
+          ${rounds.map((round) => `
+            <div class="round-row">
+              <strong>Round ${round.round + 1}: ${escapeHtml(round.bestMove)} at M${round.completedDepth}</strong>
+              <span>${formatMs(round.searchMs)} | ${formatNumber(round.activeReservoirIndices?.length)} active worlds</span>
+              <small>${(round.rootMoves || []).map((move) => `${move.card} ${move.winningWorlds}/${round.activeReservoirIndices?.length || 0}`).join(" | ")}</small>
+            </div>`).join("")}
+        </div>
+      </section>
+      <section class="alpha2-subreport">
+        <h3>Counterexamples chosen</h3>
+        ${selectedCandidates.length ? `<div class="round-list">${selectedCandidates.map((candidate) => `
+          <div class="round-row is-selected">
+            <strong>Round ${candidate.round + 1}: R${candidate.reservoirIndex + 1}</strong>
+            <span>${candidate.unsupportedObservation ? "unsupported policy branch" : "target failure"} | regret ${candidate.rootRegret} | distance ${candidate.distanceFromActive}</span>
+            <small>${candidate.replacedReservoirIndex == null ? "added" : `replaced R${candidate.replacedReservoirIndex + 1}`}</small>
+          </div>`).join("")}</div>` : "<p class=\"muted-copy\">No counterexamples were added.</p>"}
+      </section>
+    </details>`;
+}
 function worldHandRecordMarkup(hand) {
   return `<div class="world-hand-record">${Object.entries(suitDisplay).map(([suit, display]) => {
     const holding = hand?.[suit] && hand[suit] !== "-" ? hand[suit] : "&mdash;";
@@ -683,13 +804,18 @@ function analysisMarkup(analysis) {
   const selected = rootMoves.find((move) => move.card === activeMoveCard) ||
     rootMoves.find((move) => move.card === analysis.bestMove) || rootMoves[0];
   activeMoveCard = selected?.card || null;
+  const alphaMu2 = isAlphaMu2Analysis(analysis);
   const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
+  const reservoirCount = analysis.alphaMu2?.stats?.reservoirWorlds || worldCount;
+  const worldLabel = alphaMu2 ? "active worlds" : "sampled worlds";
   const recommendationSummary = noWorldSearch
     ? bound?.summary || "Only legal card | no world search needed"
-    : `${analysis.winningWorlds}/${worldCount} sampled worlds | ${bestOptions} best option${bestOptions === 1 ? "" : "s"}`;
+    : alphaMu2
+      ? `${analysis.winningWorlds}/${worldCount} active worlds | ${reservoirCount} reservoir | ${bestOptions} best option${bestOptions === 1 ? "" : "s"}`
+      : `${analysis.winningWorlds}/${worldCount} sampled worlds | ${bestOptions} best option${bestOptions === 1 ? "" : "s"}`;
   return `
     <div class="recommendation">
-      <span>Recommended card</span>
+      <span>${alphaMu2 ? "AlphaMu2 recommended card" : "Recommended card"}</span>
       <strong>${escapeHtml(analysis.bestMove)}</strong>
       <p>${recommendationSummary}</p>
     </div>
@@ -698,8 +824,10 @@ function analysisMarkup(analysis) {
       <span>${formatMs(analysis.searchMs)} search</span>
       <span>${formatMs(analysis.samplingMs)} sampling</span>
       <span>${formatNumber(analysis.possibleDeals)} possible deals</span>
+      ${alphaMu2 ? `<span>${formatNumber(reservoirCount)} reservoir worlds</span><span>${formatNumber(analysis.alphaMu2?.stats?.counterexamplesAdded || 0)} counterexamples</span>` : ""}
     </div>
-    <div class="analysis-subhead"><h3>Root cards</h3><small>Open a card for world details</small></div>
+    ${alphaMu2ReportMarkup(analysis)}
+    <div class="analysis-subhead"><h3>Root cards</h3><small>Open a card for ${worldLabel} details</small></div>
     <div class="move-list">
       ${rootMoves.map((move) => {
         const status = moveStatus(move, analysis);
@@ -727,26 +855,29 @@ function analysisMarkup(analysis) {
       <div><dt>Quick tricks</dt><dd>${formatNumber(analysis.stats.quickTrickCuts || 0)}</dd></div>
     </dl>`;
 }
-
 function analysisDockMarkup(analysis) {
   const rootMoves = analysis.rootMoves || [];
   const forced = isForcedAnalysis(analysis);
   const bound = preSamplingBound(analysis);
+  const alphaMu2 = isAlphaMu2Analysis(analysis);
   const bestScore = Math.max(0, ...rootMoves.map((move) => move.winningWorlds));
   const bestOptions = rootMoves.filter((move) => move.winningWorlds === bestScore).length;
   const worldCount = analysis.sampledWorlds?.length || Number(elements.worlds.value);
+  const reservoirCount = analysis.alphaMu2?.stats?.reservoirWorlds || worldCount;
   const display = suitDisplay[analysis.bestMove?.[0]];
   const outcomeSummary = forced || bound
     ? bound?.score || "No world search needed"
-    : `${analysis.winningWorlds}/${worldCount} worlds${bestOptions > 1 ? ` | ${bestOptions} tied` : ""}`;
+    : alphaMu2
+      ? `${analysis.winningWorlds}/${worldCount} active | ${reservoirCount} reservoir${bestOptions > 1 ? ` | ${bestOptions} tied` : ""}`
+      : `${analysis.winningWorlds}/${worldCount} worlds${bestOptions > 1 ? ` | ${bestOptions} tied` : ""}`;
+  const label = bound?.label || (forced ? "Only legal card" : alphaMu2 ? "AlphaMu2 suggestion" : "Suggested play");
   return `<button class="analysis-recommendation" data-open-inspector type="button">
     <span class="recommendation-card suit-${display?.className || "spades"}">${analysis.bestMove ? cardFaceMarkup(analysis.bestMove) : "-"}</span>
-    <span class="recommendation-copy"><small>${bound?.label || (forced ? "Only legal card" : "Suggested play")}</small><strong>${escapeHtml(analysis.bestMove)}</strong><span>${outcomeSummary}</span></span>
+    <span class="recommendation-copy"><small>${label}</small><strong>${escapeHtml(analysis.bestMove)}</strong><span>${outcomeSummary}</span></span>
     <span class="recommendation-stats"><b>${bound?.label || (forced ? "Forced" : `M${analysis.stats.completedDepth}`)}</b><small>${formatMs(analysis.searchMs)}</small></span>
     <span class="inspector-chevron" aria-hidden="true">&#8250;</span>
   </button>`;
 }
-
 function layoutBatchTabsMarkup() {
   if (!activeLayoutBatch) return "";
   const completed = activeLayoutBatch.results.filter((entry) => entry.result).length;
@@ -901,7 +1032,7 @@ function policyResponseMarkup(policy, trick) {
 
 function policyTrickCardMarkup(play) {
   const display = suitDisplay[play.card?.[0]];
-  const action = play.source === "alpha-mu" ? "chosen" : play.source || "played";
+  const action = play.source === "alpha-mu" || play.source === "alpha-mu2" ? "chosen" : play.source || "played";
   return `<div class="policy-trick-play" data-trick-seat="${escapeHtml(play.seat)}">
     <span class="policy-review-card suit-${display?.className || "spades"}">${cardFaceMarkup(play.card)}</span>
     <small>${escapeHtml(play.seat?.[0] || "?")} | ${escapeHtml(action)}</small>
@@ -956,7 +1087,7 @@ function renderAnalysisInspector() {
       <div class="recommendation full-result">
         <span>Bot continuation complete</span>
         <strong>${result.state.score.ns}-${result.state.score.ew}</strong>
-        <p>${analyses.length} alpha-mu decisions | ${result.plays.length} cards | ${formatMs(result.totalMs)}</p>
+        <p>${analyses.length} bot decisions | ${result.plays.length} cards | ${formatMs(result.totalMs)}</p>
       </div>
       <dl class="stat-grid">
         <div><dt>Search time</dt><dd>${formatMs(totals.searchMs)}</dd></div>
@@ -1050,13 +1181,28 @@ function selectLayoutResult(index) {
   renderTable();
 }
 
+function analysisWorldSummary(analysis, settings = {}) {
+  const activeWorlds = analysis?.sampledWorlds?.length || settings.alphaMu2MaxWorlds || settings.worlds || 0;
+  if (isAlphaMu2Analysis(analysis) || settings.engine === "alpha-mu2") {
+    const reservoir = analysis?.alphaMu2?.stats?.reservoirWorlds || settings.alphaMu2ReservoirWorlds || activeWorlds;
+    return `${analysis?.winningWorlds ?? 0}/${activeWorlds} active | ${reservoir} reservoir`;
+  }
+  return `${analysis?.winningWorlds ?? 0}/${activeWorlds} worlds`;
+}
+
+function runSettingsDescription(settings = {}) {
+  if ((settings.engine || "alpha-mu") === "alpha-mu2") {
+    return `AlphaMu2, ${settings.alphaMu2MaxWorlds}/${settings.alphaMu2ReservoirWorlds} worlds, max M=${settings.depth}, target ${settings.target}, ${settings.timeLimit}s.`;
+  }
+  return `Alpha-mu, ${settings.worlds} worlds, max M=${settings.depth}, target ${settings.target}, ${settings.timeLimit}s.`;
+}
 function runSummary(run) {
   const date = new Date(run.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
   const full = run.mode === "full";
   const headline = full ? `${run.result.state.score.ns}-${run.result.state.score.ew}` : run.result.analysis.bestMove;
   const detail = full
     ? `${run.result.analyses.length} decisions | ${formatMs(run.result.totalMs)}`
-    : `${run.result.analysis.winningWorlds}/${run.settings.worlds} worlds | ${formatMs(run.result.analysis.searchMs)}`;
+    : `${analysisWorldSummary(run.result.analysis, run.settings)} | ${formatMs(run.result.analysis.searchMs)}`;
   return `
     <details class="run-card">
       <summary>
@@ -1066,7 +1212,7 @@ function runSummary(run) {
         <small>${escapeHtml(detail)} | ${date}</small>
       </summary>
       <div class="run-detail">
-        <p><strong>Settings:</strong> ${run.settings.worlds} worlds, max M=${run.settings.depth}, target ${run.settings.target}, ${run.settings.timeLimit}s.</p>
+        <p><strong>Settings:</strong> ${runSettingsDescription(run.settings)}</p>
         <div class="run-actions">
           ${full ? `<button class="button secondary compact" data-review-run="${run.id}" type="button">Review on table</button>` : `<button class="button secondary compact" data-open-analysis-run="${run.id}" type="button">Open analysis</button>`}
         </div>
@@ -1341,7 +1487,7 @@ async function analyzePosition() {
     showAnalysis(result.analysis, true);
     saveRun({ mode: "decision", deal: currentDeal, settings, result });
     renderRuns();
-    toast(`Alpha-mu recommends ${result.analysis.bestMove}`, "success");
+    toast(`${settings.engine === "alpha-mu2" ? "AlphaMu2" : "Alpha-mu"} recommends ${result.analysis.bestMove}`, "success");
   } finally {
     setBusy(false);
     renderTable();
@@ -1453,6 +1599,11 @@ for (const dialog of [elements.dealDialog, elements.settingsDialog, elements.ana
     if (event.target === dialog) dialog.close();
   });
 }
+
+elements.engineChoice.addEventListener("change", () => {
+  syncEngineSettingsVisibility();
+  renderSettingsSummary();
+});
 
 byId("apply-settings").addEventListener("click", () => {
   renderSettingsSummary();
@@ -1841,6 +1992,7 @@ function syncAnalysisToTimeline() {
   renderFullResult();
 }
 
+syncEngineSettingsVisibility();
 renderSettingsSummary();
 renderSavedDeals();
 renderRuns();

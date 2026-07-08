@@ -231,9 +231,25 @@
         </header>
         <div class="dialog-body">
           <div class="settings-grid">
-            <label class="field"><span>Worlds</span><input id="world-count" type="number" min="1" max="64" value="30"></label>
+            <label class="field"><span>Engine</span><select id="engine-choice"><option value="alpha-mu" selected>Alpha-mu</option><option value="alpha-mu2">Alpha-mu2</option></select></label>
             <label class="field"><span>Maximum M</span><input id="max-depth" type="number" min="1" max="26" value="26"></label>
             <label class="field"><span>Time limit</span><div class="input-suffix"><input id="time-limit" type="number" min="0" step="0.5" value="5"><span>s</span></div></label>
+          </div>
+          <div class="settings-engine-block" id="alpha-mu-settings">
+            <p class="micro-label">Alpha-mu</p>
+            <div class="settings-grid">
+              <label class="field"><span>Sampled worlds</span><input id="world-count" type="number" min="1" max="64" value="30"></label>
+            </div>
+          </div>
+          <div class="settings-engine-block is-hidden" id="alpha-mu2-settings">
+            <p class="micro-label">Alpha-mu2</p>
+            <div class="settings-grid">
+              <label class="field"><span>Reservoir worlds</span><input id="alpha-mu2-reservoir-worlds" type="number" min="1" max="512" value="256"></label>
+              <label class="field"><span>Initial active</span><input id="alpha-mu2-initial-worlds" type="number" min="1" max="64" value="30"></label>
+              <label class="field"><span>Max active</span><input id="alpha-mu2-max-worlds" type="number" min="1" max="64" value="30"></label>
+              <label class="field"><span>Refinement rounds</span><input id="alpha-mu2-refinement-rounds" type="number" min="0" max="12" value="2"></label>
+              <label class="field"><span>Counterexamples / round</span><input id="alpha-mu2-counterexamples" type="number" min="0" max="16" value="3"></label>
+            </div>
           </div>
           <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>
         </div>

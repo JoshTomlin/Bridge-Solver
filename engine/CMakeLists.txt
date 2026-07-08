@@ -97,7 +97,7 @@ if (EMSCRIPTEN)
         "-sMODULARIZE=1"
         "-sEXPORT_ES6=1"
         "-sEXPORT_NAME=createBridgeEngine"
-        "-sENVIRONMENT=worker"
+        "-sENVIRONMENT=web,worker,node"
         "-sINITIAL_MEMORY=67108864"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sNO_EXIT_RUNTIME=1"

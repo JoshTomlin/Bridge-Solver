@@ -31,14 +31,34 @@ async function loadEngine() {
 }
 
 function analyze(settings) {
-  const result = parseResult(engine.analyze(
-    settings.worlds,
-    settings.depth,
-    settings.target,
-    settings.seed,
-    settings.timeLimit
-  ));
+  const engineName = settings.engine || "alpha-mu";
+  let result;
+  if (engineName === "alpha-mu2") {
+    if (typeof engine.analyze2 !== "function") {
+      throw new Error("AlphaMu2 needs a rebuilt WebAssembly engine. Run .\\build-wasm.ps1 after these source changes.");
+    }
+    result = parseResult(engine.analyze2(
+      settings.alphaMu2ReservoirWorlds,
+      settings.alphaMu2InitialWorlds,
+      settings.alphaMu2MaxWorlds,
+      settings.alphaMu2RefinementRounds,
+      settings.alphaMu2CounterexamplesPerRound,
+      settings.depth,
+      settings.target,
+      settings.seed,
+      settings.timeLimit
+    ));
+  } else {
+    result = parseResult(engine.analyze(
+      settings.worlds,
+      settings.depth,
+      settings.target,
+      settings.seed,
+      settings.timeLimit
+    ));
+  }
   result.analysis.targetTricks = settings.target;
+  result.analysis.engine = result.analysis.engine || engineName;
   return result;
 }
 
@@ -106,7 +126,7 @@ async function runFull(settings) {
         analyses.push({ ...result.analysis, atCard: cardNumber, turn: current.turn });
         currentAnalysisIndex = analyses.length - 1;
         card = result.analysis.bestMove;
-        source = "alpha-mu";
+        source = settings.engine === "alpha-mu2" ? "alpha-mu2" : "alpha-mu";
       }
     } else {
       card = parseResult(engine.ddsMove(settings.defenderHoldOrder || "SHDC")).card;

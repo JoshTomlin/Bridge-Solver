@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace bridge {
 namespace {
@@ -166,6 +167,16 @@ std::string cards_json(Hand cards) {
     return output.str();
 }
 
+std::string card_vector_json(const std::vector<Card>& cards) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < cards.size(); ++index) {
+        if (index != 0) output << ',';
+        output << json_quote(to_string(cards[index]));
+    }
+    output << ']';
+    return output.str();
+}
 std::string world_indices_json(WorldMask worlds, std::size_t world_count) {
     std::ostringstream output;
     output << '[';
@@ -180,6 +191,21 @@ std::string world_indices_json(WorldMask worlds, std::size_t world_count) {
     return output.str();
 }
 
+std::string mapped_world_indices_json(
+    WorldMask worlds,
+    const std::vector<std::size_t>& reservoir_indices) {
+    std::ostringstream output;
+    output << '[';
+    bool first = true;
+    for (std::size_t world = 0; world < reservoir_indices.size(); ++world) {
+        if ((worlds & (WorldMask {1} << world)) == 0) continue;
+        if (!first) output << ',';
+        output << reservoir_indices[world];
+        first = false;
+    }
+    output << ']';
+    return output.str();
+}
 std::string policy_json(
     const std::shared_ptr<const AlphaMuPolicyNode>& node,
     std::size_t world_count) {
@@ -213,6 +239,77 @@ std::string policy_json(
     return output.str();
 }
 
+std::string root_moves_json(
+    const std::vector<AlphaMuRootMove>& root_moves,
+    std::size_t world_count) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < root_moves.size(); ++index) {
+        if (index != 0) output << ',';
+        const AlphaMuRootMove& move = root_moves[index];
+        output << "{\"card\":" << json_quote(to_string(move.move))
+               << ",\"winningWorlds\":" << move.winning_worlds
+               << ",\"paretoVectors\":" << move.pareto_vectors
+               << ",\"outcomes\":[";
+        for (std::size_t vector = 0; vector < move.front.vectors.size(); ++vector) {
+            if (vector != 0) output << ',';
+            output << world_indices_json(
+                move.front.vectors[vector].wins, world_count);
+        }
+        output << "]}";
+    }
+    output << ']';
+    return output.str();
+}
+
+std::string root_moves_json(
+    const std::vector<AlphaMuRootMove>& root_moves,
+    const std::vector<std::size_t>& reservoir_indices) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < root_moves.size(); ++index) {
+        if (index != 0) output << ',';
+        const AlphaMuRootMove& move = root_moves[index];
+        output << "{\"card\":" << json_quote(to_string(move.move))
+               << ",\"winningWorlds\":" << move.winning_worlds
+               << ",\"paretoVectors\":" << move.pareto_vectors
+               << ",\"outcomes\":[";
+        for (std::size_t vector = 0; vector < move.front.vectors.size(); ++vector) {
+            if (vector != 0) output << ',';
+            output << world_indices_json(
+                move.front.vectors[vector].wins, reservoir_indices.size());
+        }
+        output << "],\"reservoirOutcomes\":[";
+        for (std::size_t vector = 0; vector < move.front.vectors.size(); ++vector) {
+            if (vector != 0) output << ',';
+            output << mapped_world_indices_json(
+                move.front.vectors[vector].wins, reservoir_indices);
+        }
+        output << "]}";
+    }
+    output << ']';
+    return output.str();
+}
+
+std::string sampled_worlds_json(
+    const std::vector<AlphaMuWorld>& worlds,
+    const std::vector<std::size_t>* reservoir_indices = nullptr) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < worlds.size(); ++index) {
+        if (index != 0) output << ',';
+        const Deal& deal = worlds[index].position.deal;
+        output << "{\"index\":" << index;
+        if (reservoir_indices != nullptr) {
+            output << ",\"reservoirIndex\":" << (*reservoir_indices)[index];
+        }
+        output << ",\"east\":" << hand_json(hand_of(deal, Seat::East))
+               << ",\"west\":" << hand_json(hand_of(deal, Seat::West))
+               << '}';
+    }
+    output << ']';
+    return output.str();
+}
 std::string state_json(const AnalysisSession& session) {
     const Position& position = session.position();
     const bool finished = is_deal_finished(position);
@@ -298,41 +395,168 @@ std::string stats_json(const AlphaMuSearchStats& stats) {
 std::string analysis_json(const SessionAnalysis& analysis) {
     std::ostringstream output;
     output << "{\"bestMove\":" << json_quote(to_string(analysis.search.best_move))
+           << ",\"engine\":\"alpha-mu\""
            << ",\"winningWorlds\":"
            << best_winning_world_count(analysis.search.front)
            << ",\"possibleDeals\":" << analysis.possible_deals
            << ",\"uniqueWorlds\":" << analysis.unique_worlds
            << ",\"samplingMs\":" << analysis.sampling_ms
            << ",\"searchMs\":" << analysis.search_ms
-           << ",\"rootMoves\":[";
-    for (std::size_t index = 0; index < analysis.search.root_moves.size(); ++index) {
-        if (index != 0) output << ',';
-        const AlphaMuRootMove& move = analysis.search.root_moves[index];
-        output << "{\"card\":" << json_quote(to_string(move.move))
-               << ",\"winningWorlds\":" << move.winning_worlds
-               << ",\"paretoVectors\":" << move.pareto_vectors
-               << ",\"outcomes\":[";
-        for (std::size_t vector = 0; vector < move.front.vectors.size(); ++vector) {
-            if (vector != 0) output << ',';
-            output << world_indices_json(
-                move.front.vectors[vector].wins, analysis.worlds.size());
-        }
-        output << "]}";
-    }
-    output << "],\"sampledWorlds\":[";
-    for (std::size_t index = 0; index < analysis.worlds.size(); ++index) {
-        if (index != 0) output << ',';
-        const Deal& deal = analysis.worlds[index].position.deal;
-        output << "{\"index\":" << index
-               << ",\"east\":" << hand_json(hand_of(deal, Seat::East))
-               << ",\"west\":" << hand_json(hand_of(deal, Seat::West)) << '}';
-    }
-    output << "],\"policy\":"
+           << ",\"rootMoves\":"
+           << root_moves_json(analysis.search.root_moves, analysis.worlds.size())
+           << ",\"sampledWorlds\":"
+           << sampled_worlds_json(analysis.worlds)
+           << ",\"policy\":"
            << policy_json(analysis.search.trick_policy, analysis.worlds.size())
            << ",\"stats\":" << stats_json(analysis.search.stats) << '}';
     return output.str();
 }
 
+std::string alpha_mu2_stats_json(const AlphaMu2Stats& stats) {
+    std::ostringstream output;
+    output << "{\"reservoirWorlds\":" << stats.reservoir_worlds
+           << ",\"distinctScreeningVectors\":" << stats.distinct_screening_vectors
+           << ",\"initialWorlds\":" << stats.initial_worlds
+           << ",\"finalWorlds\":" << stats.final_worlds
+           << ",\"searchRuns\":" << stats.search_runs
+           << ",\"refinementRounds\":" << stats.refinement_rounds
+           << ",\"reserveWorldsChecked\":" << stats.reserve_worlds_checked
+           << ",\"counterexamplesFound\":" << stats.counterexamples_found
+           << ",\"counterexamplesAdded\":" << stats.counterexamples_added
+           << ",\"policyDdsLeaves\":" << stats.policy_dds_leaves
+           << ",\"stoppedByTime\":"
+           << (stats.stopped_by_time_limit ? "true" : "false")
+           << ",\"screeningMs\":" << stats.screening_ms
+           << ",\"selectionMs\":" << stats.selection_ms
+           << ",\"searchMs\":" << stats.search_ms
+           << ",\"validationMs\":" << stats.validation_ms
+           << ",\"totalMs\":" << stats.total_ms << '}';
+    return output.str();
+}
+
+std::string size_vector_json(const std::vector<std::size_t>& values) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) output << ',';
+        output << values[index];
+    }
+    output << ']';
+    return output.str();
+}
+
+std::string alpha_mu2_screening_json(const AlphaMu2Result& result) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < result.screening.size(); ++index) {
+        if (index != 0) output << ',';
+        const AlphaMu2ScreeningVector& screening = result.screening[index];
+        output << "{\"reservoirIndex\":" << index
+               << ",\"futureTricks\":[";
+        for (std::size_t score = 0; score < screening.future_tricks.size(); ++score) {
+            if (score != 0) output << ',';
+            output << static_cast<int>(screening.future_tricks[score]);
+        }
+        output << "],\"makingMoves\":" << cards_json(screening.making_moves)
+               << ",\"equivalentWorlds\":" << screening.equivalent_worlds
+               << '}';
+    }
+    output << ']';
+    return output.str();
+}
+
+std::string alpha_mu2_candidates_json(
+    const std::vector<AlphaMu2CounterexampleTrace>& candidates) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < candidates.size(); ++index) {
+        if (index != 0) output << ',';
+        const AlphaMu2CounterexampleTrace& candidate = candidates[index];
+        output << "{\"reservoirIndex\":" << candidate.reservoir_index
+               << ",\"unsupportedObservation\":"
+               << (candidate.unsupported_observation ? "true" : "false")
+               << ",\"rootRegret\":" << static_cast<int>(candidate.root_regret)
+               << ",\"distanceFromActive\":" << candidate.distance_from_active
+               << ",\"selected\":"
+               << (candidate.selected ? "true" : "false")
+               << ",\"replacedReservoirIndex\":";
+        if (candidate.replaced_reservoir_index.has_value()) {
+            output << *candidate.replaced_reservoir_index;
+        } else {
+            output << "null";
+        }
+        output << '}';
+    }
+    output << ']';
+    return output.str();
+}
+
+std::string alpha_mu2_rounds_json(const AlphaMu2Result& result) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < result.rounds.size(); ++index) {
+        if (index != 0) output << ',';
+        const AlphaMu2RoundTrace& round = result.rounds[index];
+        output << "{\"round\":" << round.round
+               << ",\"activeReservoirIndices\":"
+               << size_vector_json(round.active_reservoir_indices)
+               << ",\"searchMs\":" << round.search_ms
+               << ",\"bestMove\":" << json_quote(to_string(round.search.best_move))
+               << ",\"winningWorlds\":"
+               << best_winning_world_count(round.search.front)
+               << ",\"completedDepth\":"
+               << static_cast<int>(round.search.stats.completed_depth)
+               << ",\"rootMoves\":"
+               << root_moves_json(
+                   round.search.root_moves,
+                   round.active_reservoir_indices)
+               << ",\"candidates\":"
+               << alpha_mu2_candidates_json(round.candidates)
+               << '}';
+    }
+    output << ']';
+    return output.str();
+}
+
+std::string analysis2_json(const AlphaMu2SessionAnalysis& analysis) {
+    const AlphaMu2Result& result = analysis.search;
+    const AlphaMuResult& search = result.search;
+    std::ostringstream output;
+    output << "{\"bestMove\":" << json_quote(to_string(search.best_move))
+           << ",\"engine\":\"alpha-mu2\""
+           << ",\"winningWorlds\":" << best_winning_world_count(search.front)
+           << ",\"possibleDeals\":" << analysis.possible_deals
+           << ",\"uniqueWorlds\":" << analysis.unique_reservoir_worlds
+           << ",\"uniqueReservoirWorlds\":"
+           << analysis.unique_reservoir_worlds
+           << ",\"samplingMs\":" << analysis.sampling_ms
+           << ",\"searchMs\":" << result.stats.total_ms
+           << ",\"rootMoves\":"
+           << root_moves_json(search.root_moves, result.worlds.size())
+           << ",\"sampledWorlds\":"
+           << sampled_worlds_json(
+               result.worlds,
+               &result.active_reservoir_indices)
+           << ",\"policy\":"
+           << policy_json(search.trick_policy, result.worlds.size())
+           << ",\"stats\":" << stats_json(search.stats)
+           << ",\"alphaMu2\":{\"stats\":"
+           << alpha_mu2_stats_json(result.stats)
+           << ",\"screeningMoves\":"
+           << card_vector_json(result.screening_moves)
+           << ",\"screening\":"
+           << alpha_mu2_screening_json(result)
+           << ",\"activeReservoirIndices\":"
+           << size_vector_json(result.active_reservoir_indices)
+           << ",\"counterexampleIndices\":"
+           << size_vector_json(result.counterexample_indices)
+           << ",\"reservoirWorlds\":"
+           << sampled_worlds_json(result.reservoir)
+           << ",\"rounds\":"
+           << alpha_mu2_rounds_json(result)
+           << "}}";
+    return output.str();
+}
 std::string error_json(const std::exception& error) {
     return "{\"ok\":false,\"error\":" + json_quote(error.what()) + '}';
 }
@@ -421,6 +645,40 @@ public:
         }
     }
 
+    std::string analyze2(
+        std::size_t reservoir_worlds,
+        std::size_t initial_worlds,
+        std::size_t max_worlds,
+        std::size_t refinement_rounds,
+        std::size_t counterexamples_per_round,
+        std::uint8_t depth,
+        std::uint8_t target,
+        const std::string& seed,
+        double max_seconds) {
+        try {
+            require_session();
+            BotSettings settings = session_->settings();
+            settings.world_count = max_worlds;
+            settings.max_declarer_plies = depth;
+            settings.target_tricks = target;
+            settings.random_seed = std::stoull(seed);
+            settings.max_search_seconds = max_seconds;
+            settings.compare_all_root_moves = true;
+            session_->set_settings(settings);
+            const AlphaMu2SessionAnalysis result = session_->analyze2(
+                AlphaMu2SessionSettings {
+                    .reservoir_world_count = reservoir_worlds,
+                    .initial_active_worlds = initial_worlds,
+                    .max_active_worlds = max_worlds,
+                    .max_refinement_rounds = refinement_rounds,
+                    .counterexamples_per_round = counterexamples_per_round,
+                });
+            return "{\"ok\":true,\"analysis\":" + analysis2_json(result) +
+                ",\"state\":" + state_json(*session_) + '}';
+        } catch (const std::exception& error) {
+            return error_json(error);
+        }
+    }
     std::string play(const std::string& card_text) {
         try {
             require_session();
@@ -499,6 +757,7 @@ EMSCRIPTEN_BINDINGS(bridge_solver_browser) {
         .function("setRestrictions", &bridge::BrowserBridgeEngine::set_restrictions)
         .function("state", &bridge::BrowserBridgeEngine::state)
         .function("analyze", &bridge::BrowserBridgeEngine::analyze)
+        .function("analyze2", &bridge::BrowserBridgeEngine::analyze2)
         .function("play", &bridge::BrowserBridgeEngine::play)
         .function("undo", &bridge::BrowserBridgeEngine::undo)
         .function("replay", &bridge::BrowserBridgeEngine::replay)

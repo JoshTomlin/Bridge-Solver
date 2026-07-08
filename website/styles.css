@@ -483,6 +483,24 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
 .field-help, .muted-copy, .settings-note { color: var(--muted); font-size: 0.68rem; line-height: 1.5; }
 .field-help { margin: 10px 0 0; }
 .settings-note { margin: 18px 0 0; padding: 11px; background: #f1ece1; border-radius: 9px; }
+.settings-engine-block { margin-top: 14px; padding: 12px; background: #f1ece1; border: 1px solid #ddd4c5; border-radius: 11px; }
+.settings-engine-block .micro-label { margin-bottom: 8px; }
+.alpha2-report { margin: 12px 0; overflow: hidden; background: #eee8dc; border: 1px solid #d2c8b7; border-radius: 12px; }
+.alpha2-report > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; color: var(--forest); cursor: pointer; list-style: none; }
+.alpha2-report > summary::-webkit-details-marker { display: none; }
+.alpha2-report > summary strong { font-family: "Fraunces", serif; font-size: 1rem; }
+.alpha2-report > summary span { color: var(--muted); font-size: 0.58rem; font-weight: 700; text-align: right; }
+.alpha2-stat-grid { margin: 0 11px 10px; }
+.alpha2-subreport { margin: 10px 11px; padding: 10px; background: #fffaf0; border: 1px solid #ded4c3; border-radius: 10px; }
+.alpha2-subreport h3 { margin: 0 0 6px; color: var(--forest-deep); font-size: 0.86rem; }
+.fingerprint-table, .round-list, .alpha2-chip-grid { display: grid; gap: 6px; }
+.fingerprint-row, .round-row { display: grid; gap: 2px; padding: 7px 8px; background: #f4efe4; border: 1px solid #e0d6c4; border-radius: 8px; }
+.fingerprint-row strong, .round-row strong { color: var(--forest); font-size: 0.68rem; }
+.fingerprint-row span, .round-row span { color: #59635e; font-size: 0.6rem; font-weight: 700; }
+.fingerprint-row small, .round-row small { color: var(--muted); font-size: 0.55rem; line-height: 1.35; }
+.round-row.is-selected { border-color: #d7ad57; background: #fbf1d7; }
+.alpha2-chip-grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
+.alpha2-chip-grid span { padding: 5px 7px; color: #53605a; background: #e7eee9; border-radius: 999px; font-size: 0.55rem; font-weight: 700; }
 .knowledge-panel { margin-top: 8px; overflow: hidden; border: 1px solid #c6d2cc; border-radius: 11px; background: #f4f7f2; }
 .knowledge-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; color: var(--forest); border-bottom: 1px solid #d4ddd8; }
 .knowledge-heading strong { font-size: 0.76rem; }
