@@ -1,6 +1,7 @@
 #include "bridge/alpha_mu2.h"
 
 #include "bridge/dds_solver.h"
+#include "bridge/quick_tricks.h"
 
 #include <algorithm>
 #include <chrono>
@@ -36,6 +37,30 @@ std::uint8_t partnership_score(const Position& position, Seat declarer) {
         : position.score.east_west;
 }
 
+std::uint8_t remaining_tricks(const Position& position) {
+    std::uint16_t cards = position.current_trick.card_count;
+    for (const Hand hand : position.deal.hands) {
+        cards = static_cast<std::uint16_t>(cards + card_count(hand));
+    }
+    return cards % 4 == 0 ? static_cast<std::uint8_t>(cards / 4) : 0;
+}
+
+WorldMask first_worlds_mask(std::size_t count) {
+    return count >= 64 ? ~WorldMask {0} : (WorldMask {1} << count) - 1;
+}
+
+std::vector<std::size_t> first_reservoir_indices(
+    const std::vector<AlphaMuWorld>& reservoir,
+    std::size_t maximum) {
+    const std::size_t count = std::min({reservoir.size(), maximum, std::size_t {64}});
+    std::vector<std::size_t> indices;
+    indices.reserve(count);
+    for (std::size_t index = 0; index < count; ++index) {
+        indices.push_back(index);
+    }
+    return indices;
+}
+
 std::vector<Card> cards_in_bridge_order(Hand cards) {
     std::vector<Card> result;
     result.reserve(card_count(cards));
@@ -49,6 +74,69 @@ std::vector<Card> cards_in_bridge_order(Hand cards) {
         }
     }
     return result;
+}
+
+Hand representative_move_mask(
+    const Position& position,
+    Hand legal_moves,
+    bool collapse_equivalents,
+    std::size_t* skipped = nullptr) {
+    if (!collapse_equivalents) {
+        if (skipped) *skipped = 0;
+        return legal_moves;
+    }
+
+    Hand representatives = kEmptyHand;
+    std::size_t skipped_count = 0;
+    const Seat player = next_to_play(position.current_trick);
+    const std::vector<Hand> groups = equivalent_play_groups(
+        position.current_trick,
+        legal_moves,
+        hand_of(position.deal, player),
+        position.played_cards);
+    for (const Hand group : groups) {
+        const std::vector<Card> ordered = cards_in_bridge_order(group);
+        if (ordered.empty()) continue;
+        representatives = add_card(representatives, ordered.front());
+        skipped_count += card_count(group) - 1;
+    }
+    if (skipped) *skipped = skipped_count;
+    return representatives;
+}
+
+std::size_t screening_index_for_move(
+    const std::vector<Card>& screening_moves,
+    const Position& root,
+    Card move,
+    bool collapse_equivalents) {
+    const auto exact = std::find(
+        screening_moves.begin(), screening_moves.end(), move);
+    if (exact != screening_moves.end()) {
+        return static_cast<std::size_t>(exact - screening_moves.begin());
+    }
+    if (!collapse_equivalents || move == kNoCard) {
+        return screening_moves.size();
+    }
+
+    const Seat player = next_to_play(root.current_trick);
+    const Hand legal = legal_plays(root.current_trick, hand_of(root.deal, player));
+    const std::vector<Hand> groups = equivalent_play_groups(
+        root.current_trick,
+        legal,
+        hand_of(root.deal, player),
+        root.played_cards);
+    for (const Hand group : groups) {
+        if (!contains(group, move)) continue;
+        const std::vector<Card> ordered = cards_in_bridge_order(group);
+        if (ordered.empty()) break;
+        const auto representative = std::find(
+            screening_moves.begin(), screening_moves.end(), ordered.front());
+        if (representative != screening_moves.end()) {
+            return static_cast<std::size_t>(representative - screening_moves.begin());
+        }
+        break;
+    }
+    return screening_moves.size();
 }
 
 std::size_t fingerprint_distance(
@@ -280,13 +368,11 @@ std::vector<CounterexampleCandidate> find_counterexamples(
     const AlphaMuConfig& search_config,
     AlphaMu2Stats& stats) {
     std::set<std::size_t> active_set(active.begin(), active.end());
-    const auto chosen_move = std::find(
-        result.screening_moves.begin(),
-        result.screening_moves.end(),
-        result.search.best_move);
-    const std::size_t chosen_index = chosen_move == result.screening_moves.end()
-        ? result.screening_moves.size()
-        : static_cast<std::size_t>(chosen_move - result.screening_moves.begin());
+    const std::size_t chosen_index = screening_index_for_move(
+        result.screening_moves,
+        reservoir.front().position,
+        result.search.best_move,
+        search_config.optimizations.max_equivalent_cards);
     const WorldMask known_policy_wins = result.search.trick_policy
         ? result.search.trick_policy->outcome.wins
         : 0;
@@ -445,7 +531,104 @@ AlphaMu2Result alpha_mu2_search(
     AlphaMu2Result result;
     result.stats.reservoir_worlds = reservoir.size();
     result.reservoir = reservoir;
-    result.screening_moves = cards_in_bridge_order(legal);
+    std::size_t equivalent_screening_moves_skipped = 0;
+    const Hand screening_legal = representative_move_mask(
+        root,
+        legal,
+        config.search.optimizations.max_equivalent_cards,
+        &equivalent_screening_moves_skipped);
+    result.stats.equivalent_screening_moves_skipped =
+        equivalent_screening_moves_skipped;
+    result.screening_moves = cards_in_bridge_order(screening_legal);
+
+    auto finish_without_screening = [&](AlphaMuResult search, bool keep_active_worlds) {
+        result.search = std::move(search);
+        if (keep_active_worlds) {
+            result.active_reservoir_indices =
+                first_reservoir_indices(reservoir, config.max_world_count);
+            result.worlds = gather_worlds(reservoir, result.active_reservoir_indices);
+            result.stats.initial_worlds = result.worlds.size();
+            result.stats.final_worlds = result.worlds.size();
+        }
+        result.stats.total_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - total_start).count();
+        return result;
+    };
+
+    const std::uint8_t won = partnership_score(root, config.search.declarer);
+    const std::uint8_t remaining = remaining_tricks(root);
+    const bool target_reached = won >= config.search.target_tricks;
+    const bool target_impossible =
+        static_cast<std::uint16_t>(won) + remaining < config.search.target_tricks;
+    if (config.search.optimizations.target_bounds &&
+        (target_reached || target_impossible)) {
+        AlphaMuResult search;
+        const Card move = result.screening_moves.empty()
+            ? kNoCard
+            : result.screening_moves.front();
+        const WorldMask wins = target_reached
+            ? first_worlds_mask(std::min({reservoir.size(), config.max_world_count, std::size_t {64}}))
+            : 0;
+        search.best_move = move;
+        search.front = ParetoFront {.vectors = {OutcomeVector {.wins = wins}}};
+        search.root_moves.push_back(AlphaMuRootMove {
+            .move = move,
+            .winning_worlds = winning_world_count(search.front.vectors.front()),
+            .pareto_vectors = search.front.vectors.size(),
+            .front = search.front,
+        });
+        search.stats.target_reached_cuts = target_reached ? 1 : 0;
+        search.stats.target_impossible_cuts = target_impossible ? 1 : 0;
+        search.stats.completed_iterations = 1;
+        return finish_without_screening(std::move(search), true);
+    }
+
+    if (config.search.optimizations.forced_moves &&
+        is_single_card(screening_legal)) {
+        AlphaMuResult search;
+        search.best_move = screening_legal;
+        search.root_moves.push_back(AlphaMuRootMove {.move = screening_legal});
+        search.stats.forced_root_recommendations = 1;
+        search.stats.equivalent_moves_skipped = equivalent_screening_moves_skipped;
+        search.stats.max_equivalent_moves_skipped = equivalent_screening_moves_skipped;
+        search.stats.completed_iterations = 1;
+        return finish_without_screening(std::move(search), false);
+    }
+
+    if (config.search.optimizations.quick_trick_bounds &&
+        won < config.search.target_tricks) {
+        const std::uint8_t needed = static_cast<std::uint8_t>(
+            config.search.target_tricks - won);
+        const QuickTrickProof proof = prove_declarer_quick_tricks(
+            root,
+            config.search.declarer,
+            needed);
+        if (proof.proven) {
+            AlphaMuResult search;
+            const std::vector<std::size_t> active_indices =
+                first_reservoir_indices(reservoir, config.max_world_count);
+            const WorldMask wins = first_worlds_mask(active_indices.size());
+            search.best_move = proof.first_card;
+            search.front = ParetoFront {.vectors = {OutcomeVector {.wins = wins}}};
+            search.root_moves.push_back(AlphaMuRootMove {
+                .move = proof.first_card,
+                .winning_worlds = winning_world_count(search.front.vectors.front()),
+                .pareto_vectors = search.front.vectors.size(),
+                .front = search.front,
+            });
+            search.stats.quick_trick_probes = 1;
+            search.stats.quick_trick_states = proof.states_examined;
+            search.stats.quick_trick_cuts = 1;
+            search.stats.quick_trick_root_cuts = 1;
+            search.stats.completed_iterations = 1;
+            result.active_reservoir_indices = active_indices;
+            result.worlds = gather_worlds(reservoir, result.active_reservoir_indices);
+            result.stats.initial_worlds = result.worlds.size();
+            result.stats.final_worlds = result.worlds.size();
+            return finish_without_screening(std::move(search), false);
+        }
+    }
+
     std::vector<Position> positions;
     positions.reserve(reservoir.size());
     for (const AlphaMuWorld& world : reservoir) {

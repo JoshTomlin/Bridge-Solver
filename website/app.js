@@ -647,6 +647,7 @@ function alphaMu2ReportMarkup(analysis) {
         <div><dt>Search runs</dt><dd>${formatNumber(stats.searchRuns)}</dd></div>
         <div><dt>Validation</dt><dd>${formatMs(stats.validationMs || 0)}</dd></div>
         <div><dt>Final active</dt><dd>${formatNumber(stats.finalWorlds)}</dd></div>
+        <div><dt>Screening equals</dt><dd>${formatNumber(stats.equivalentScreeningMovesSkipped || 0)}</dd></div>
         <div><dt>Policy leaves</dt><dd>${formatNumber(stats.policyDdsLeaves)}</dd></div>
       </dl>
       <section class="alpha2-subreport">

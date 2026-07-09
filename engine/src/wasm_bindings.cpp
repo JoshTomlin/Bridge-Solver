@@ -416,6 +416,8 @@ std::string alpha_mu2_stats_json(const AlphaMu2Stats& stats) {
     std::ostringstream output;
     output << "{\"reservoirWorlds\":" << stats.reservoir_worlds
            << ",\"distinctScreeningVectors\":" << stats.distinct_screening_vectors
+           << ",\"equivalentScreeningMovesSkipped\":"
+           << stats.equivalent_screening_moves_skipped
            << ",\"initialWorlds\":" << stats.initial_worlds
            << ",\"finalWorlds\":" << stats.final_worlds
            << ",\"searchRuns\":" << stats.search_runs

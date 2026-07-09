@@ -1569,6 +1569,156 @@ void test_alpha_mu2_adds_missing_two_way_guess_counterexample() {
             "refined AlphaMu2 search should preserve the genuine two-way guess");
 }
 
+void test_alpha_mu2_screening_uses_equivalent_representatives() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Ace),
+            bridge::make_card(Suit::Spades, Rank::King),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Queen),
+            bridge::make_card(Suit::Spades, Rank::Jack),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Ten),
+            bridge::make_card(Suit::Spades, Rank::Nine),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Eight),
+            bridge::make_card(Suit::Spades, Rank::Seven),
+        }),
+    }};
+    const bridge::AlphaMuWorld world {.position = bridge::Position {
+        .deal = deal,
+        .current_trick = bridge::Trick {
+            .leader = Seat::North,
+            .trump_suit = Suit::Spades,
+        },
+        .played_cards = bridge::kFullDeck & ~(
+            deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+    }};
+    const std::vector<bridge::AlphaMuWorld> reservoir {world};
+
+    bridge::AlphaMu2Config config {
+        .initial_world_count = 1,
+        .max_world_count = 1,
+        .max_refinement_rounds = 0,
+        .counterexamples_per_round = 0,
+        .search = bridge::AlphaMuConfig {
+            .declarer = Seat::South,
+            .trump_suit = Suit::Spades,
+            .target_tricks = 2,
+            .max_declarer_plies = 1,
+        },
+    };
+    config.search.optimizations.quick_trick_bounds = false;
+    config.search.optimizations.forced_trump_run = false;
+
+    const bridge::AlphaMu2Result result = bridge::alpha_mu2_search(reservoir, config);
+    require(result.screening_moves.size() == 1 &&
+                result.screening_moves.front() ==
+                    bridge::make_card(Suit::Spades, Rank::Ace),
+            "AlphaMu2 screening should compare only the representative of touching equals");
+    require(result.stats.equivalent_screening_moves_skipped == 1,
+            "AlphaMu2 should report the skipped equivalent screening card");
+    require(result.stats.search_runs == 0 &&
+                result.screening.empty() &&
+                result.search.stats.forced_root_recommendations == 1,
+            "one AlphaMu2 screening representative should return before DDS screening");
+
+    config.search.optimizations.max_equivalent_cards = false;
+    const bridge::AlphaMu2Result unmerged = bridge::alpha_mu2_search(reservoir, config);
+    require(unmerged.screening_moves.size() == 2 &&
+                unmerged.stats.equivalent_screening_moves_skipped == 0,
+            "disabling MAX equivalents should restore every physical screening card");
+}
+
+void test_analysis_session_alpha_mu2_skips_sampling_for_forced_root() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Nine),
+            bridge::make_card(Suit::Spades, Rank::Eight),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Two),
+            bridge::make_card(Suit::Hearts, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Three),
+            bridge::make_card(Suit::Hearts, Rank::Three),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Four),
+            bridge::make_card(Suit::Hearts, Rank::Four),
+        }),
+    }};
+    bridge::AnalysisSession session(deal, Seat::North, std::nullopt);
+    bridge::BotSettings settings;
+    settings.target_tricks = 1;
+    settings.max_declarer_plies = 4;
+    settings.world_count = 16;
+    session.set_settings(settings);
+
+    const bridge::AlphaMu2SessionAnalysis analysis = session.analyze2(
+        bridge::AlphaMu2SessionSettings {
+            .reservoir_world_count = 64,
+            .initial_active_worlds = 16,
+            .max_active_worlds = 16,
+        });
+    require(analysis.sampling_ms == 0.0 &&
+                analysis.search.reservoir.empty() &&
+                analysis.search.search.stats.dds_worlds == 0,
+            "AlphaMu2 forced roots should return before reservoir sampling or DDS");
+    require(analysis.search.search.best_move ==
+                bridge::make_card(Suit::Spades, Rank::Nine) &&
+                analysis.search.search.stats.forced_root_recommendations == 1 &&
+                analysis.search.search.stats.max_equivalent_moves_skipped == 1 &&
+                analysis.search.stats.equivalent_screening_moves_skipped == 1,
+            "AlphaMu2 forced roots should keep one equivalent-card representative");
+}
+
+void test_analysis_session_alpha_mu2_uses_quick_tricks_before_sampling() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Ace),
+            bridge::make_card(Suit::Hearts, Rank::Ace),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Two),
+            bridge::make_card(Suit::Hearts, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Diamonds, Rank::Two),
+            bridge::make_card(Suit::Clubs, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Diamonds, Rank::Three),
+            bridge::make_card(Suit::Clubs, Rank::Three),
+        }),
+    }};
+    bridge::AnalysisSession session(deal, Seat::North, std::nullopt);
+    bridge::BotSettings settings;
+    settings.target_tricks = 1;
+    settings.max_declarer_plies = 4;
+    settings.world_count = 16;
+    session.set_settings(settings);
+
+    const bridge::AlphaMu2SessionAnalysis analysis = session.analyze2(
+        bridge::AlphaMu2SessionSettings {
+            .reservoir_world_count = 64,
+            .initial_active_worlds = 16,
+            .max_active_worlds = 16,
+        });
+    require(analysis.sampling_ms == 0.0 &&
+                analysis.search.reservoir.empty() &&
+                analysis.search.search.stats.quick_trick_root_cuts == 1 &&
+                analysis.search.search.stats.dds_worlds == 0,
+            "AlphaMu2 quick-trick roots should return before reservoir sampling or DDS");
+    require(analysis.search.search.best_move ==
+                bridge::make_card(Suit::Spades, Rank::Ace),
+            "the public quick-trick proof should choose the first cashing winner");
+}
+
 void test_alpha_mu_finds_spade_discovery_play() {
     const auto worlds = discovery_play_worlds();
     const bridge::AlphaMuConfig config {
@@ -2164,6 +2314,9 @@ int main() {
         test_alpha_mu_one_ply_returns_legal_declarer_move();
         test_alpha_mu_preserves_two_way_guess();
         test_alpha_mu2_adds_missing_two_way_guess_counterexample();
+        test_alpha_mu2_screening_uses_equivalent_representatives();
+        test_analysis_session_alpha_mu2_skips_sampling_for_forced_root();
+        test_analysis_session_alpha_mu2_uses_quick_tricks_before_sampling();
         test_alpha_mu_finds_spade_discovery_play();
         test_alpha_mu_retains_globally_selected_trick_response();
         test_alpha_mu_exact_four_card_spade_distribution();

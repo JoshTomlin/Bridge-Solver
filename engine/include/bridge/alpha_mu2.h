@@ -30,6 +30,7 @@ struct AlphaMu2ScreeningVector {
 struct AlphaMu2Stats {
     std::size_t reservoir_worlds {};
     std::size_t distinct_screening_vectors {};
+    std::size_t equivalent_screening_moves_skipped {};
     std::size_t initial_worlds {};
     std::size_t final_worlds {};
     std::size_t search_runs {};

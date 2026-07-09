@@ -547,6 +547,106 @@ AlphaMu2SessionAnalysis AnalysisSession::analyze2(
             "AlphaMu2 reservoir world count must be positive");
     }
 
+    const Seat player = next_to_play(position_.current_trick);
+    const Hand legal = legal_plays(
+        position_.current_trick,
+        hand_of(position_.deal, player));
+    const auto fast_start = std::chrono::steady_clock::now();
+    const std::uint8_t won = position_.score.north_south;
+    const std::uint8_t remaining = remaining_tricks(position_);
+    const bool target_reached = won >= settings_.target_tricks;
+    const bool target_impossible =
+        static_cast<std::uint16_t>(won) + remaining < settings_.target_tricks;
+
+    auto finish_fast = [&](AlphaMuResult search) {
+        AlphaMu2SessionAnalysis analysis;
+        analysis.possible_deals = possible_deals();
+        if (analysis.possible_deals == 0) {
+            throw std::logic_error("the public constraints admit no defender layouts");
+        }
+        analysis.search.search = std::move(search);
+        analysis.search.stats.total_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - fast_start).count();
+        policy_.reset();
+        return analysis;
+    };
+
+    if (settings_.optimizations.target_bounds &&
+        (target_reached || target_impossible)) {
+        AlphaMuResult search;
+        const Card move = first_card_in_bridge_order(legal);
+        search.best_move = move;
+        search.root_moves.push_back(AlphaMuRootMove {.move = move});
+        search.stats.target_reached_cuts = target_reached ? 1 : 0;
+        search.stats.target_impossible_cuts = target_impossible ? 1 : 0;
+        search.stats.completed_iterations = 1;
+        if (settings_.collect_audit_log) {
+            search.audit_log = target_reached
+                ? "M=0 target-bound: target already reached\n"
+                : "M=0 target-bound: target is no longer possible\n";
+        }
+        return finish_fast(std::move(search));
+    }
+
+    Card forced_move = is_single_card(legal) ? legal : kNoCard;
+    std::uint64_t equivalent_cards = 0;
+    if (settings_.optimizations.forced_moves &&
+        settings_.optimizations.max_equivalent_cards &&
+        forced_move == kNoCard) {
+        const std::vector<Hand> groups = equivalent_play_groups(
+            position_.current_trick,
+            legal,
+            hand_of(position_.deal, player),
+            position_.played_cards);
+        if (groups.size() == 1) {
+            forced_move = first_card_in_bridge_order(groups.front());
+            equivalent_cards = card_count(groups.front()) - 1;
+        }
+    }
+    if (settings_.optimizations.forced_moves && forced_move != kNoCard) {
+        AlphaMuResult search;
+        search.best_move = forced_move;
+        search.root_moves.push_back(AlphaMuRootMove {.move = forced_move});
+        search.stats.forced_root_recommendations = 1;
+        search.stats.equivalent_moves_skipped = equivalent_cards;
+        search.stats.max_equivalent_moves_skipped = equivalent_cards;
+        search.stats.completed_iterations = 1;
+        if (settings_.collect_audit_log) {
+            search.audit_log =
+                "M=0 forced-moves: root has one legal equivalence class; kept " +
+                to_string(forced_move) + "\n";
+        }
+        AlphaMu2SessionAnalysis analysis = finish_fast(std::move(search));
+        analysis.search.stats.equivalent_screening_moves_skipped = equivalent_cards;
+        return analysis;
+    }
+
+    if (settings_.optimizations.quick_trick_bounds &&
+        won < settings_.target_tricks) {
+        const std::uint8_t needed = static_cast<std::uint8_t>(
+            settings_.target_tricks - won);
+        const QuickTrickProof proof =
+            prove_declarer_quick_tricks(position_, Seat::South, needed);
+        if (proof.proven) {
+            AlphaMuResult search;
+            search.best_move = proof.first_card;
+            search.root_moves.push_back(
+                AlphaMuRootMove {.move = proof.first_card});
+            search.stats.quick_trick_probes = 1;
+            search.stats.quick_trick_states = proof.states_examined;
+            search.stats.quick_trick_cuts = 1;
+            search.stats.quick_trick_root_cuts = 1;
+            search.stats.completed_iterations = 1;
+            if (settings_.collect_audit_log) {
+                search.audit_log =
+                    "M=0 quick-tricks: proved " + std::to_string(needed) +
+                    " consecutive winner(s), starting with " +
+                    to_string(proof.first_card) + "\n";
+            }
+            return finish_fast(std::move(search));
+        }
+    }
+
     SampledWorlds sampled = sample_worlds(settings.reservoir_world_count);
     AlphaMu2SessionAnalysis analysis {
         .possible_deals = sampled.possible_deals,
