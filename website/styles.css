@@ -516,6 +516,8 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
 .knowledge-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; color: var(--forest); border-bottom: 1px solid #d4ddd8; }
 .knowledge-heading strong { font-size: 0.76rem; }
 .knowledge-heading small { color: var(--muted); font-size: 0.58rem; }
+.knowledge-actions { display: inline-flex; align-items: center; gap: 10px; }
+.knowledge-actions .text-button { font-size: 0.58rem; }
 .knowledge-panel > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; color: var(--forest); cursor: pointer; list-style: none; font-size: 0.74rem; font-weight: 700; }
 .knowledge-panel > summary::-webkit-details-marker { display: none; }
 .knowledge-panel > summary::before { content: "+"; font-family: ui-monospace, monospace; }

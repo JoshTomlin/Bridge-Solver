@@ -22,6 +22,7 @@ const elements = {
   trump: byId("trump"),
   playPrefix: byId("play-prefix"),
   restrictionStatus: byId("restriction-status"),
+  resetDefenderKnowledge: byId("reset-defender-knowledge"),
   layoutCount: byId("layout-count"),
   alternativeLayoutTabs: byId("alternative-layout-tabs"),
   alternativeCompass: byId("alternative-compass"),
@@ -248,10 +249,22 @@ function complementaryBounds(source, pool) {
   return result;
 }
 
-function refreshDefenderRestrictionControls() {
+function refreshDefenderRestrictionControls({ clamp = false } = {}) {
   const pool = defenderPoolInfo();
-  applySeatRestrictions("east", collectSeatRestrictions("east"), { pool });
-  applySeatRestrictions("west", collectSeatRestrictions("west"), { pool });
+  if (clamp) {
+    applySeatRestrictions("east", collectSeatRestrictions("east"), { pool });
+    applySeatRestrictions("west", collectSeatRestrictions("west"), { pool });
+    return;
+  }
+  setRestrictionInputLimits("east", pool);
+  setRestrictionInputLimits("west", pool);
+}
+
+function resetDefenderKnowledge() {
+  const pool = defenderPoolInfo();
+  applySeatRestrictions("east", defaultSeatRestrictions(), { pool });
+  applySeatRestrictions("west", defaultSeatRestrictions(), { pool });
+  elements.restrictionStatus.textContent = "Unrestricted";
 }
 
 function syncComplementaryBounds(sourcePrefix) {
@@ -361,7 +374,7 @@ function populateDealForm(deal) {
   activeTableLayoutIndex = 0;
   applySeatRestrictions("east", deal.restrictions?.east);
   applySeatRestrictions("west", deal.restrictions?.west);
-  refreshDefenderRestrictionControls();
+  refreshDefenderRestrictionControls({ clamp: true });
   editorPickerCollapsed = true;
   elements.restrictionStatus.textContent = "Load to count";
   renderDealEditor();
@@ -1861,16 +1874,21 @@ elements.dealDialog.addEventListener("click", (event) => {
 });
 
 elements.dealDialog.addEventListener("input", (event) => {
+  if (/^(east|west)-(?:min|max)-(?:s|h|d|c|hcp|required|forbidden)$/.test(event.target.id || "")) {
+    elements.restrictionStatus.textContent = "Load to count";
+  }
+});
+
+elements.dealDialog.addEventListener("change", (event) => {
   const match = event.target.id?.match(
     /^(east|west)-(?:min|max)-(?:s|h|d|c|hcp)$/
   );
-  if (match) {
-    syncComplementaryBounds(match[1]);
-    return;
-  }
-  if (/^(east|west)-(?:required|forbidden)$/.test(event.target.id || "")) {
-    elements.restrictionStatus.textContent = "Load to count";
-  }
+  if (match) syncComplementaryBounds(match[1]);
+});
+
+elements.resetDefenderKnowledge.addEventListener("click", () => {
+  resetDefenderKnowledge();
+  toast("Defender knowledge reset");
 });
 
 byId("add-layout").addEventListener("click", () => {
