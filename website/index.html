@@ -135,7 +135,7 @@
                 <button class="deal-seat east" data-edit-seat="East" type="button" aria-pressed="false"><span>E</span><div class="editor-holding holding-stacked" data-editor-holding="East"></div><small data-seat-summary="East"></small></button>
                 <button class="deal-seat south" data-edit-seat="South" type="button" aria-pressed="false"><span>S</span><div class="editor-holding holding-inline" data-editor-holding="South"></div><small data-seat-summary="South"></small></button>
               </div>
-              <section class="card-picker" aria-label="Card selector">
+              <section class="card-picker" id="card-picker" aria-label="Card selector">
                 <div class="card-picker-heading">
                   <div><span class="micro-label">Editing</span><strong id="picker-seat-name">North</strong></div>
                   <span id="picker-seat-count">13 / 13 cards</span>
@@ -145,7 +145,7 @@
             </div>
             <label class="field">
               <span>Play already made</span>
-              <input id="play-prefix" placeholder="D6 DA D7 D4" spellcheck="false">
+              <input id="play-prefix" placeholder="HK x H x, C = low club" spellcheck="false">
             </label>
             </section>
 
@@ -251,6 +251,10 @@
               <label class="field"><span>Counterexamples / round</span><input id="alpha-mu2-counterexamples" type="number" min="0" max="16" value="3"></label>
             </div>
           </div>
+          <label class="toggle-field">
+            <input id="dd-card-labels" type="checkbox">
+            <span><strong>Show DD card labels</strong><small>On North/South turns, display exact double-dummy total tricks on each legal card.</small></span>
+          </label>
           <label class="field"><span>Sampling seed</span><input id="random-seed" type="number" min="0" value="11565831"></label>
         </div>
         <footer class="dialog-footer">

@@ -1,5 +1,5 @@
 import { EngineClient } from "./engine-client.js";
-import { complementaryDefenderBounds, completeDefenderLayout, fourthHandCompletion, handRecordFromCards, parseHandRecord } from "./deal-utils.js";
+import { completeDefenderLayout, fourthHandCompletion, handRecordFromCards, highCardPoints, parseHandRecord } from "./deal-utils.js";
 import { clearRuns, deleteDeal, loadDeals, loadRuns, saveDeal, saveRun } from "./storage.js";
 
 const byId = (id) => document.getElementById(id);
@@ -35,6 +35,7 @@ const elements = {
   tableStage: byId("table"),
   legalSummary: byId("legal-summary"),
   dealCompass: byId("deal-compass"),
+  cardPicker: byId("card-picker"),
   cardPalette: byId("card-palette"),
   pickerSeatName: byId("picker-seat-name"),
   pickerSeatCount: byId("picker-seat-count"),
@@ -57,6 +58,7 @@ const elements = {
   depth: byId("max-depth"),
   target: byId("target-tricks"),
   timeLimit: byId("time-limit"),
+  ddCardLabels: byId("dd-card-labels"),
   seed: byId("random-seed"),
   alphaMu2ReservoirWorlds: byId("alpha-mu2-reservoir-worlds"),
   alphaMu2InitialWorlds: byId("alpha-mu2-initial-worlds"),
@@ -105,6 +107,10 @@ let additionalLayouts = [];
 let activeLayoutBatch = null;
 let activeLayoutResultIndex = 0;
 let activeTableLayoutIndex = 0;
+let currentDdScores = {};
+let ddScoreStateKey = "";
+let ddScoreRequestId = 0;
+let editorPickerCollapsed = false;
 
 function defaultSeatRestrictions() {
   return {
@@ -115,6 +121,37 @@ function defaultSeatRestrictions() {
     minD: 0, maxD: 13,
     minC: 0, maxC: 13,
     minHcp: 0, maxHcp: 37
+  };
+}
+
+function safeHandRecord(record) {
+  try {
+    return parseHandRecord(record);
+  } catch {
+    return { count: 0, cards: [] };
+  }
+}
+
+function clampNumber(value, min, max) {
+  const number = Number.isFinite(Number(value)) ? Number(value) : min;
+  return Math.max(min, Math.min(max, number));
+}
+
+function defenderPoolInfo() {
+  const east = safeHandRecord(elements.east.value);
+  const west = safeHandRecord(elements.west.value);
+  const cards = [...east.cards, ...west.cards];
+  const suits = Object.fromEntries(
+    restrictionSuits.map((suit) => [
+      suit,
+      cards.filter((card) => card[0] === suit).length
+    ])
+  );
+  return {
+    cards,
+    suits,
+    hcp: highCardPoints(elements.east.value) + highCardPoints(elements.west.value),
+    handCount: { east: east.count, west: west.count }
   };
 }
 
@@ -132,8 +169,56 @@ function collectSeatRestrictions(prefix) {
   return result;
 }
 
-function applySeatRestrictions(prefix, source = {}) {
-  const restrictions = { ...defaultSeatRestrictions(), ...source };
+function normalizeSeatRestrictions(prefix, source = {}, pool = defenderPoolInfo()) {
+  const result = { ...defaultSeatRestrictions(), ...source };
+  const handCount = pool.handCount[prefix] || Math.floor(pool.cards.length / 2) || 13;
+  for (const suit of restrictionSuits) {
+    const poolMax = pool.suits[suit] ?? 0;
+    result[`min${suit}`] = clampNumber(result[`min${suit}`], 0, poolMax);
+    result[`max${suit}`] = clampNumber(result[`max${suit}`], result[`min${suit}`], poolMax);
+  }
+
+  for (let pass = 0; pass < 6; pass += 1) {
+    for (const suit of restrictionSuits) {
+      const otherSuits = restrictionSuits.filter((candidate) => candidate !== suit);
+      const otherMin = otherSuits.reduce((sum, candidate) => sum + result[`min${candidate}`], 0);
+      const otherMax = otherSuits.reduce((sum, candidate) => sum + result[`max${candidate}`], 0);
+      const lower = Math.max(0, handCount - otherMax);
+      const upper = Math.min(pool.suits[suit] ?? 0, handCount - otherMin);
+      if (lower > upper) {
+        const forced = clampNumber(lower, 0, pool.suits[suit] ?? 0);
+        result[`min${suit}`] = forced;
+        result[`max${suit}`] = forced;
+      } else {
+        result[`min${suit}`] = clampNumber(result[`min${suit}`], lower, upper);
+        result[`max${suit}`] = clampNumber(result[`max${suit}`], result[`min${suit}`], upper);
+      }
+    }
+  }
+
+  result.minHcp = clampNumber(result.minHcp, 0, pool.hcp);
+  result.maxHcp = clampNumber(result.maxHcp, result.minHcp, pool.hcp);
+  return result;
+}
+
+function setRestrictionInputLimits(prefix, pool = defenderPoolInfo()) {
+  for (const suit of restrictionSuits) {
+    const max = pool.suits[suit] ?? 0;
+    const minInput = byId(`${prefix}-min-${suit.toLowerCase()}`);
+    const maxInput = byId(`${prefix}-max-${suit.toLowerCase()}`);
+    minInput.max = String(max);
+    maxInput.max = String(max);
+  }
+  byId(`${prefix}-min-hcp`).max = String(pool.hcp);
+  byId(`${prefix}-max-hcp`).max = String(pool.hcp);
+}
+
+function applySeatRestrictions(prefix, source = {}, options = {}) {
+  const pool = options.pool || defenderPoolInfo();
+  const restrictions = options.normalized
+    ? { ...defaultSeatRestrictions(), ...source }
+    : normalizeSeatRestrictions(prefix, source, pool);
+  setRestrictionInputLimits(prefix, pool);
   byId(`${prefix}-required`).value = restrictions.required;
   byId(`${prefix}-forbidden`).value = restrictions.forbidden;
   for (const suit of restrictionSuits) {
@@ -151,15 +236,32 @@ function hasSeatRestrictions(source = {}) {
     value.minHcp !== 0 || value.maxHcp !== 37;
 }
 
+function complementaryBounds(source, pool) {
+  const result = {};
+  for (const suit of restrictionSuits) {
+    const total = pool.suits[suit] ?? 0;
+    result[`min${suit}`] = Math.max(0, total - source[`max${suit}`]);
+    result[`max${suit}`] = Math.max(0, total - source[`min${suit}`]);
+  }
+  result.minHcp = Math.max(0, pool.hcp - source.maxHcp);
+  result.maxHcp = Math.max(0, pool.hcp - source.minHcp);
+  return result;
+}
+
+function refreshDefenderRestrictionControls() {
+  const pool = defenderPoolInfo();
+  applySeatRestrictions("east", collectSeatRestrictions("east"), { pool });
+  applySeatRestrictions("west", collectSeatRestrictions("west"), { pool });
+}
+
 function syncComplementaryBounds(sourcePrefix) {
+  const pool = defenderPoolInfo();
   const targetPrefix = sourcePrefix === "east" ? "west" : "east";
-  const complement = complementaryDefenderBounds(
-    collectSeatRestrictions(sourcePrefix),
-    elements.east.value,
-    elements.west.value
-  );
+  const source = normalizeSeatRestrictions(sourcePrefix, collectSeatRestrictions(sourcePrefix), pool);
+  applySeatRestrictions(sourcePrefix, source, { pool, normalized: true });
   const target = collectSeatRestrictions(targetPrefix);
-  applySeatRestrictions(targetPrefix, { ...target, ...complement });
+  const complement = complementaryBounds(source, pool);
+  applySeatRestrictions(targetPrefix, { ...target, ...complement }, { pool });
   elements.restrictionStatus.textContent = "Load to count";
 }
 
@@ -259,6 +361,8 @@ function populateDealForm(deal) {
   activeTableLayoutIndex = 0;
   applySeatRestrictions("east", deal.restrictions?.east);
   applySeatRestrictions("west", deal.restrictions?.west);
+  refreshDefenderRestrictionControls();
+  editorPickerCollapsed = true;
   elements.restrictionStatus.textContent = "Load to count";
   renderDealEditor();
   renderAdditionalLayouts();
@@ -276,6 +380,7 @@ function analysisSettings() {
     depth: Number(elements.depth.value),
     target: Number(elements.target.value),
     timeLimit: Number(elements.timeLimit.value),
+    showDdLabels: Boolean(elements.ddCardLabels?.checked),
     seed: String(elements.seed.value || "0"),
     alphaMu2ReservoirWorlds: Number(elements.alphaMu2ReservoirWorlds.value),
     alphaMu2InitialWorlds: Number(elements.alphaMu2InitialWorlds.value),
@@ -287,10 +392,11 @@ function analysisSettings() {
 }
 
 function settingsSummaryText(settings) {
+  const dd = settings.showDdLabels ? " | DD" : "";
   if ((settings.engine || "alpha-mu") === "alpha-mu2") {
-    return `AM2 ${settings.alphaMu2MaxWorlds}/${settings.alphaMu2ReservoirWorlds} worlds | M ${settings.depth} | ${settings.timeLimit}s`;
+    return `AM2 ${settings.alphaMu2MaxWorlds}/${settings.alphaMu2ReservoirWorlds} worlds | M ${settings.depth} | ${settings.timeLimit}s${dd}`;
   }
-  return `${settings.worlds} worlds | M ${settings.depth} | ${settings.timeLimit}s`;
+  return `${settings.worlds} worlds | M ${settings.depth} | ${settings.timeLimit}s${dd}`;
 }
 
 function renderSettingsSummary() {
@@ -306,10 +412,45 @@ function syncEngineSettingsVisibility() {
 
 function parsePlayPrefix(text) {
   if (!text.trim()) return [];
-  const cards = text.toUpperCase().split(/[\s,;]+/).filter(Boolean);
-  const invalid = cards.find((card) => !/^[SHDC](?:[2-9TJQKA])$/.test(card));
-  if (invalid) throw new Error(`Invalid card '${invalid}' in the entered play`);
-  return cards;
+  const tokens = text.toUpperCase().split(/[\s,;]+/).filter(Boolean);
+  const invalid = tokens.find((token) =>
+    !/^[SHDC][2-9TJQKA]$/.test(token) &&
+    !/^[SHDC]$/.test(token) &&
+    token !== "X"
+  );
+  if (invalid) throw new Error(`Invalid play token '${invalid}'. Use a card like SA, a suit like C, or x for lowest legal.`);
+  return tokens;
+}
+
+const lowRankOrder = "23456789TJQKA";
+function lowestCard(cards) {
+  return [...cards].sort((left, right) => {
+    const rankDiff = lowRankOrder.indexOf(left[1]) - lowRankOrder.indexOf(right[1]);
+    if (rankDiff !== 0) return rankDiff;
+    return restrictionSuits.indexOf(left[0]) - restrictionSuits.indexOf(right[0]);
+  })[0] || null;
+}
+
+function resolvePlayToken(token, state) {
+  const legalCards = state.legalCards || [];
+  if (/^[SHDC][2-9TJQKA]$/.test(token)) {
+    if (!legalCards.includes(token)) {
+      throw new Error(`${state.turn} cannot legally play ${token} in the entered play`);
+    }
+    return token;
+  }
+  if (/^[SHDC]$/.test(token)) {
+    const card = lowestCard(legalCards.filter((candidate) => candidate[0] === token));
+    if (!card) throw new Error(`${state.turn} has no legal ${token} card for the entered play`);
+    return card;
+  }
+  const leadSuit = state.trick?.[0]?.card?.[0] || null;
+  const followCards = leadSuit
+    ? legalCards.filter((candidate) => candidate[0] === leadSuit)
+    : [];
+  const card = lowestCard(followCards.length ? followCards : legalCards);
+  if (!card) throw new Error(`${state.turn || "The current player"} has no legal card for x`);
+  return card;
 }
 
 function parsePreviewHand(record) {
@@ -349,16 +490,22 @@ function cardFaceMarkup(card) {
   return `<b>${escapeHtml(card[1])}</b><i>${suit.symbol}</i>`;
 }
 
-function holdingMarkup(hand, legalCards, interactive) {
+function ddBadgeMarkup(score) {
+  if (!score) return "";
+  return `<span class="dd-card-badge ${score.best ? "is-best" : "is-low"}">${score.total}</span>`;
+}
+
+function holdingMarkup(hand, legalCards, interactive, ddScores = {}) {
   const legal = new Set(legalCards);
   return Object.entries(suitDisplay).map(([suit, display]) => {
     const holding = hand?.[suit] && hand[suit] !== "-" ? hand[suit] : "";
     const cards = [...holding].map((rank) => {
       const card = `${suit}${rank}`;
+      const face = `${cardFaceMarkup(card)}${ddBadgeMarkup(ddScores[card])}`;
       if (interactive && legal.has(card)) {
-        return `<button class="mini-card suit-${display.className}" data-card="${card}" type="button" aria-label="Play ${display.name} ${rank}" title="Play ${card}">${cardFaceMarkup(card)}</button>`;
+        return `<button class="mini-card suit-${display.className}" data-card="${card}" type="button" aria-label="Play ${display.name} ${rank}" title="Play ${card}">${face}</button>`;
       }
-      return `<span class="mini-card suit-${display.className}">${cardFaceMarkup(card)}</span>`;
+      return `<span class="mini-card suit-${display.className}">${face}</span>`;
     }).join("");
     return `<div class="suit-line suit-${display.className} ${cards ? "" : "is-void"}" aria-label="${display.name}">
       <div class="suit-cards cards-${holding.length}">${cards || "<span class=\"void\">&nbsp;</span>"}</div>
@@ -405,14 +552,7 @@ function displayedState(override) {
 
 function completedTrickForFrame(index) {
   const frame = timelineFrames[index];
-  if (frame?.completedTrick?.length === 4) return frame.completedTrick;
-  if (index < 4) return [];
-  const previous = timelineFrames[index - 1];
-  if (!frame || frame.state.trick.length ||
-      frame.state.completedTricks <= (previous?.state.completedTricks ?? 0)) return [];
-
-  const plays = timelineFrames.slice(index - 3, index + 1).map((candidate) => candidate.play);
-  return plays.length === 4 && plays.every(Boolean) ? plays : [];
+  return frame?.completedTrick?.length === 4 ? frame.completedTrick : [];
 }
 
 function retainTrickAfterPlay(state, play) {
@@ -467,9 +607,10 @@ function renderTable(override) {
   const state = displayedState(override);
   const interactive = isAtLivePosition() && !busy;
   const legalCards = state.legalCards || [];
+  const ddScores = shouldShowDdScores(state) ? currentDdScores : {};
   for (const seat of ["North", "East", "South", "West"]) {
     document.querySelector(`[data-holding="${seat}"]`).innerHTML =
-      holdingMarkup(state.hands[seat], legalCards, interactive);
+      holdingMarkup(state.hands[seat], legalCards, interactive, state.turn === seat ? ddScores : {});
     document.querySelector(`[data-seat="${seat}"]`).classList.toggle("is-turn", state.turn === seat);
   }
   elements.scoreNs.textContent = state.score.ns;
@@ -498,6 +639,55 @@ function renderTable(override) {
   elements.historyNext.disabled = busy || timelineIndex < 0 || timelineIndex >= timelineFrames.length - 1;
   renderDealSummary();
   updateActionState();
+  requestDdScoresForState(state, Boolean(override));
+}
+
+function shouldShowDdScores(state) {
+  return Boolean(elements.ddCardLabels?.checked) &&
+    !busy && !reviewOnly && isAtLivePosition() &&
+    !state?.finished && (state?.turn === "North" || state?.turn === "South");
+}
+
+function ddScoreKey(state) {
+  return [
+    timelineIndex,
+    state.turn,
+    state.score?.ns ?? 0,
+    state.score?.ew ?? 0,
+    (state.trick || []).map((play) => `${play.seat}:${play.card}`).join("/"),
+    (state.legalCards || []).join(",")
+  ].join("|");
+}
+
+function requestDdScoresForState(state, hasOverride = false) {
+  if (hasOverride || !shouldShowDdScores(state)) {
+    if (ddScoreStateKey) {
+      ddScoreStateKey = "";
+      currentDdScores = {};
+      ddScoreRequestId += 1;
+    }
+    return;
+  }
+  const key = ddScoreKey(state);
+  if (key === ddScoreStateKey) return;
+  ddScoreStateKey = key;
+  currentDdScores = {};
+  const requestId = ++ddScoreRequestId;
+  engine.ddScores()
+    .then((result) => {
+      if (requestId !== ddScoreRequestId || key !== ddScoreStateKey) return;
+      const best = Number(result.best ?? -1);
+      currentDdScores = Object.fromEntries(
+        Object.entries(result.scores || {}).map(([card, score]) => [
+          card,
+          { ...score, best: Number(score.total) === best }
+        ])
+      );
+      renderTable();
+    })
+    .catch((error) => {
+      if (requestId === ddScoreRequestId) console.warn(error.message || error);
+    });
 }
 
 function resetTimeline(state) {
@@ -506,19 +696,28 @@ function resetTimeline(state) {
   timelineFrames = [{ state, play: null }];
   timelineIndex = 0;
   reviewOnly = false;
+  ddScoreStateKey = "";
+  currentDdScores = {};
+  ddScoreRequestId += 1;
 }
 
 function appendTimelineFrame(state, play) {
+  const previousState = currentFrame()?.state;
+  const completedTrick = play && previousState && !state.trick.length &&
+      Number(state.completedTricks || 0) > Number(previousState.completedTricks || 0)
+    ? [...(previousState.trick || []), play]
+    : null;
   liveState = state;
-  retainTrickAfterPlay(state, play);
+  retainedTrick = completedTrick || state.trick || [];
   timelineFrames.push({
     state,
     play,
-    completedTrick: !state.trick.length && retainedTrick.length === 4
-      ? retainedTrick
-      : null
+    completedTrick: completedTrick?.length === 4 ? completedTrick : null
   });
   timelineIndex = timelineFrames.length - 1;
+  ddScoreStateKey = "";
+  currentDdScores = {};
+  ddScoreRequestId += 1;
 }
 
 function renderSavedDeals() {
@@ -695,16 +894,29 @@ function worldHandRecordMarkup(hand) {
   }).join("")}</div>`;
 }
 
+function decisionFrameIndex() {
+  if (!activeFullResult || !Number.isInteger(activeDecisionIndex)) return -1;
+  return timelineFrames.findIndex(
+    (frame) => frame.play?.analysisIndex === activeDecisionIndex
+  );
+}
+
+function stateForAnalysisWorld() {
+  const frameIndex = decisionFrameIndex();
+  if (frameIndex > 0) return timelineFrames[frameIndex - 1].state;
+  return activeFullResult?.startState || displayedState();
+}
+
 function worldLayoutMarkup(analysis, worldIndex, winningSet) {
   const world = (analysis.sampledWorlds || []).find((candidate) => candidate.index === worldIndex);
   if (!world) return "<p class=\"muted-copy\">Sampled layouts require the current WebAssembly build.</p>";
-  const state = displayedState();
+  const state = stateForAnalysisWorld();
   const hands = {
     ...state.hands,
     East: parsePreviewHand(world.east.record),
     West: parsePreviewHand(world.west.record)
   };
-  const trick = state.trick?.length ? state.trick : completedTrickForFrame(timelineIndex);
+  const trick = state.trick || [];
   const target = Number(analysis.targetTricks ?? elements.target.value);
   const tricksNeeded = Math.max(0, target - Number(state.score?.ns || 0));
   return `
@@ -1398,6 +1610,11 @@ function renderDealEditor() {
   elements.pickerSeatName.textContent = activeEditSeat;
   elements.pickerSeatCount.textContent = `${hands[activeEditSeat].count} / 13 cards`;
   const ranks = "AKQJT98765432";
+  const allHandsEntered = Object.values(hands).every(
+    (hand) => hand.count > 0 && hand.count === hands.North.count
+  );
+  if (!allHandsEntered) editorPickerCollapsed = false;
+  elements.cardPicker.classList.toggle("is-collapsed", editorPickerCollapsed && allHandsEntered);
   elements.cardPalette.innerHTML = Object.entries(suitDisplay).map(([suit, display]) => `
     <div class="palette-row suit-${display.className}">
       <span class="palette-suit">${display.symbol}</span>
@@ -1417,12 +1634,23 @@ function renderDealEditor() {
       </div>
     </div>`).join("");
   updateFourthHandControl();
+  refreshDefenderRestrictionControls();
   renderAlternativeEditor();
+}
+
+function editorAllHandsEntered() {
+  const hands = editorHandState();
+  return Object.values(hands).every(
+    (hand) => hand.count > 0 && hand.count === hands.North.count
+  );
 }
 
 function updateEditorHand(seat, cards) {
   elements[seat.toLowerCase()].value = handRecordFromCards(cards);
-  if (!fillFourthHand(false)) renderDealEditor();
+  const filled = fillFourthHand(false);
+  editorPickerCollapsed = editorAllHandsEntered();
+  renderDealEditor();
+  return filled;
 }
 
 function fillFourthHand(showToast = true) {
@@ -1432,6 +1660,7 @@ function fillFourthHand(showToast = true) {
     return false;
   }
   elements[completion.seat.toLowerCase()].value = completion.record;
+  editorPickerCollapsed = editorAllHandsEntered();
   renderDealEditor();
   if (showToast) toast(`${completion.seat} filled from the remaining deck`, "success");
   return true;
@@ -1457,11 +1686,12 @@ async function putDealOnTable(quiet = false) {
   const response = await engine.createSession(sessionDeal);
   resetTimeline(response.state);
   let state = response.state;
-  for (const card of parsePlayPrefix(deal.playPrefix)) {
+  for (const token of parsePlayPrefix(deal.playPrefix)) {
     const seat = state.turn;
+    const card = resolvePlayToken(token, state);
     const played = await engine.play(card);
     state = played.state;
-    appendTimelineFrame(state, { seat, card, source: "entered" });
+    appendTimelineFrame(state, { seat, card, source: token === card ? "entered" : "entered shortcut" });
   }
   currentDeal = deal;
   liveState = state;
@@ -1608,7 +1838,10 @@ elements.engineChoice.addEventListener("change", () => {
 
 byId("apply-settings").addEventListener("click", () => {
   renderSettingsSummary();
+  ddScoreStateKey = "";
+  currentDdScores = {};
   elements.settingsDialog.close();
+  renderTable();
   toast("Analysis settings updated");
 });
 
@@ -1631,7 +1864,13 @@ elements.dealDialog.addEventListener("input", (event) => {
   const match = event.target.id?.match(
     /^(east|west)-(?:min|max)-(?:s|h|d|c|hcp)$/
   );
-  if (match) syncComplementaryBounds(match[1]);
+  if (match) {
+    syncComplementaryBounds(match[1]);
+    return;
+  }
+  if (/^(east|west)-(?:required|forbidden)$/.test(event.target.id || "")) {
+    elements.restrictionStatus.textContent = "Load to count";
+  }
 });
 
 byId("add-layout").addEventListener("click", () => {
@@ -1753,6 +1992,7 @@ elements.dealCompass.addEventListener("click", (event) => {
   const seatButton = event.target.closest("[data-edit-seat]");
   if (!seatButton) return;
   activeEditSeat = seatButton.dataset.editSeat;
+  editorPickerCollapsed = false;
   renderDealEditor();
 });
 elements.cardPalette.addEventListener("click", (event) => {
@@ -1777,6 +2017,9 @@ byId("undo").addEventListener("click", safely(async () => {
   if (result.changed !== false) timelineFrames.pop();
   liveState = result.state;
   timelineIndex = timelineFrames.length - 1;
+  ddScoreStateKey = "";
+  currentDdScores = {};
+  ddScoreRequestId += 1;
   activeAnalysis = null;
   activeAnalysisIsLive = false;
   renderTable();

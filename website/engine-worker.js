@@ -214,6 +214,12 @@ self.addEventListener("message", async (event) => {
       case "replay": result = parseResult(engine.replay()); break;
       case "run-full": result = await runFull(payload); break;
       case "run-layouts": result = await runLayouts(payload); break;
+      case "dd-scores":
+        if (typeof engine.ddScores !== "function") {
+          throw new Error("DD card labels need a rebuilt WebAssembly engine. Run .\\build-wasm.ps1 after these source changes.");
+        }
+        result = parseResult(engine.ddScores());
+        break;
       default: throw new Error(`Unknown engine command: ${command}`);
     }
     self.postMessage({ id, result });

@@ -68,6 +68,10 @@ export class EngineClient {
     return this.request("run-layouts", request);
   }
 
+  ddScores() {
+    return this.request("dd-scores");
+  }
+
   cancel() {
     for (const { reject } of this.pending.values()) reject(new Error("Analysis stopped"));
     this.pending.clear();

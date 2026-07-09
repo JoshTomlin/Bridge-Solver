@@ -310,6 +310,33 @@ std::string sampled_worlds_json(
     output << ']';
     return output.str();
 }
+
+std::string dd_scores_json(const AnalysisSession& session) {
+    const Position& position = session.position();
+    if (is_deal_finished(position) ||
+        !same_side(next_to_play(position.current_trick), Seat::South)) {
+        return "\"scores\":{},\"best\":0";
+    }
+
+    const std::vector<DoubleDummyMoveScore> scores =
+        double_dummy_move_scores(position, Seat::South);
+    int best = -1;
+    std::ostringstream score_json;
+    score_json << "\"scores\":{";
+    for (std::size_t index = 0; index < scores.size(); ++index) {
+        const int total = static_cast<int>(position.score.north_south) +
+            static_cast<int>(scores[index].future_tricks);
+        best = std::max(best, total);
+        if (index != 0) score_json << ',';
+        score_json << json_quote(to_string(scores[index].card))
+                   << ":{\"future\":"
+                   << static_cast<int>(scores[index].future_tricks)
+                   << ",\"total\":" << total << '}';
+    }
+    score_json << "},\"best\":" << std::max(best, 0);
+    return score_json.str();
+}
+
 std::string state_json(const AnalysisSession& session) {
     const Position& position = session.position();
     const bool finished = is_deal_finished(position);
@@ -742,6 +769,15 @@ public:
         }
     }
 
+    std::string dd_scores() const {
+        try {
+            require_session();
+            return "{\"ok\":true," + dd_scores_json(*session_) + '}';
+        } catch (const std::exception& error) {
+            return error_json(error);
+        }
+    }
+
 private:
     void require_session() const {
         if (session_ == nullptr) throw std::logic_error("no deal is loaded");
@@ -764,5 +800,6 @@ EMSCRIPTEN_BINDINGS(bridge_solver_browser) {
         .function("undo", &bridge::BrowserBridgeEngine::undo)
         .function("replay", &bridge::BrowserBridgeEngine::replay)
         .function("policyMove", &bridge::BrowserBridgeEngine::policy_move)
-        .function("ddsMove", &bridge::BrowserBridgeEngine::dds_move);
+        .function("ddsMove", &bridge::BrowserBridgeEngine::dds_move)
+        .function("ddScores", &bridge::BrowserBridgeEngine::dd_scores);
 }

@@ -185,6 +185,9 @@ h3 { font-size: 1rem; }
 .holding-stacked .cards-12, .holding-stacked .cards-13 { --side-card-overlap: -19px; }
 .mini-card b { font-size: 0.9rem; }
 .mini-card i { font-size: 0.94rem; font-style: normal; }
+.dd-card-badge { position: absolute; right: 1px; bottom: 1px; display: grid; place-items: center; min-width: 14px; height: 14px; padding: 0 3px; color: #fff; border-radius: 4px; font-size: 0.48rem; font-weight: 800; line-height: 1; box-shadow: 0 1px 3px rgba(5, 30, 24, 0.28); }
+.dd-card-badge.is-best { background: #237349; }
+.dd-card-badge.is-low { background: #b9342e; }
 .mini-card.suit-spades { color: #202825; }
 .mini-card.suit-hearts { color: #bd4037; }
 .mini-card.suit-diamonds { color: #b76b26; }
@@ -450,6 +453,9 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
 .deal-compass-centre { grid-area: 2 / 2; display: grid; place-items: center; min-height: 72px; padding: 5px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 44%; background: rgba(7, 39, 33, 0.2); }
 .deal-compass-centre small { color: rgba(255, 255, 255, 0.64); font-size: 0.55rem; line-height: 1.35; }
 .card-picker { padding: 8px; background: #fffaf0; border-top: 1px solid var(--line); }
+.card-picker.is-collapsed { padding: 7px 9px; }
+.card-picker.is-collapsed .card-palette { display: none; }
+.card-picker.is-collapsed .card-picker-heading::after { content: "Tap a hand to edit cards"; color: var(--muted); font-size: 0.58rem; font-weight: 700; }
 .card-picker-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
 .card-picker-heading > div { display: grid; }
 .card-picker-heading .micro-label { margin: 0; }
@@ -482,6 +488,11 @@ button.mini-card:hover { z-index: 2; transform: translateY(-3px); box-shadow: 0 
 .input-suffix span { position: absolute; top: 10px; right: 11px; color: var(--muted); font-size: 0.8rem; }
 .field-help, .muted-copy, .settings-note { color: var(--muted); font-size: 0.68rem; line-height: 1.5; }
 .field-help { margin: 10px 0 0; }
+.toggle-field { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; padding: 11px; background: #f1ece1; border: 1px solid #ddd4c5; border-radius: 11px; cursor: pointer; }
+.toggle-field input { margin-top: 3px; accent-color: var(--forest); }
+.toggle-field span { display: grid; gap: 2px; }
+.toggle-field strong { color: var(--forest); font-size: 0.72rem; }
+.toggle-field small { color: var(--muted); font-size: 0.62rem; line-height: 1.35; }
 .settings-note { margin: 18px 0 0; padding: 11px; background: #f1ece1; border-radius: 9px; }
 .settings-engine-block { margin-top: 14px; padding: 12px; background: #f1ece1; border: 1px solid #ddd4c5; border-radius: 11px; }
 .settings-engine-block .micro-label { margin-bottom: 8px; }
