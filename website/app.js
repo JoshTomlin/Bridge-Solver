@@ -117,10 +117,15 @@ function defaultSeatRestrictions() {
   return {
     required: "",
     forbidden: "",
+    useS: false,
     minS: 0, maxS: 13,
+    useH: false,
     minH: 0, maxH: 13,
+    useD: false,
     minD: 0, maxD: 13,
+    useC: false,
     minC: 0, maxC: 13,
+    useHcp: false,
     minHcp: 0, maxHcp: 37
   };
 }
@@ -156,62 +161,93 @@ function defenderPoolInfo() {
   };
 }
 
+function restrictionUseKey(kind) {
+  return kind === "hcp" ? "useHcp" : `use${kind}`;
+}
+
+function restrictionMinKey(kind) {
+  return kind === "hcp" ? "minHcp" : `min${kind}`;
+}
+
+function restrictionMaxKey(kind) {
+  return kind === "hcp" ? "maxHcp" : `max${kind}`;
+}
+
+function restrictionPoolMax(kind, pool) {
+  return kind === "hcp" ? pool.hcp : pool.suits[kind] ?? 0;
+}
+
+function readRangeActive(prefix, kind) {
+  return Boolean(byId(`${prefix}-use-${kind.toLowerCase()}`).checked);
+}
+
+function legacyRangeActive(source, kind, pool) {
+  const useKey = restrictionUseKey(kind);
+  if (Object.prototype.hasOwnProperty.call(source, useKey)) return Boolean(source[useKey]);
+  const min = Number(source[restrictionMinKey(kind)] ?? 0);
+  const max = Number(source[restrictionMaxKey(kind)] ?? (kind === "hcp" ? 37 : 13));
+  return min > 0 || max < restrictionPoolMax(kind, pool);
+}
+
+function collectRange(prefix, kind, pool) {
+  const active = readRangeActive(prefix, kind);
+  const minKey = restrictionMinKey(kind);
+  const maxKey = restrictionMaxKey(kind);
+  const poolMax = restrictionPoolMax(kind, pool);
+  if (!active) {
+    return {
+      [restrictionUseKey(kind)]: false,
+      [minKey]: 0,
+      [maxKey]: kind === "hcp" ? 37 : 13
+    };
+  }
+  const min = clampNumber(byId(`${prefix}-min-${kind.toLowerCase()}`).value, 0, poolMax);
+  const max = clampNumber(byId(`${prefix}-max-${kind.toLowerCase()}`).value, min, poolMax);
+  return { [restrictionUseKey(kind)]: true, [minKey]: min, [maxKey]: max };
+}
+
 function collectSeatRestrictions(prefix) {
+  const pool = defenderPoolInfo();
   const result = {
     required: byId(`${prefix}-required`).value.trim().toUpperCase(),
     forbidden: byId(`${prefix}-forbidden`).value.trim().toUpperCase()
   };
-  for (const suit of restrictionSuits) {
-    result[`min${suit}`] = Number(byId(`${prefix}-min-${suit.toLowerCase()}`).value);
-    result[`max${suit}`] = Number(byId(`${prefix}-max-${suit.toLowerCase()}`).value);
-  }
-  result.minHcp = Number(byId(`${prefix}-min-hcp`).value);
-  result.maxHcp = Number(byId(`${prefix}-max-hcp`).value);
+  for (const suit of restrictionSuits) Object.assign(result, collectRange(prefix, suit, pool));
+  Object.assign(result, collectRange(prefix, "hcp", pool));
   return result;
 }
 
 function normalizeSeatRestrictions(prefix, source = {}, pool = defenderPoolInfo()) {
   const result = { ...defaultSeatRestrictions(), ...source };
-  const handCount = pool.handCount[prefix] || Math.floor(pool.cards.length / 2) || 13;
-  for (const suit of restrictionSuits) {
-    const poolMax = pool.suits[suit] ?? 0;
-    result[`min${suit}`] = clampNumber(result[`min${suit}`], 0, poolMax);
-    result[`max${suit}`] = clampNumber(result[`max${suit}`], result[`min${suit}`], poolMax);
-  }
-
-  for (let pass = 0; pass < 6; pass += 1) {
-    for (const suit of restrictionSuits) {
-      const otherSuits = restrictionSuits.filter((candidate) => candidate !== suit);
-      const otherMin = otherSuits.reduce((sum, candidate) => sum + result[`min${candidate}`], 0);
-      const otherMax = otherSuits.reduce((sum, candidate) => sum + result[`max${candidate}`], 0);
-      const lower = Math.max(0, handCount - otherMax);
-      const upper = Math.min(pool.suits[suit] ?? 0, handCount - otherMin);
-      if (lower > upper) {
-        const forced = clampNumber(lower, 0, pool.suits[suit] ?? 0);
-        result[`min${suit}`] = forced;
-        result[`max${suit}`] = forced;
-      } else {
-        result[`min${suit}`] = clampNumber(result[`min${suit}`], lower, upper);
-        result[`max${suit}`] = clampNumber(result[`max${suit}`], result[`min${suit}`], upper);
-      }
+  for (const kind of [...restrictionSuits, "hcp"]) {
+    const useKey = restrictionUseKey(kind);
+    const minKey = restrictionMinKey(kind);
+    const maxKey = restrictionMaxKey(kind);
+    const poolMax = restrictionPoolMax(kind, pool);
+    const active = legacyRangeActive(source, kind, pool);
+    result[useKey] = active;
+    if (active) {
+      result[minKey] = clampNumber(result[minKey], 0, poolMax);
+      result[maxKey] = clampNumber(result[maxKey], result[minKey], poolMax);
+    } else {
+      result[minKey] = 0;
+      result[maxKey] = poolMax;
     }
   }
-
-  result.minHcp = clampNumber(result.minHcp, 0, pool.hcp);
-  result.maxHcp = clampNumber(result.maxHcp, result.minHcp, pool.hcp);
   return result;
 }
 
 function setRestrictionInputLimits(prefix, pool = defenderPoolInfo()) {
-  for (const suit of restrictionSuits) {
-    const max = pool.suits[suit] ?? 0;
-    const minInput = byId(`${prefix}-min-${suit.toLowerCase()}`);
-    const maxInput = byId(`${prefix}-max-${suit.toLowerCase()}`);
-    minInput.max = String(max);
-    maxInput.max = String(max);
+  for (const kind of [...restrictionSuits, "hcp"]) {
+    const poolMax = restrictionPoolMax(kind, pool);
+    const active = readRangeActive(prefix, kind);
+    const minInput = byId(`${prefix}-min-${kind.toLowerCase()}`);
+    const maxInput = byId(`${prefix}-max-${kind.toLowerCase()}`);
+    minInput.max = String(poolMax);
+    maxInput.max = String(poolMax);
+    minInput.disabled = !active;
+    maxInput.disabled = !active;
   }
-  byId(`${prefix}-min-hcp`).max = String(pool.hcp);
-  byId(`${prefix}-max-hcp`).max = String(pool.hcp);
 }
 
 function applySeatRestrictions(prefix, source = {}, options = {}) {
@@ -219,33 +255,39 @@ function applySeatRestrictions(prefix, source = {}, options = {}) {
   const restrictions = options.normalized
     ? { ...defaultSeatRestrictions(), ...source }
     : normalizeSeatRestrictions(prefix, source, pool);
-  setRestrictionInputLimits(prefix, pool);
   byId(`${prefix}-required`).value = restrictions.required;
   byId(`${prefix}-forbidden`).value = restrictions.forbidden;
-  for (const suit of restrictionSuits) {
-    byId(`${prefix}-min-${suit.toLowerCase()}`).value = restrictions[`min${suit}`];
-    byId(`${prefix}-max-${suit.toLowerCase()}`).value = restrictions[`max${suit}`];
+  for (const kind of [...restrictionSuits, "hcp"]) {
+    const lower = kind.toLowerCase();
+    byId(`${prefix}-use-${lower}`).checked = Boolean(restrictions[restrictionUseKey(kind)]);
+    byId(`${prefix}-min-${lower}`).value = restrictions[restrictionMinKey(kind)];
+    byId(`${prefix}-max-${lower}`).value = restrictions[restrictionMaxKey(kind)];
   }
-  byId(`${prefix}-min-hcp`).value = restrictions.minHcp;
-  byId(`${prefix}-max-hcp`).value = restrictions.maxHcp;
+  setRestrictionInputLimits(prefix, pool);
 }
 
 function hasSeatRestrictions(source = {}) {
   const value = { ...defaultSeatRestrictions(), ...source };
   return value.required || value.forbidden ||
-    restrictionSuits.some((suit) => value[`min${suit}`] !== 0 || value[`max${suit}`] !== 13) ||
-    value.minHcp !== 0 || value.maxHcp !== 37;
+    restrictionSuits.some((suit) => Boolean(value[`use${suit}`])) ||
+    Boolean(value.useHcp);
 }
 
-function complementaryBounds(source, pool) {
+function complementaryBoundsForKind(source, pool, kind) {
   const result = {};
-  for (const suit of restrictionSuits) {
-    const total = pool.suits[suit] ?? 0;
-    result[`min${suit}`] = Math.max(0, total - source[`max${suit}`]);
-    result[`max${suit}`] = Math.max(0, total - source[`min${suit}`]);
+  const useKey = restrictionUseKey(kind);
+  const minKey = restrictionMinKey(kind);
+  const maxKey = restrictionMaxKey(kind);
+  const poolMax = restrictionPoolMax(kind, pool);
+  if (!source[useKey]) {
+    result[useKey] = false;
+    result[minKey] = 0;
+    result[maxKey] = poolMax;
+    return result;
   }
-  result.minHcp = Math.max(0, pool.hcp - source.maxHcp);
-  result.maxHcp = Math.max(0, pool.hcp - source.minHcp);
+  result[useKey] = true;
+  result[minKey] = Math.max(0, poolMax - source[maxKey]);
+  result[maxKey] = Math.max(0, poolMax - source[minKey]);
   return result;
 }
 
@@ -267,14 +309,14 @@ function resetDefenderKnowledge() {
   elements.restrictionStatus.textContent = "Unrestricted";
 }
 
-function syncComplementaryBounds(sourcePrefix) {
+function syncComplementaryBounds(sourcePrefix, kind) {
   const pool = defenderPoolInfo();
   const targetPrefix = sourcePrefix === "east" ? "west" : "east";
   const source = normalizeSeatRestrictions(sourcePrefix, collectSeatRestrictions(sourcePrefix), pool);
   applySeatRestrictions(sourcePrefix, source, { pool, normalized: true });
-  const target = collectSeatRestrictions(targetPrefix);
-  const complement = complementaryBounds(source, pool);
-  applySeatRestrictions(targetPrefix, { ...target, ...complement }, { pool });
+  const target = normalizeSeatRestrictions(targetPrefix, collectSeatRestrictions(targetPrefix), pool);
+  const complement = complementaryBoundsForKind(source, pool, kind);
+  applySeatRestrictions(targetPrefix, { ...target, ...complement }, { pool, normalized: true });
   elements.restrictionStatus.textContent = "Load to count";
 }
 
@@ -1874,16 +1916,20 @@ elements.dealDialog.addEventListener("click", (event) => {
 });
 
 elements.dealDialog.addEventListener("input", (event) => {
-  if (/^(east|west)-(?:min|max)-(?:s|h|d|c|hcp|required|forbidden)$/.test(event.target.id || "")) {
+  if (/^(east|west)-(?:use|min|max)-(?:s|h|d|c|hcp)$/.test(event.target.id || "") ||
+      /^(east|west)-(?:required|forbidden)$/.test(event.target.id || "")) {
     elements.restrictionStatus.textContent = "Load to count";
   }
 });
 
 elements.dealDialog.addEventListener("change", (event) => {
   const match = event.target.id?.match(
-    /^(east|west)-(?:min|max)-(?:s|h|d|c|hcp)$/
+    /^(east|west)-(?:use|min|max)-(s|h|d|c|hcp)$/
   );
-  if (match) syncComplementaryBounds(match[1]);
+  if (match) {
+    const kind = match[2] === "hcp" ? "hcp" : match[2].toUpperCase();
+    syncComplementaryBounds(match[1], kind);
+  }
 });
 
 elements.resetDefenderKnowledge.addEventListener("click", () => {

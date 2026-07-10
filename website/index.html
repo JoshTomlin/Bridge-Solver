@@ -158,12 +158,12 @@
                   <label class="field"><span>Cannot hold</span><input id="east-forbidden" placeholder="CQ" spellcheck="false"></label>
                 </div>
                 <div class="range-grid">
-                  <span>Suit</span><span>Min</span><span>Max</span>
-                  <b>S</b><input id="east-min-s" type="number" min="0" max="13" value="0" aria-label="East minimum spades"><input id="east-max-s" type="number" min="0" max="13" value="13" aria-label="East maximum spades">
-                  <b>H</b><input id="east-min-h" type="number" min="0" max="13" value="0" aria-label="East minimum hearts"><input id="east-max-h" type="number" min="0" max="13" value="13" aria-label="East maximum hearts">
-                  <b>D</b><input id="east-min-d" type="number" min="0" max="13" value="0" aria-label="East minimum diamonds"><input id="east-max-d" type="number" min="0" max="13" value="13" aria-label="East maximum diamonds">
-                  <b>C</b><input id="east-min-c" type="number" min="0" max="13" value="0" aria-label="East minimum clubs"><input id="east-max-c" type="number" min="0" max="13" value="13" aria-label="East maximum clubs">
-                  <b>HCP</b><input id="east-min-hcp" type="number" min="0" max="37" value="0" aria-label="East minimum HCP"><input id="east-max-hcp" type="number" min="0" max="37" value="37" aria-label="East maximum HCP">
+                  <span>Known</span><span>Min</span><span>Max</span>
+                  <label class="range-toggle"><input id="east-use-s" type="checkbox" aria-label="Use East spade range"><b>S</b></label><input id="east-min-s" type="number" min="0" max="13" value="0" aria-label="East minimum spades"><input id="east-max-s" type="number" min="0" max="13" value="13" aria-label="East maximum spades">
+                  <label class="range-toggle"><input id="east-use-h" type="checkbox" aria-label="Use East heart range"><b>H</b></label><input id="east-min-h" type="number" min="0" max="13" value="0" aria-label="East minimum hearts"><input id="east-max-h" type="number" min="0" max="13" value="13" aria-label="East maximum hearts">
+                  <label class="range-toggle"><input id="east-use-d" type="checkbox" aria-label="Use East diamond range"><b>D</b></label><input id="east-min-d" type="number" min="0" max="13" value="0" aria-label="East minimum diamonds"><input id="east-max-d" type="number" min="0" max="13" value="13" aria-label="East maximum diamonds">
+                  <label class="range-toggle"><input id="east-use-c" type="checkbox" aria-label="Use East club range"><b>C</b></label><input id="east-min-c" type="number" min="0" max="13" value="0" aria-label="East minimum clubs"><input id="east-max-c" type="number" min="0" max="13" value="13" aria-label="East maximum clubs">
+                  <label class="range-toggle"><input id="east-use-hcp" type="checkbox" aria-label="Use East HCP range"><b>HCP</b></label><input id="east-min-hcp" type="number" min="0" max="37" value="0" aria-label="East minimum HCP"><input id="east-max-hcp" type="number" min="0" max="37" value="37" aria-label="East maximum HCP">
                 </div>
                 </section>
                 <section class="restriction-seat" data-restriction-seat="west">
@@ -173,12 +173,12 @@
                   <label class="field"><span>Cannot hold</span><input id="west-forbidden" placeholder="CQ" spellcheck="false"></label>
                 </div>
                 <div class="range-grid">
-                  <span>Suit</span><span>Min</span><span>Max</span>
-                  <b>S</b><input id="west-min-s" type="number" min="0" max="13" value="0" aria-label="West minimum spades"><input id="west-max-s" type="number" min="0" max="13" value="13" aria-label="West maximum spades">
-                  <b>H</b><input id="west-min-h" type="number" min="0" max="13" value="0" aria-label="West minimum hearts"><input id="west-max-h" type="number" min="0" max="13" value="13" aria-label="West maximum hearts">
-                  <b>D</b><input id="west-min-d" type="number" min="0" max="13" value="0" aria-label="West minimum diamonds"><input id="west-max-d" type="number" min="0" max="13" value="13" aria-label="West maximum diamonds">
-                  <b>C</b><input id="west-min-c" type="number" min="0" max="13" value="0" aria-label="West minimum clubs"><input id="west-max-c" type="number" min="0" max="13" value="13" aria-label="West maximum clubs">
-                  <b>HCP</b><input id="west-min-hcp" type="number" min="0" max="37" value="0" aria-label="West minimum HCP"><input id="west-max-hcp" type="number" min="0" max="37" value="37" aria-label="West maximum HCP">
+                  <span>Known</span><span>Min</span><span>Max</span>
+                  <label class="range-toggle"><input id="west-use-s" type="checkbox" aria-label="Use West spade range"><b>S</b></label><input id="west-min-s" type="number" min="0" max="13" value="0" aria-label="West minimum spades"><input id="west-max-s" type="number" min="0" max="13" value="13" aria-label="West maximum spades">
+                  <label class="range-toggle"><input id="west-use-h" type="checkbox" aria-label="Use West heart range"><b>H</b></label><input id="west-min-h" type="number" min="0" max="13" value="0" aria-label="West minimum hearts"><input id="west-max-h" type="number" min="0" max="13" value="13" aria-label="West maximum hearts">
+                  <label class="range-toggle"><input id="west-use-d" type="checkbox" aria-label="Use West diamond range"><b>D</b></label><input id="west-min-d" type="number" min="0" max="13" value="0" aria-label="West minimum diamonds"><input id="west-max-d" type="number" min="0" max="13" value="13" aria-label="West maximum diamonds">
+                  <label class="range-toggle"><input id="west-use-c" type="checkbox" aria-label="Use West club range"><b>C</b></label><input id="west-min-c" type="number" min="0" max="13" value="0" aria-label="West minimum clubs"><input id="west-max-c" type="number" min="0" max="13" value="13" aria-label="West maximum clubs">
+                  <label class="range-toggle"><input id="west-use-hcp" type="checkbox" aria-label="Use West HCP range"><b>HCP</b></label><input id="west-min-hcp" type="number" min="0" max="37" value="0" aria-label="West minimum HCP"><input id="west-max-hcp" type="number" min="0" max="37" value="37" aria-label="West maximum HCP">
                 </div>
                 </section>
                 <section class="defender-play-preference">
