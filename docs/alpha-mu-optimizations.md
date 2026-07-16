@@ -30,10 +30,12 @@ The older paper's early and root cuts were already present.
 5. `engine/src/alpha_mu.cpp`: DDS leaves, `evaluate_max_node`,
    `evaluate_min_node`, `alpha_mu_node`, and iterative root search.
 6. `engine/src/quick_tricks.cpp`: layout-independent declarer cashing proofs.
-7. `engine/src/alpha_mu_policy.cpp`: reconstructs one selected strategy for the
+7. `engine/src/claim.cpp`: DTAC-style public claim proofs using the combined
+   defender pool.
+8. `engine/src/alpha_mu_policy.cpp`: reconstructs one selected strategy for the
    rest of the current trick.
-8. `engine/src/analysis_session.cpp`: samples worlds and invokes the search.
-9. `engine/src/interactive_cli.cpp`: user controls, audit display, and A/B
+9. `engine/src/analysis_session.cpp`: samples worlds and invokes the search.
+10. `engine/src/interactive_cli.cpp`: user controls, audit display, and A/B
    benchmark display.
 
 The search uses plain structs and free functions intentionally. These states are
@@ -78,6 +80,7 @@ intended for short endings and regression tests.
 | `win-cut` | `win_cut` | `evaluate_max_node`, `search_root_iteration` | A binary vector winning every active world cannot be improved | `win_cuts` |
 | `target-bounds` | `target_bounds` | `evaluate_target_bound` | If the target is already reached every continuation succeeds; if tricks won plus all remaining tricks is below target, no continuation can succeed | `target_reached_cuts`, `target_impossible_cuts` |
 | `quick-tricks` | `quick_trick_bounds` | `prove_declarer_quick_tricks`, `evaluate_quick_trick_bound` | A two-hand cashing search proves a continuous winner sequence without inspecting the E/W split | `quick_trick_probes`, `quick_trick_states`, `quick_trick_cuts` |
+| `claim-bounds` | `claim_bounds` | `prove_declarer_claim`, `evaluate_claim_bound` | A DTAC-style search proves an immediate declarer/dummy claim against the combined defender pool without inspecting the E/W split | `claim_probes`, `claim_states`, `claim_cache_hits`, `claim_cuts` |
 | `forced-moves` | `forced_moves` | `AnalysisSession::analyze`, `alpha_mu_node` | One legal equivalence class at the root needs no world sample; one representative MAX child or physical MIN card can be followed without combining sibling fronts | `forced_root_recommendations`, `forced_move_nodes` |
 | `forced-trump` | `forced_trump_run` | `evaluate_forced_trump_run` | With only trumps in the MAX leader and no opposing trumps, every remaining trick is proven | `forced_trump_run_cuts` |
 | `leaf-dds-batch` | `leaf_dds_batch` | `evaluate_leaf`, `double_dummy_future_tricks_batch` | DDS solves the same independent world positions; only their scheduling changes | `leaf_dds_batches`, `leaf_dds_worlds` |
@@ -112,6 +115,15 @@ length is established. In a trump contract it counts a side-suit winner only
 after this process has removed every defender trump. These choices make the
 bound conservative but sound under hidden layouts. See
 `docs/quick-tricks.md` for the algorithm and its relationship to DDS.
+
+`claim-bounds` runs after `quick-tricks` because it is more general and more
+expensive. It ports the core DTAC idea into `engine/src/claim.cpp`: declarer and
+dummy choose a two-card trick, and a combined defender model decides whether
+that trick can be beaten by any split. This proves crossruffs, ruff/pitch
+claims, and draw-trumps-then-claim lines that a cashing-only proof cannot see.
+The implementation is still conservative and has a fixed state budget; failure
+to prove a claim simply falls through to normal alpha-mu. See
+`docs/dtac-claim.md` for details.
 
 ## Cache Lifetime And Repeatable Simulations
 

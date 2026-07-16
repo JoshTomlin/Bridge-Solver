@@ -40,6 +40,7 @@ std::string_view to_string(AlphaMuOptimization optimization) {
         case AlphaMuOptimization::WinCut: return "win-cut";
         case AlphaMuOptimization::TargetBounds: return "target-bounds";
         case AlphaMuOptimization::QuickTrickBounds: return "quick-tricks";
+        case AlphaMuOptimization::ClaimBounds: return "claim-bounds";
         case AlphaMuOptimization::ForcedMoves: return "forced-moves";
         case AlphaMuOptimization::ForcedTrumpRun: return "forced-trump";
         case AlphaMuOptimization::LeafDdsBatch: return "leaf-dds-batch";
@@ -64,6 +65,7 @@ std::optional<AlphaMuOptimization> parse_alpha_mu_optimization(std::string_view 
              AlphaMuOptimization::WinCut,
              AlphaMuOptimization::TargetBounds,
              AlphaMuOptimization::QuickTrickBounds,
+             AlphaMuOptimization::ClaimBounds,
              AlphaMuOptimization::ForcedMoves,
              AlphaMuOptimization::ForcedTrumpRun,
              AlphaMuOptimization::LeafDdsBatch}) {
@@ -106,6 +108,8 @@ bool optimization_enabled(
             return optimizations.target_bounds;
         case AlphaMuOptimization::QuickTrickBounds:
             return optimizations.quick_trick_bounds;
+        case AlphaMuOptimization::ClaimBounds:
+            return optimizations.claim_bounds;
         case AlphaMuOptimization::ForcedMoves:
             return optimizations.forced_moves;
         case AlphaMuOptimization::ForcedTrumpRun:
@@ -163,6 +167,9 @@ void set_optimization_enabled(
         case AlphaMuOptimization::QuickTrickBounds:
             optimizations.quick_trick_bounds = enabled;
             return;
+        case AlphaMuOptimization::ClaimBounds:
+            optimizations.claim_bounds = enabled;
+            return;
         case AlphaMuOptimization::ForcedMoves:
             optimizations.forced_moves = enabled;
             return;
@@ -191,6 +198,7 @@ AlphaMuOptimizations disabled_alpha_mu_optimizations() {
         .win_cut = false,
         .target_bounds = false,
         .quick_trick_bounds = false,
+        .claim_bounds = false,
         .forced_moves = false,
         .forced_trump_run = false,
         .leaf_dds_batch = false,

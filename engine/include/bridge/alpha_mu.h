@@ -74,6 +74,7 @@ enum class AlphaMuOptimization : std::uint8_t {
     WinCut,
     TargetBounds,
     QuickTrickBounds,
+    ClaimBounds,
     ForcedMoves,
     ForcedTrumpRun,
     LeafDdsBatch,
@@ -94,6 +95,7 @@ struct AlphaMuOptimizations {
     bool win_cut {true};
     bool target_bounds {true};
     bool quick_trick_bounds {true};
+    bool claim_bounds {true};
     bool forced_moves {true};
     bool forced_trump_run {true};
     bool leaf_dds_batch {true};
@@ -173,6 +175,12 @@ struct AlphaMuSearchStats {
     std::uint64_t quick_trick_cuts {};
     std::uint64_t quick_trick_root_cuts {};
     std::uint64_t quick_trick_budget_aborts {};
+    std::uint64_t claim_probes {};
+    std::uint64_t claim_states {};
+    std::uint64_t claim_cache_hits {};
+    std::uint64_t claim_cuts {};
+    std::uint64_t claim_root_cuts {};
+    std::uint64_t claim_budget_aborts {};
     std::uint64_t leaf_dds_batches {};
     std::uint64_t leaf_dds_worlds {};
     std::uint8_t completed_iterations {};

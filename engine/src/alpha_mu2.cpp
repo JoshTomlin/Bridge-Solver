@@ -1,5 +1,6 @@
 #include "bridge/alpha_mu2.h"
 
+#include "bridge/claim.h"
 #include "bridge/dds_solver.h"
 #include "bridge/quick_tricks.h"
 
@@ -620,6 +621,41 @@ AlphaMu2Result alpha_mu2_search(
             search.stats.quick_trick_states = proof.states_examined;
             search.stats.quick_trick_cuts = 1;
             search.stats.quick_trick_root_cuts = 1;
+            search.stats.completed_iterations = 1;
+            result.active_reservoir_indices = active_indices;
+            result.worlds = gather_worlds(reservoir, result.active_reservoir_indices);
+            result.stats.initial_worlds = result.worlds.size();
+            result.stats.final_worlds = result.worlds.size();
+            return finish_without_screening(std::move(search), false);
+        }
+    }
+
+    if (config.search.optimizations.claim_bounds &&
+        won < config.search.target_tricks) {
+        const std::uint8_t needed = static_cast<std::uint8_t>(
+            config.search.target_tricks - won);
+        const ClaimProof proof = prove_declarer_claim(
+            root,
+            config.search.declarer,
+            needed);
+        if (proof.proven) {
+            AlphaMuResult search;
+            const std::vector<std::size_t> active_indices =
+                first_reservoir_indices(reservoir, config.max_world_count);
+            const WorldMask wins = first_worlds_mask(active_indices.size());
+            search.best_move = proof.first_card;
+            search.front = ParetoFront {.vectors = {OutcomeVector {.wins = wins}}};
+            search.root_moves.push_back(AlphaMuRootMove {
+                .move = proof.first_card,
+                .winning_worlds = winning_world_count(search.front.vectors.front()),
+                .pareto_vectors = search.front.vectors.size(),
+                .front = search.front,
+            });
+            search.stats.claim_probes = 1;
+            search.stats.claim_states = proof.states_examined;
+            search.stats.claim_cache_hits = proof.cache_hits;
+            search.stats.claim_cuts = 1;
+            search.stats.claim_root_cuts = 1;
             search.stats.completed_iterations = 1;
             result.active_reservoir_indices = active_indices;
             result.worlds = gather_worlds(reservoir, result.active_reservoir_indices);

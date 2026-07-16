@@ -1,4 +1,5 @@
 #include "bridge/analysis_session.h"
+#include "bridge/claim.h"
 #include "bridge/quick_tricks.h"
 
 #include <algorithm>
@@ -518,6 +519,41 @@ SessionAnalysis AnalysisSession::analyze() {
         }
     }
 
+    if (settings_.optimizations.claim_bounds &&
+        won < settings_.target_tricks) {
+        const auto claim_start = std::chrono::steady_clock::now();
+        const std::uint8_t needed = static_cast<std::uint8_t>(
+            settings_.target_tricks - won);
+        const ClaimProof proof =
+            prove_declarer_claim(position_, Seat::South, needed);
+        if (proof.proven) {
+            SessionAnalysis analysis;
+            analysis.possible_deals = possible_deals();
+            if (analysis.possible_deals == 0) {
+                throw std::logic_error(
+                    "the public constraints admit no defender layouts");
+            }
+            analysis.search.best_move = proof.first_card;
+            analysis.search.root_moves.push_back(
+                AlphaMuRootMove {.move = proof.first_card});
+            analysis.search.stats.claim_probes = 1;
+            analysis.search.stats.claim_states = proof.states_examined;
+            analysis.search.stats.claim_cache_hits = proof.cache_hits;
+            analysis.search.stats.claim_cuts = 1;
+            analysis.search.stats.claim_root_cuts = 1;
+            analysis.search.stats.completed_iterations = 1;
+            analysis.search_ms = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - claim_start).count();
+            if (settings_.collect_audit_log) {
+                analysis.search.audit_log =
+                    "M=0 claim-bounds: proved " + std::to_string(needed) +
+                    " trick(s), starting with " + to_string(proof.first_card) + "\n";
+            }
+            policy_.reset();
+            return analysis;
+        }
+    }
+
     SampledWorlds sampled = sample_worlds(settings_.world_count);
     SessionAnalysis analysis {
         .possible_deals = sampled.possible_deals,
@@ -642,6 +678,32 @@ AlphaMu2SessionAnalysis AnalysisSession::analyze2(
                     "M=0 quick-tricks: proved " + std::to_string(needed) +
                     " consecutive winner(s), starting with " +
                     to_string(proof.first_card) + "\n";
+            }
+            return finish_fast(std::move(search));
+        }
+    }
+
+    if (settings_.optimizations.claim_bounds &&
+        won < settings_.target_tricks) {
+        const std::uint8_t needed = static_cast<std::uint8_t>(
+            settings_.target_tricks - won);
+        const ClaimProof proof =
+            prove_declarer_claim(position_, Seat::South, needed);
+        if (proof.proven) {
+            AlphaMuResult search;
+            search.best_move = proof.first_card;
+            search.root_moves.push_back(
+                AlphaMuRootMove {.move = proof.first_card});
+            search.stats.claim_probes = 1;
+            search.stats.claim_states = proof.states_examined;
+            search.stats.claim_cache_hits = proof.cache_hits;
+            search.stats.claim_cuts = 1;
+            search.stats.claim_root_cuts = 1;
+            search.stats.completed_iterations = 1;
+            if (settings_.collect_audit_log) {
+                search.audit_log =
+                    "M=0 claim-bounds: proved " + std::to_string(needed) +
+                    " trick(s), starting with " + to_string(proof.first_card) + "\n";
             }
             return finish_fast(std::move(search));
         }

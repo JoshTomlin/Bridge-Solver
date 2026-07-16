@@ -10,6 +10,7 @@
 
 #include "bridge/alpha_mu2.h"
 #include "bridge/analysis_session.h"
+#include "bridge/claim.h"
 #include "bridge/engine.h"
 #include "bridge/quick_tricks.h"
 
@@ -189,6 +190,7 @@ void test_analysis_session_tracks_public_play() {
     settings.max_declarer_plies = 2;
     settings.target_tricks = 1;
     settings.optimizations.quick_trick_bounds = false;
+    settings.optimizations.claim_bounds = false;
     session.set_settings(settings);
 
     const bridge::SessionAnalysis analysis = session.analyze();
@@ -310,6 +312,7 @@ void test_analysis_session_autoplays_one_equivalent_class() {
     settings.max_declarer_plies = 1;
     settings.optimizations.max_equivalent_cards = false;
     settings.optimizations.quick_trick_bounds = false;
+    settings.optimizations.claim_bounds = false;
     reference_session.set_settings(settings);
     const bridge::SessionAnalysis reference = reference_session.analyze();
     require(reference.worlds.size() == settings.world_count &&
@@ -412,6 +415,7 @@ void test_alpha_mu_skips_touching_equal_cards() {
     };
     config.optimizations.root_cut = false;
     config.optimizations.quick_trick_bounds = false;
+    config.optimizations.claim_bounds = false;
     const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
     require(result.root_moves.size() == 1 &&
                 result.root_moves.front().move ==
@@ -457,6 +461,7 @@ void test_alpha_mu_all_equal_suits_are_trivial() {
         .max_declarer_plies = 3,
     };
     config.optimizations.quick_trick_bounds = false;
+    config.optimizations.claim_bounds = false;
 
     const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
     require(result.best_move == bridge::make_card(Suit::Spades, Rank::Ace),
@@ -521,6 +526,7 @@ void test_alpha_mu_cuts_max_node_on_all_winning_vector() {
     };
     config.optimizations.root_cut = false;
     config.optimizations.quick_trick_bounds = false;
+    config.optimizations.claim_bounds = false;
 
     const bridge::AlphaMuResult result = bridge::alpha_mu_search(worlds, config);
     require(result.best_move == bridge::make_card(Suit::Spades, Rank::Ace),
@@ -552,6 +558,7 @@ void test_alpha_mu_optimization_controls() {
              bridge::AlphaMuOptimization::WinCut,
              bridge::AlphaMuOptimization::TargetBounds,
              bridge::AlphaMuOptimization::QuickTrickBounds,
+             bridge::AlphaMuOptimization::ClaimBounds,
              bridge::AlphaMuOptimization::ForcedMoves,
              bridge::AlphaMuOptimization::ForcedTrumpRun,
              bridge::AlphaMuOptimization::LeafDdsBatch}) {
@@ -2079,6 +2086,7 @@ void test_quick_tricks_proves_thirteen_running_winners() {
             "the quick-trick proof should be visible in the audit log");
 
     config.optimizations.quick_trick_bounds = false;
+    config.optimizations.claim_bounds = false;
     config.optimizations.iterative_deepening = false;
     config.max_declarer_plies = 1;
     config.collect_audit_log = false;
@@ -2177,6 +2185,100 @@ void test_quick_tricks_establishes_a_suit_from_aggregate_length() {
     require(proof.proven &&
                 proof.first_card == bridge::make_card(Suit::Spades, Rank::Ace),
             "three top winners should exhaust three defender spades and establish S7");
+}
+
+void test_claim_proves_crossruff_beyond_quick_tricks() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Ace),
+            bridge::make_card(Suit::Hearts, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Queen),
+            bridge::make_card(Suit::Clubs, Rank::Ace),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::King),
+            bridge::make_card(Suit::Clubs, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Hearts, Rank::Ace),
+            bridge::make_card(Suit::Diamonds, Rank::Ace),
+        }),
+    }};
+    const bridge::Position position {
+        .deal = deal,
+        .current_trick = bridge::Trick {
+            .leader = Seat::South,
+            .trump_suit = Suit::Spades,
+        },
+        .played_cards = bridge::kFullDeck & ~(
+            deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+    };
+
+    const bridge::QuickTrickProof cashing =
+        bridge::prove_declarer_quick_tricks(position, Seat::South, 2);
+    require(!cashing.proven,
+            "cashing-only quick tricks should not see the two-card crossruff");
+
+    const bridge::ClaimProof claim =
+        bridge::prove_declarer_claim(position, Seat::South, 2);
+    require(claim.proven &&
+                claim.first_card == bridge::make_card(Suit::Clubs, Rank::Two) &&
+                !claim.budget_exhausted,
+            "DTAC-style claim proof should find the safe crossruff");
+
+    bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = Suit::Spades,
+        .target_tricks = 2,
+        .max_declarer_plies = bridge::kMaxDeclarerPlies,
+        .collect_audit_log = true,
+    };
+    const bridge::AlphaMuResult result =
+        bridge::alpha_mu_search({bridge::AlphaMuWorld {.position = position}}, config);
+    require(result.best_move == claim.first_card &&
+                result.stats.claim_root_cuts == 1 &&
+                result.stats.quick_trick_root_cuts == 0 &&
+                result.stats.dds_worlds == 0,
+            "claim-bounds should cut alpha-mu before DDS on the crossruff");
+    require(result.audit_log.find("[claim-bounds]") != std::string::npos,
+            "claim-bounds should be visible in the audit log");
+}
+
+void test_claim_rejects_side_winner_while_trumps_remain() {
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({
+            bridge::make_card(Suit::Hearts, Rank::Ace),
+            bridge::make_card(Suit::Hearts, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Two),
+            bridge::make_card(Suit::Diamonds, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Clubs, Rank::Ace),
+            bridge::make_card(Suit::Clubs, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Three),
+            bridge::make_card(Suit::Diamonds, Rank::Three),
+        }),
+    }};
+    const bridge::Position position {
+        .deal = deal,
+        .current_trick = bridge::Trick {
+            .leader = Seat::North,
+            .trump_suit = Suit::Spades,
+        },
+        .played_cards = bridge::kFullDeck & ~(
+            deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+    };
+
+    const bridge::ClaimProof claim =
+        bridge::prove_declarer_claim(position, Seat::South, 1);
+    require(!claim.proven,
+            "a side-suit ace is not a public claim while defenders may ruff");
 }
 
 void test_dds_defender_uses_hold_order_only_for_equal_discards() {
@@ -2329,6 +2431,8 @@ int main() {
         test_quick_tricks_proves_thirteen_running_winners();
         test_quick_tricks_does_not_assume_a_safe_side_suit();
         test_quick_tricks_establishes_a_suit_from_aggregate_length();
+        test_claim_proves_crossruff_beyond_quick_tricks();
+        test_claim_rejects_side_winner_while_trumps_remain();
         test_dds_defender_uses_hold_order_only_for_equal_discards();
         test_analysis_session_rejects_lost_grand_slam_before_sampling();
         test_alpha_mu_supports_full_26_ply_ceiling();

@@ -826,6 +826,14 @@ function preSamplingBound(analysis) {
       label: "Proven"
     };
   }
+  if (Number(analysis?.stats?.claimRootCuts || 0) > 0) {
+    return {
+      summary: "Guaranteed claim line | no world search needed",
+      score: "Guaranteed in every layout",
+      detail: "DTAC-style public claim proof",
+      label: "Proven"
+    };
+  }
   if (Number(analysis?.stats?.targetImpossibleCuts || 0) > 0 &&
       !(analysis.sampledWorlds?.length)) {
     return {
@@ -1121,6 +1129,7 @@ function analysisMarkup(analysis) {
       <div><dt>Paper cuts</dt><dd>${formatNumber((analysis.stats.earlyCuts || 0) + (analysis.stats.deepAlphaCuts || 0) + (analysis.stats.worldCuts || 0) + (analysis.stats.winCuts || 0))}</dd></div>
       <div><dt>Target bounds</dt><dd>${formatNumber((analysis.stats.targetReachedCuts || 0) + (analysis.stats.targetImpossibleCuts || 0))}</dd></div>
       <div><dt>Quick tricks</dt><dd>${formatNumber(analysis.stats.quickTrickCuts || 0)}</dd></div>
+      <div><dt>Claims</dt><dd>${formatNumber(analysis.stats.claimCuts || 0)}</dd></div>
     </dl>`;
 }
 function analysisDockMarkup(analysis) {

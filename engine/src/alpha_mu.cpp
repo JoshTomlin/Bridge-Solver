@@ -1,5 +1,6 @@
 #include "alpha_mu_internal.h"
 
+#include "bridge/claim.h"
 #include "bridge/dds_solver.h"
 #include "bridge/quick_tricks.h"
 
@@ -161,6 +162,11 @@ struct QuickTrickBound {
     Card first_card {kNoCard};
 };
 
+struct ClaimBound {
+    ParetoFront front;
+    Card first_card {kNoCard};
+};
+
 // Proves a target from the public declaring-side cards before expanding any
 // hidden-world branches. This is target-directed, like DDS QuickTricks, but
 // deliberately weaker because it never reads the E/W split.
@@ -199,6 +205,49 @@ std::optional<QuickTrickBound> evaluate_quick_trick_bound(
             " consecutive declaring-side winner(s), starting with " +
             to_string(proof.first_card));
     return QuickTrickBound {
+        .front = ParetoFront {
+            .vectors = {OutcomeVector {.wins = useful_worlds}},
+        },
+        .first_card = proof.first_card,
+    };
+}
+
+std::optional<ClaimBound> evaluate_claim_bound(
+    const Position& position,
+    WorldMask useful_worlds,
+    SearchContext& context,
+    std::size_t search_depth) {
+    if (!context.config.optimizations.claim_bounds ||
+        position.current_trick.card_count != 0 ||
+        !same_side(player_to_act(position), context.config.declarer)) {
+        return std::nullopt;
+    }
+
+    const std::uint8_t won =
+        tricks_won_by_declarer(position, context.config.declarer);
+    if (won >= context.config.target_tricks) return std::nullopt;
+
+    ++context.stats.claim_probes;
+    const std::uint8_t needed = static_cast<std::uint8_t>(
+        context.config.target_tricks - won);
+    const ClaimProof proof =
+        prove_declarer_claim(position, context.config.declarer, needed);
+    context.stats.claim_states += proof.states_examined;
+    context.stats.claim_cache_hits += proof.cache_hits;
+    if (proof.budget_exhausted) {
+        ++context.stats.claim_budget_aborts;
+    }
+    if (!proof.proven) return std::nullopt;
+
+    ++context.stats.claim_cuts;
+    audit_line(
+        context,
+        search_depth,
+        "claim-bounds",
+        "proved " + std::to_string(needed) +
+            " declaring-side trick(s), starting with " +
+            to_string(proof.first_card));
+    return ClaimBound {
         .front = ParetoFront {
             .vectors = {OutcomeVector {.wins = useful_worlds}},
         },
@@ -573,6 +622,25 @@ RootIteration search_root_iteration(
         };
     }
 
+    if (const std::optional<ClaimBound> bound =
+            evaluate_claim_bound(root, active_worlds, context, 0);
+        bound.has_value()) {
+        ++context.stats.claim_root_cuts;
+        return RootIteration {
+            .evaluation = NodeEvaluation {
+                .front = bound->front,
+                .best_move = bound->first_card,
+            },
+            .root_moves = {AlphaMuRootMove {
+                .move = bound->first_card,
+                .winning_worlds = best_winning_world_count(bound->front),
+                .pareto_vectors = bound->front.vectors.size(),
+                .front = bound->front,
+            }},
+            .terminal_depth_independent_bound = true,
+        };
+    }
+
     if (const std::optional<ParetoFront> forced =
             evaluate_forced_trump_run(
                 worlds, active_worlds, active_worlds, context, 0);
@@ -730,6 +798,15 @@ NodeEvaluation alpha_mu_node(
     }
     if (const std::optional<QuickTrickBound> bound =
             evaluate_quick_trick_bound(
+                position, useful_worlds, context, trace_depth);
+        bound.has_value()) {
+        return NodeEvaluation {
+            .front = bound->front,
+            .best_move = bound->first_card,
+        };
+    }
+    if (const std::optional<ClaimBound> bound =
+            evaluate_claim_bound(
                 position, useful_worlds, context, trace_depth);
         bound.has_value()) {
         return NodeEvaluation {

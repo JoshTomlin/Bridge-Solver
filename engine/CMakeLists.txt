@@ -66,6 +66,7 @@ add_library(bridge_engine
     src/alpha_mu_policy.cpp
     src/alpha_mu_state.cpp
     src/card.cpp
+    src/claim.cpp
     src/dds_solver.cpp
     src/engine.cpp
     src/game.cpp
