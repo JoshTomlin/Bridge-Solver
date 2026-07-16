@@ -2281,6 +2281,31 @@ void test_claim_rejects_side_winner_while_trumps_remain() {
             "a side-suit ace is not a public claim while defenders may ruff");
 }
 
+void test_claim_proves_draw_trumps_and_crossruff_long_clubs() {
+    const bridge::Deal deal {.hands = {
+        *bridge::parse_hand_record("9876.32.-.AK76543"),
+        *bridge::parse_hand_record("32.QT98.AKQJT.QT"),
+        *bridge::parse_hand_record("AKQJT54.AK4.765.-"),
+        *bridge::parse_hand_record("-.J765.98432.J982"),
+    }};
+    const bridge::Position position {
+        .deal = deal,
+        .current_trick = bridge::Trick {
+            .leader = Seat::South,
+            .trump_suit = Suit::Spades,
+        },
+        .played_cards = bridge::kFullDeck & ~(
+            deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+    };
+
+    const bridge::ClaimProof claim =
+        bridge::prove_declarer_claim(position, Seat::South, 13);
+    require(claim.proven &&
+                claim.first_card == bridge::make_card(Suit::Spades, Rank::Ace) &&
+                !claim.budget_exhausted,
+            "DTAC-style claim proof should draw trumps and claim the long-club crossruff");
+}
+
 void test_dds_defender_uses_hold_order_only_for_equal_discards() {
     const Card opening_lead = bridge::make_card(Suit::Spades, Rank::Ace);
     const bridge::Deal deal {.hands = {
@@ -2433,6 +2458,7 @@ int main() {
         test_quick_tricks_establishes_a_suit_from_aggregate_length();
         test_claim_proves_crossruff_beyond_quick_tricks();
         test_claim_rejects_side_winner_while_trumps_remain();
+        test_claim_proves_draw_trumps_and_crossruff_long_clubs();
         test_dds_defender_uses_hold_order_only_for_equal_discards();
         test_analysis_session_rejects_lost_grand_slam_before_sampling();
         test_alpha_mu_supports_full_26_ply_ceiling();

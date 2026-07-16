@@ -19,7 +19,7 @@
 namespace bridge::cli {
 namespace {
 
-constexpr std::array<AlphaMuOptimization, 17> kOptimizations {
+constexpr std::array<AlphaMuOptimization, 18> kOptimizations {
     AlphaMuOptimization::IterativeDeepening,
     AlphaMuOptimization::TranspositionTable,
     AlphaMuOptimization::CanonicalTranspositionKeys,
@@ -34,6 +34,7 @@ constexpr std::array<AlphaMuOptimization, 17> kOptimizations {
     AlphaMuOptimization::WinCut,
     AlphaMuOptimization::TargetBounds,
     AlphaMuOptimization::QuickTrickBounds,
+    AlphaMuOptimization::ClaimBounds,
     AlphaMuOptimization::ForcedMoves,
     AlphaMuOptimization::ForcedTrumpRun,
     AlphaMuOptimization::LeafDdsBatch,
@@ -161,6 +162,8 @@ std::uint64_t optimization_event_count(
             return stats.target_reached_cuts + stats.target_impossible_cuts;
         case AlphaMuOptimization::QuickTrickBounds:
             return stats.quick_trick_cuts;
+        case AlphaMuOptimization::ClaimBounds:
+            return stats.claim_cuts;
         case AlphaMuOptimization::ForcedMoves:
             return stats.forced_move_nodes + stats.forced_root_recommendations;
         case AlphaMuOptimization::ForcedTrumpRun:
@@ -233,9 +236,17 @@ SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
     const SessionAnalysis analysis = session.analyze();
     const bool forced =
         analysis.search.stats.forced_root_recommendations != 0;
+    const bool presampling_bound =
+        forced ||
+        analysis.search.stats.quick_trick_root_cuts != 0 ||
+        analysis.search.stats.claim_root_cuts != 0 ||
+        analysis.search.stats.target_reached_cuts != 0 ||
+        analysis.search.stats.target_impossible_cuts != 0;
     output << "Possible deals: " << analysis.possible_deals;
     if (forced) {
         output << "; forced play, no worlds sampled\n";
+    } else if (presampling_bound) {
+        output << "; public bound, no worlds sampled\n";
     } else {
         output << "; sampled " << session.settings().world_count
                << " (" << analysis.unique_worlds << " unique) in "
@@ -245,8 +256,8 @@ SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
     output << "Root moves:\n";
     for (const AlphaMuRootMove& move : analysis.search.root_moves) {
         output << "  " << to_string(move.move);
-        if (forced) {
-            output << ": only legal card\n";
+        if (forced || presampling_bound) {
+            output << (forced ? ": only legal card\n" : ": public bound\n");
         } else {
             output << ": " << move.winning_worlds
                    << '/' << session.settings().world_count
@@ -275,6 +286,11 @@ SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
            << " target-bounds="
            << analysis.search.stats.target_reached_cuts +
                   analysis.search.stats.target_impossible_cuts
+           << " quick-tricks=" << analysis.search.stats.quick_trick_cuts
+           << " claim-cuts=" << analysis.search.stats.claim_cuts
+           << " claim-states=" << analysis.search.stats.claim_states
+           << " claim-cache-hits=" << analysis.search.stats.claim_cache_hits
+           << " claim-budget-aborts=" << analysis.search.stats.claim_budget_aborts
            << " DDS-batches=" << analysis.search.stats.leaf_dds_batches
            << " completed-M="
            << static_cast<int>(analysis.search.stats.completed_depth);

@@ -35,8 +35,50 @@ std::vector<Card> cards_in_bridge_order(Hand cards) {
     return result;
 }
 
+std::vector<Card> cards_low_to_high(Hand cards) {
+    std::vector<Card> result;
+    result.reserve(card_count(cards));
+    for (const Suit suit : {
+             Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs}) {
+        for (int rank = static_cast<int>(Rank::Two);
+             rank <= static_cast<int>(Rank::Ace);
+             ++rank) {
+            const Card card = make_card(suit, static_cast<Rank>(rank));
+            if (contains(cards, card)) result.push_back(card);
+        }
+    }
+    return result;
+}
+
 std::uint8_t rank_value(Card card) {
     return static_cast<std::uint8_t>(rank_of(card));
+}
+
+Card highest_card(Hand cards, Suit suit) {
+    for (int rank = static_cast<int>(Rank::Ace);
+         rank >= static_cast<int>(Rank::Two);
+         --rank) {
+        const Card card = make_card(suit, static_cast<Rank>(rank));
+        if (contains(cards, card)) return card;
+    }
+    return kNoCard;
+}
+
+Card lowest_card(Hand cards, Suit suit) {
+    for (int rank = static_cast<int>(Rank::Two);
+         rank <= static_cast<int>(Rank::Ace);
+         ++rank) {
+        const Card card = make_card(suit, static_cast<Rank>(rank));
+        if (contains(cards, card)) return card;
+    }
+    return kNoCard;
+}
+
+void add_unique(std::vector<Card>& cards, Card card) {
+    if (card != kNoCard &&
+        std::find(cards.begin(), cards.end(), card) == cards.end()) {
+        cards.push_back(card);
+    }
 }
 
 bool outranks(Card challenger, Card current, std::optional<Suit> trump_suit) {
@@ -178,6 +220,77 @@ private:
         return state.rounds_led[index] >= defender_.max_rounds[index];
     }
 
+    std::vector<Card> candidate_leads(const ClaimState& state) const {
+        const Seat follower = partner_of(state.leader);
+        const Hand leader_hand = hand_for(state, state.leader);
+        const Hand follower_hand = hand_for(state, follower);
+        std::vector<Card> result;
+
+        if (trump_suit_.has_value() && !trumps_drawn(state)) {
+            add_unique(result, highest_card(leader_hand, *trump_suit_));
+        }
+
+        // Once trumps are drawn, alternating low losers into partner's trump
+        // is often the shortest claim line and avoids exploring every honour.
+        if (trump_suit_.has_value() && trumps_drawn(state) &&
+            cards_in_suit(follower_hand, *trump_suit_) != kEmptyHand) {
+            for (const Suit suit : {
+                     Suit::Diamonds, Suit::Hearts, Suit::Clubs, Suit::Spades}) {
+                if (suit == *trump_suit_) continue;
+                if (cards_in_suit(follower_hand, suit) == kEmptyHand) {
+                    add_unique(result, lowest_card(leader_hand, suit));
+                }
+            }
+        }
+
+        for (const Suit suit : {
+                 Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs}) {
+            const Hand suit_cards = cards_in_suit(leader_hand, suit);
+            if (suit_cards == kEmptyHand) continue;
+
+            const Card high = highest_card(suit_cards, suit);
+            const bool rank_winner =
+                defenders_out_of(state, suit) ||
+                static_cast<int>(rank_value(high)) >
+                    defender_.highest_rank[static_cast<std::size_t>(suit)];
+            if (rank_winner) add_unique(result, high);
+
+            // Keep a low card as an entry/ruffing representative. If it is not
+            // safe, trick_is_unbeatable will reject it.
+            add_unique(result, lowest_card(suit_cards, suit));
+        }
+
+        for (const Card card : cards_in_bridge_order(leader_hand)) {
+            add_unique(result, card);
+        }
+        return result;
+    }
+
+    std::vector<Card> candidate_replies(
+        const ClaimState& state,
+        Seat follower,
+        Suit lead_suit) const {
+        const Hand follower_hand = hand_for(state, follower);
+        Hand replies = cards_in_suit(follower_hand, lead_suit);
+        if (replies != kEmptyHand) {
+            return cards_low_to_high(replies);
+        }
+
+        std::vector<Card> result;
+        if (trump_suit_.has_value()) {
+            add_unique(result, lowest_card(follower_hand, *trump_suit_));
+        }
+        for (const Suit suit : {
+                 Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs}) {
+            add_unique(result, lowest_card(follower_hand, suit));
+            add_unique(result, highest_card(follower_hand, suit));
+        }
+        for (const Card card : cards_low_to_high(follower_hand)) {
+            add_unique(result, card);
+        }
+        return result;
+    }
+
     bool trick_is_unbeatable(
         const ClaimState& state,
         Card lead,
@@ -239,12 +352,10 @@ private:
         const Hand leader_hand = hand_for(state, state.leader);
         const Hand follower_hand = hand_for(state, follower);
 
-        for (const Card lead : cards_in_bridge_order(leader_hand)) {
+        for (const Card lead : candidate_leads(state)) {
             const Suit lead_suit = suit_of(lead);
-            Hand replies = cards_in_suit(follower_hand, lead_suit);
-            if (replies == kEmptyHand) replies = follower_hand;
 
-            for (const Card follow : cards_in_bridge_order(replies)) {
+            for (const Card follow : candidate_replies(state, follower, lead_suit)) {
                 if (!trick_is_unbeatable(state, lead, follow)) continue;
 
                 ClaimState child = state;
