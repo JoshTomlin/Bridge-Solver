@@ -54,6 +54,29 @@ A failed-state transposition cache stores positions already proven not to claim.
 The proof has a fixed state budget so a hard claim does not replace alpha-mu's
 main search.
 
+## Equivalent Cards
+
+The claim search has its own local equivalent-card pruning. It does not simply
+reuse alpha-mu's root legal-move grouping because a claim move may be important
+as an entry, a ruff, a discard, or a trump-drawing card.
+
+Cards are grouped only inside one suit, only across touching ranks, and only
+when their local claim role is the same:
+
+- drawing trump;
+- leading a suit partner can ruff;
+- rank winner;
+- trump ruff;
+- low follow;
+- discard;
+- other.
+
+The representative choice is role-specific. For example, drawing trump keeps
+the high card, low follows keep the low card, and rank-winner groups keep both
+low and high representatives when that may matter for entries. The proof still
+checks the resulting real card line with `trick_is_unbeatable`, so pruning can
+make the proof miss a difficult claim but cannot create a false claim.
+
 ## Alpha-Mu Integration
 
 The optimization is named `claim-bounds`.
@@ -73,9 +96,11 @@ Stats exposed through C++ and WASM:
 - `claim_probes`
 - `claim_states`
 - `claim_cache_hits`
+- `claim_equivalent_cards_skipped`
 - `claim_cuts`
 - `claim_root_cuts`
 - `claim_budget_aborts`
+- `claim_ms`
 
 ## Limitations
 

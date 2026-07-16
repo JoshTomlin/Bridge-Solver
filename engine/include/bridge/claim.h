@@ -18,6 +18,7 @@ struct ClaimProof {
     std::uint8_t tricks_claimed {};
     std::uint64_t states_examined {};
     std::uint64_t cache_hits {};
+    std::uint64_t equivalent_cards_skipped {};
     bool budget_exhausted {};
 };
 

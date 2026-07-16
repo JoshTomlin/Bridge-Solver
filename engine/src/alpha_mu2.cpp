@@ -630,14 +630,25 @@ AlphaMu2Result alpha_mu2_search(
         }
     }
 
+    AlphaMuSearchStats prescreen_claim_stats;
     if (config.search.optimizations.claim_bounds &&
         won < config.search.target_tricks) {
         const std::uint8_t needed = static_cast<std::uint8_t>(
             config.search.target_tricks - won);
+        const auto claim_start = std::chrono::steady_clock::now();
         const ClaimProof proof = prove_declarer_claim(
             root,
             config.search.declarer,
             needed);
+        const double claim_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - claim_start).count();
+        prescreen_claim_stats.claim_probes = 1;
+        prescreen_claim_stats.claim_states = proof.states_examined;
+        prescreen_claim_stats.claim_cache_hits = proof.cache_hits;
+        prescreen_claim_stats.claim_equivalent_cards_skipped =
+            proof.equivalent_cards_skipped;
+        prescreen_claim_stats.claim_ms = claim_ms;
+        prescreen_claim_stats.claim_budget_aborts = proof.budget_exhausted ? 1 : 0;
         if (proof.proven) {
             AlphaMuResult search;
             const std::vector<std::size_t> active_indices =
@@ -651,9 +662,7 @@ AlphaMu2Result alpha_mu2_search(
                 .pareto_vectors = search.front.vectors.size(),
                 .front = search.front,
             });
-            search.stats.claim_probes = 1;
-            search.stats.claim_states = proof.states_examined;
-            search.stats.claim_cache_hits = proof.cache_hits;
+            search.stats = prescreen_claim_stats;
             search.stats.claim_cuts = 1;
             search.stats.claim_root_cuts = 1;
             search.stats.completed_iterations = 1;
@@ -752,6 +761,14 @@ AlphaMu2Result alpha_mu2_search(
             run_config);
         const double search_ms = std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - search_start).count();
+        result.search.stats.claim_probes += prescreen_claim_stats.claim_probes;
+        result.search.stats.claim_states += prescreen_claim_stats.claim_states;
+        result.search.stats.claim_cache_hits += prescreen_claim_stats.claim_cache_hits;
+        result.search.stats.claim_equivalent_cards_skipped +=
+            prescreen_claim_stats.claim_equivalent_cards_skipped;
+        result.search.stats.claim_budget_aborts +=
+            prescreen_claim_stats.claim_budget_aborts;
+        result.search.stats.claim_ms += prescreen_claim_stats.claim_ms;
         result.stats.search_ms += search_ms;
         ++result.stats.search_runs;
         result.rounds.push_back(AlphaMu2RoundTrace {

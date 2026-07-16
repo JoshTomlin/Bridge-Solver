@@ -2302,6 +2302,7 @@ void test_claim_proves_draw_trumps_and_crossruff_long_clubs() {
         bridge::prove_declarer_claim(position, Seat::South, 13);
     require(claim.proven &&
                 claim.first_card == bridge::make_card(Suit::Spades, Rank::Ace) &&
+                claim.equivalent_cards_skipped > 0 &&
                 !claim.budget_exhausted,
             "DTAC-style claim proof should draw trumps and claim the long-club crossruff");
 }

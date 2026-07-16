@@ -230,10 +230,14 @@ std::optional<ClaimBound> evaluate_claim_bound(
     ++context.stats.claim_probes;
     const std::uint8_t needed = static_cast<std::uint8_t>(
         context.config.target_tricks - won);
+    const auto claim_start = std::chrono::steady_clock::now();
     const ClaimProof proof =
         prove_declarer_claim(position, context.config.declarer, needed);
+    context.stats.claim_ms += std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - claim_start).count();
     context.stats.claim_states += proof.states_examined;
     context.stats.claim_cache_hits += proof.cache_hits;
+    context.stats.claim_equivalent_cards_skipped += proof.equivalent_cards_skipped;
     if (proof.budget_exhausted) {
         ++context.stats.claim_budget_aborts;
     }

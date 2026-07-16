@@ -401,9 +401,11 @@ std::string stats_json(const AlphaMuSearchStats& stats) {
            << ",\"claimProbes\":" << stats.claim_probes
            << ",\"claimStates\":" << stats.claim_states
            << ",\"claimCacheHits\":" << stats.claim_cache_hits
+           << ",\"claimEquivalentCards\":" << stats.claim_equivalent_cards_skipped
            << ",\"claimCuts\":" << stats.claim_cuts
            << ",\"claimRootCuts\":" << stats.claim_root_cuts
            << ",\"claimBudgetAborts\":" << stats.claim_budget_aborts
+           << ",\"claimMs\":" << stats.claim_ms
            << ",\"equivalentMoves\":" << stats.equivalent_moves_skipped
            << ",\"maxEquivalentMoves\":" << stats.max_equivalent_moves_skipped
            << ",\"minEquivalentMoves\":" << stats.min_equivalent_moves_skipped

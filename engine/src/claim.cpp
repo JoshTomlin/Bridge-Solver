@@ -140,6 +140,16 @@ struct ClaimState {
     std::array<std::uint8_t, 4> rounds_led {};
 };
 
+enum class ClaimCardClass : std::uint8_t {
+    DrawTrump,
+    RuffLead,
+    RankWinner,
+    TrumpRuff,
+    LowFollow,
+    Discard,
+    Other,
+};
+
 struct FailedState {
     Hand declarer_hand {};
     Hand dummy_hand {};
@@ -187,6 +197,10 @@ public:
         return cache_hits_;
     }
 
+    std::uint64_t equivalent_cards_skipped() const {
+        return equivalent_cards_skipped_;
+    }
+
     bool budget_exhausted() const {
         return budget_exhausted_;
     }
@@ -218,6 +232,114 @@ private:
     bool defenders_out_of(const ClaimState& state, Suit suit) const {
         const std::size_t index = static_cast<std::size_t>(suit);
         return state.rounds_led[index] >= defender_.max_rounds[index];
+    }
+
+    template <typename Classifier>
+    void append_representatives(
+        std::vector<Card>& result,
+        Hand cards,
+        Classifier classifier) const {
+        for (const Suit suit : {
+                 Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs}) {
+            std::vector<Card> group;
+            ClaimCardClass group_class = ClaimCardClass::Other;
+            int previous_rank = -1;
+
+            auto flush = [&]() {
+                if (group.empty()) return;
+
+                std::uint8_t kept = 0;
+                const Card high = group.front();
+                const Card low = group.back();
+                switch (group_class) {
+                    case ClaimCardClass::DrawTrump:
+                        add_unique(result, high);
+                        kept = 1;
+                        break;
+                    case ClaimCardClass::RuffLead:
+                    case ClaimCardClass::TrumpRuff:
+                    case ClaimCardClass::LowFollow:
+                    case ClaimCardClass::Discard:
+                        add_unique(result, low);
+                        kept = 1;
+                        break;
+                    case ClaimCardClass::RankWinner:
+                    case ClaimCardClass::Other:
+                        add_unique(result, low);
+                        kept = 1;
+                        if (high != low) {
+                            add_unique(result, high);
+                            kept = 2;
+                        }
+                        break;
+                }
+
+                if (group.size() > kept) {
+                    equivalent_cards_skipped_ += group.size() - kept;
+                }
+                group.clear();
+            };
+
+            const Hand suit_cards = cards_in_suit(cards, suit);
+            for (int rank = static_cast<int>(Rank::Ace);
+                 rank >= static_cast<int>(Rank::Two);
+                 --rank) {
+                const Card card = make_card(suit, static_cast<Rank>(rank));
+                if (!contains(suit_cards, card)) continue;
+
+                const ClaimCardClass current_class = classifier(card);
+                if (!group.empty() &&
+                    (current_class != group_class ||
+                     previous_rank != rank + 1)) {
+                    flush();
+                }
+
+                if (group.empty()) group_class = current_class;
+                group.push_back(card);
+                previous_rank = rank;
+            }
+            flush();
+        }
+    }
+
+    ClaimCardClass lead_class(
+        const ClaimState& state,
+        Card card,
+        Hand follower_hand) const {
+        const Suit suit = suit_of(card);
+        if (trump_suit_.has_value() && suit == *trump_suit_ &&
+            !trumps_drawn(state)) {
+            return ClaimCardClass::DrawTrump;
+        }
+        if (trump_suit_.has_value() && trumps_drawn(state) &&
+            suit != *trump_suit_ &&
+            cards_in_suit(follower_hand, *trump_suit_) != kEmptyHand &&
+            cards_in_suit(follower_hand, suit) == kEmptyHand) {
+            return ClaimCardClass::RuffLead;
+        }
+        if (defenders_out_of(state, suit) ||
+            static_cast<int>(rank_value(card)) >
+                defender_.highest_rank[static_cast<std::size_t>(suit)]) {
+            return ClaimCardClass::RankWinner;
+        }
+        return ClaimCardClass::Other;
+    }
+
+    ClaimCardClass follow_class(Card lead, Card follow) const {
+        const Card winner = trick_winner(lead, follow, trump_suit_);
+        const Suit lead_suit = suit_of(lead);
+        const Suit follow_suit = suit_of(follow);
+
+        if (follow_suit != lead_suit) {
+            if (trump_suit_.has_value() &&
+                follow_suit == *trump_suit_ &&
+                winner == follow) {
+                return ClaimCardClass::TrumpRuff;
+            }
+            return ClaimCardClass::Discard;
+        }
+        if (winner == follow) return ClaimCardClass::RankWinner;
+        return ClaimCardClass::LowFollow;
     }
 
     std::vector<Card> candidate_leads(const ClaimState& state) const {
@@ -260,34 +382,38 @@ private:
             add_unique(result, lowest_card(suit_cards, suit));
         }
 
-        for (const Card card : cards_in_bridge_order(leader_hand)) {
-            add_unique(result, card);
-        }
+        append_representatives(
+            result,
+            leader_hand,
+            [&](Card card) { return lead_class(state, card, follower_hand); });
         return result;
     }
 
-    std::vector<Card> candidate_replies(
+    std::vector<Card> legal_replies(
         const ClaimState& state,
         Seat follower,
         Suit lead_suit) const {
         const Hand follower_hand = hand_for(state, follower);
         Hand replies = cards_in_suit(follower_hand, lead_suit);
-        if (replies != kEmptyHand) {
-            return cards_low_to_high(replies);
-        }
+        if (replies != kEmptyHand) return cards_low_to_high(replies);
+        return cards_low_to_high(follower_hand);
+    }
 
+    std::vector<Card> representative_safe_replies(
+        const ClaimState& state,
+        Seat follower,
+        Card lead) const {
         std::vector<Card> result;
-        if (trump_suit_.has_value()) {
-            add_unique(result, lowest_card(follower_hand, *trump_suit_));
+        Hand safe_replies = kEmptyHand;
+        for (const Card follow : legal_replies(state, follower, suit_of(lead))) {
+            if (trick_is_unbeatable(state, lead, follow)) {
+                safe_replies = add_card(safe_replies, follow);
+            }
         }
-        for (const Suit suit : {
-                 Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs}) {
-            add_unique(result, lowest_card(follower_hand, suit));
-            add_unique(result, highest_card(follower_hand, suit));
-        }
-        for (const Card card : cards_low_to_high(follower_hand)) {
-            add_unique(result, card);
-        }
+        append_representatives(
+            result,
+            safe_replies,
+            [&](Card follow) { return follow_class(lead, follow); });
         return result;
     }
 
@@ -355,9 +481,7 @@ private:
         for (const Card lead : candidate_leads(state)) {
             const Suit lead_suit = suit_of(lead);
 
-            for (const Card follow : candidate_replies(state, follower, lead_suit)) {
-                if (!trick_is_unbeatable(state, lead, follow)) continue;
-
+            for (const Card follow : representative_safe_replies(state, follower, lead)) {
                 ClaimState child = state;
                 set_hand(child, state.leader, remove_card(leader_hand, lead));
                 set_hand(child, follower, remove_card(follower_hand, follow));
@@ -382,6 +506,7 @@ private:
     CombinedDefender defender_;
     std::uint64_t states_examined_ {};
     std::uint64_t cache_hits_ {};
+    mutable std::uint64_t equivalent_cards_skipped_ {};
     bool budget_exhausted_ {};
     std::unordered_set<FailedState, FailedStateHash> failed_;
 };
@@ -428,6 +553,7 @@ ClaimProof prove_declarer_claim(
         .tricks_claimed = proven ? required_tricks : std::uint8_t {0},
         .states_examined = search.states_examined(),
         .cache_hits = search.cache_hits(),
+        .equivalent_cards_skipped = search.equivalent_cards_skipped(),
         .budget_exhausted = search.budget_exhausted(),
     };
 }

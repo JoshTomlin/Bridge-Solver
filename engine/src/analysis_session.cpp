@@ -149,6 +149,31 @@ std::string void_string(
     return result.empty() ? "none" : result;
 }
 
+void record_claim_stats(
+    AlphaMuSearchStats& stats,
+    const ClaimProof& proof,
+    double milliseconds) {
+    ++stats.claim_probes;
+    stats.claim_states += proof.states_examined;
+    stats.claim_cache_hits += proof.cache_hits;
+    stats.claim_equivalent_cards_skipped += proof.equivalent_cards_skipped;
+    stats.claim_ms += milliseconds;
+    if (proof.budget_exhausted) {
+        ++stats.claim_budget_aborts;
+    }
+}
+
+void add_presampling_claim_stats(
+    AlphaMuSearchStats& target,
+    const AlphaMuSearchStats& source) {
+    target.claim_probes += source.claim_probes;
+    target.claim_states += source.claim_states;
+    target.claim_cache_hits += source.claim_cache_hits;
+    target.claim_equivalent_cards_skipped += source.claim_equivalent_cards_skipped;
+    target.claim_budget_aborts += source.claim_budget_aborts;
+    target.claim_ms += source.claim_ms;
+}
+
 }  // namespace
 
 std::optional<Hand> parse_hand_record(std::string_view text) {
@@ -418,6 +443,7 @@ SessionAnalysis AnalysisSession::analyze() {
     const Hand legal = legal_plays(
         position_.current_trick,
         hand_of(position_.deal, player));
+    AlphaMuSearchStats presampling_claim_stats;
 
     const auto bound_start = std::chrono::steady_clock::now();
     const std::uint8_t won = position_.score.north_south;
@@ -526,6 +552,9 @@ SessionAnalysis AnalysisSession::analyze() {
             settings_.target_tricks - won);
         const ClaimProof proof =
             prove_declarer_claim(position_, Seat::South, needed);
+        const double claim_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - claim_start).count();
+        record_claim_stats(presampling_claim_stats, proof, claim_ms);
         if (proof.proven) {
             SessionAnalysis analysis;
             analysis.possible_deals = possible_deals();
@@ -536,14 +565,11 @@ SessionAnalysis AnalysisSession::analyze() {
             analysis.search.best_move = proof.first_card;
             analysis.search.root_moves.push_back(
                 AlphaMuRootMove {.move = proof.first_card});
-            analysis.search.stats.claim_probes = 1;
-            analysis.search.stats.claim_states = proof.states_examined;
-            analysis.search.stats.claim_cache_hits = proof.cache_hits;
+            analysis.search.stats = presampling_claim_stats;
             analysis.search.stats.claim_cuts = 1;
             analysis.search.stats.claim_root_cuts = 1;
             analysis.search.stats.completed_iterations = 1;
-            analysis.search_ms = std::chrono::duration<double, std::milli>(
-                std::chrono::steady_clock::now() - claim_start).count();
+            analysis.search_ms = claim_ms;
             if (settings_.collect_audit_log) {
                 analysis.search.audit_log =
                     "M=0 claim-bounds: proved " + std::to_string(needed) +
@@ -562,6 +588,7 @@ SessionAnalysis AnalysisSession::analyze() {
     };
     const auto search_start = std::chrono::steady_clock::now();
     analysis.search = alpha_mu_search(sampled.worlds, search_config(true));
+    add_presampling_claim_stats(analysis.search.stats, presampling_claim_stats);
     analysis.search_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - search_start).count();
     analysis.worlds = std::move(sampled.worlds);
@@ -587,6 +614,7 @@ AlphaMu2SessionAnalysis AnalysisSession::analyze2(
     const Hand legal = legal_plays(
         position_.current_trick,
         hand_of(position_.deal, player));
+    AlphaMuSearchStats presampling_claim_stats;
     const auto fast_start = std::chrono::steady_clock::now();
     const std::uint8_t won = position_.score.north_south;
     const std::uint8_t remaining = remaining_tricks(position_);
@@ -685,18 +713,20 @@ AlphaMu2SessionAnalysis AnalysisSession::analyze2(
 
     if (settings_.optimizations.claim_bounds &&
         won < settings_.target_tricks) {
+        const auto claim_start = std::chrono::steady_clock::now();
         const std::uint8_t needed = static_cast<std::uint8_t>(
             settings_.target_tricks - won);
         const ClaimProof proof =
             prove_declarer_claim(position_, Seat::South, needed);
+        const double claim_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - claim_start).count();
+        record_claim_stats(presampling_claim_stats, proof, claim_ms);
         if (proof.proven) {
             AlphaMuResult search;
             search.best_move = proof.first_card;
             search.root_moves.push_back(
                 AlphaMuRootMove {.move = proof.first_card});
-            search.stats.claim_probes = 1;
-            search.stats.claim_states = proof.states_examined;
-            search.stats.claim_cache_hits = proof.cache_hits;
+            search.stats = presampling_claim_stats;
             search.stats.claim_cuts = 1;
             search.stats.claim_root_cuts = 1;
             search.stats.completed_iterations = 1;
@@ -724,6 +754,9 @@ AlphaMu2SessionAnalysis AnalysisSession::analyze2(
             .counterexamples_per_round = settings.counterexamples_per_round,
             .search = search_config(true),
         });
+    add_presampling_claim_stats(
+        analysis.search.search.stats,
+        presampling_claim_stats);
     policy_ = analysis.search.search.trick_policy;
     return analysis;
 }

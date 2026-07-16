@@ -290,7 +290,9 @@ SessionAnalysis analyze(AnalysisSession& session, std::ostream& output) {
            << " claim-cuts=" << analysis.search.stats.claim_cuts
            << " claim-states=" << analysis.search.stats.claim_states
            << " claim-cache-hits=" << analysis.search.stats.claim_cache_hits
+           << " claim-equals=" << analysis.search.stats.claim_equivalent_cards_skipped
            << " claim-budget-aborts=" << analysis.search.stats.claim_budget_aborts
+           << " claim-ms=" << analysis.search.stats.claim_ms
            << " DDS-batches=" << analysis.search.stats.leaf_dds_batches
            << " completed-M="
            << static_cast<int>(analysis.search.stats.completed_depth);

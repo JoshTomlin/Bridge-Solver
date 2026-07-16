@@ -178,9 +178,11 @@ struct AlphaMuSearchStats {
     std::uint64_t claim_probes {};
     std::uint64_t claim_states {};
     std::uint64_t claim_cache_hits {};
+    std::uint64_t claim_equivalent_cards_skipped {};
     std::uint64_t claim_cuts {};
     std::uint64_t claim_root_cuts {};
     std::uint64_t claim_budget_aborts {};
+    double claim_ms {};
     std::uint64_t leaf_dds_batches {};
     std::uint64_t leaf_dds_worlds {};
     std::uint8_t completed_iterations {};

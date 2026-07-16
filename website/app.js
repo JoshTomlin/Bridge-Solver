@@ -1130,6 +1130,7 @@ function analysisMarkup(analysis) {
       <div><dt>Target bounds</dt><dd>${formatNumber((analysis.stats.targetReachedCuts || 0) + (analysis.stats.targetImpossibleCuts || 0))}</dd></div>
       <div><dt>Quick tricks</dt><dd>${formatNumber(analysis.stats.quickTrickCuts || 0)}</dd></div>
       <div><dt>Claims</dt><dd>${formatNumber(analysis.stats.claimCuts || 0)}</dd></div>
+      <div><dt>Claim time</dt><dd>${formatMs(analysis.stats.claimMs || 0)}</dd></div>
     </dl>`;
 }
 function analysisDockMarkup(analysis) {
