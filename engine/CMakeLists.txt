@@ -129,8 +129,35 @@ else()
 
     target_link_libraries(bridge_alpha_mu2_report PRIVATE bridge_engine)
 
+    add_executable(bridge_alpha_mu_lab
+        src/alpha_mu_lab.cpp
+    )
+
+    target_link_libraries(bridge_alpha_mu_lab PRIVATE bridge_engine)
+
     add_test(
         NAME bridge_engine_tests
         COMMAND bridge_engine_tests
+    )
+
+    add_test(
+        NAME bridge_alpha_mu_corpus
+        COMMAND bridge_alpha_mu_lab corpus
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/alpha_mu_corpus.tsv
+    )
+
+    add_test(
+        NAME bridge_alpha_mu_collision_miner
+        COMMAND bridge_alpha_mu_lab mine
+    )
+
+    add_test(
+        NAME bridge_alpha_mu_paired
+        COMMAND bridge_alpha_mu_lab paired 20 11565831
+    )
+
+    add_test(
+        NAME bridge_alpha_mu_bridgemaster_smoke
+        COMMAND bridge_alpha_mu_lab bridgemaster6s 64 2 10 11565831 64
     )
 endif()

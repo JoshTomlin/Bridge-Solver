@@ -249,6 +249,8 @@ std::string root_moves_json(
         const AlphaMuRootMove& move = root_moves[index];
         output << "{\"card\":" << json_quote(to_string(move.move))
                << ",\"winningWorlds\":" << move.winning_worlds
+               << ",\"weightedScore\":" << move.score.weighted_wins
+               << ",\"criticalWins\":" << move.score.critical_wins
                << ",\"paretoVectors\":" << move.pareto_vectors
                << ",\"outcomes\":[";
         for (std::size_t vector = 0; vector < move.front.vectors.size(); ++vector) {
@@ -272,6 +274,8 @@ std::string root_moves_json(
         const AlphaMuRootMove& move = root_moves[index];
         output << "{\"card\":" << json_quote(to_string(move.move))
                << ",\"winningWorlds\":" << move.winning_worlds
+               << ",\"weightedScore\":" << move.score.weighted_wins
+               << ",\"criticalWins\":" << move.score.critical_wins
                << ",\"paretoVectors\":" << move.pareto_vectors
                << ",\"outcomes\":[";
         for (std::size_t vector = 0; vector < move.front.vectors.size(); ++vector) {
@@ -433,6 +437,8 @@ std::string analysis_json(const SessionAnalysis& analysis) {
            << ",\"engine\":\"alpha-mu\""
            << ",\"winningWorlds\":"
            << best_winning_world_count(analysis.search.front)
+           << ",\"weightedScore\":" << analysis.search.score.weighted_wins
+           << ",\"criticalWins\":" << analysis.search.score.critical_wins
            << ",\"possibleDeals\":" << analysis.possible_deals
            << ",\"uniqueWorlds\":" << analysis.unique_worlds
            << ",\"samplingMs\":" << analysis.sampling_ms
@@ -461,6 +467,11 @@ std::string alpha_mu2_stats_json(const AlphaMu2Stats& stats) {
            << ",\"counterexamplesFound\":" << stats.counterexamples_found
            << ",\"counterexamplesAdded\":" << stats.counterexamples_added
            << ",\"policyDdsLeaves\":" << stats.policy_dds_leaves
+           << ",\"policyFingerprintCollisions\":"
+           << stats.policy_fingerprint_collisions
+           << ",\"challengeWorlds\":" << stats.challenge_worlds
+           << ",\"probabilityReassignments\":"
+           << stats.probability_reassignments
            << ",\"stoppedByTime\":"
            << (stats.stopped_by_time_limit ? "true" : "false")
            << ",\"screeningMs\":" << stats.screening_ms
@@ -472,6 +483,17 @@ std::string alpha_mu2_stats_json(const AlphaMu2Stats& stats) {
 }
 
 std::string size_vector_json(const std::vector<std::size_t>& values) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) output << ',';
+        output << values[index];
+    }
+    output << ']';
+    return output.str();
+}
+
+std::string double_vector_json(const std::vector<double>& values) {
     std::ostringstream output;
     output << '[';
     for (std::size_t index = 0; index < values.size(); ++index) {
@@ -514,6 +536,9 @@ std::string alpha_mu2_candidates_json(
                << (candidate.unsupported_observation ? "true" : "false")
                << ",\"rootRegret\":" << static_cast<int>(candidate.root_regret)
                << ",\"distanceFromActive\":" << candidate.distance_from_active
+               << ",\"policySignature\":"
+               << json_quote(std::to_string(candidate.policy_signature))
+               << ",\"failureDepth\":" << candidate.failure_depth
                << ",\"selected\":"
                << (candidate.selected ? "true" : "false")
                << ",\"replacedReservoirIndex\":";
@@ -541,6 +566,8 @@ std::string alpha_mu2_rounds_json(const AlphaMu2Result& result) {
                << ",\"bestMove\":" << json_quote(to_string(round.search.best_move))
                << ",\"winningWorlds\":"
                << best_winning_world_count(round.search.front)
+               << ",\"weightedScore\":" << round.search.score.weighted_wins
+               << ",\"criticalWins\":" << round.search.score.critical_wins
                << ",\"completedDepth\":"
                << static_cast<int>(round.search.stats.completed_depth)
                << ",\"rootMoves\":"
@@ -562,10 +589,15 @@ std::string analysis2_json(const AlphaMu2SessionAnalysis& analysis) {
     output << "{\"bestMove\":" << json_quote(to_string(search.best_move))
            << ",\"engine\":\"alpha-mu2\""
            << ",\"winningWorlds\":" << best_winning_world_count(search.front)
+           << ",\"weightedScore\":" << search.score.weighted_wins
+           << ",\"criticalWins\":" << search.score.critical_wins
            << ",\"possibleDeals\":" << analysis.possible_deals
            << ",\"uniqueWorlds\":" << analysis.unique_reservoir_worlds
            << ",\"uniqueReservoirWorlds\":"
            << analysis.unique_reservoir_worlds
+           << ",\"adversarialWorlds\":" << analysis.adversarial_worlds
+           << ",\"persistentWorldsReused\":" << analysis.persistent_worlds_reused
+           << ",\"persistentWorldsRetained\":" << analysis.persistent_worlds_retained
            << ",\"samplingMs\":" << analysis.sampling_ms
            << ",\"searchMs\":" << result.stats.total_ms
            << ",\"rootMoves\":"
@@ -585,8 +617,14 @@ std::string analysis2_json(const AlphaMu2SessionAnalysis& analysis) {
            << alpha_mu2_screening_json(result)
            << ",\"activeReservoirIndices\":"
            << size_vector_json(result.active_reservoir_indices)
+           << ",\"challengeReservoirIndices\":"
+           << size_vector_json(result.challenge_reservoir_indices)
            << ",\"counterexampleIndices\":"
            << size_vector_json(result.counterexample_indices)
+           << ",\"activeWorldWeights\":"
+           << double_vector_json(result.active_world_weights)
+           << ",\"reservoirWeights\":"
+           << double_vector_json(result.reservoir_weights)
            << ",\"reservoirWorlds\":"
            << sampled_worlds_json(result.reservoir)
            << ",\"rounds\":"
@@ -688,6 +726,10 @@ public:
         std::size_t max_worlds,
         std::size_t refinement_rounds,
         std::size_t counterexamples_per_round,
+        std::size_t adversarial_worlds,
+        std::size_t persistent_challenge_limit,
+        double critical_weighted_tolerance,
+        bool persist_challenge_worlds,
         std::uint8_t depth,
         std::uint8_t target,
         const std::string& seed,
@@ -709,6 +751,10 @@ public:
                     .max_active_worlds = max_worlds,
                     .max_refinement_rounds = refinement_rounds,
                     .counterexamples_per_round = counterexamples_per_round,
+                    .adversarial_world_count = adversarial_worlds,
+                    .persistent_challenge_limit = persistent_challenge_limit,
+                    .critical_weighted_tolerance = critical_weighted_tolerance,
+                    .persist_challenge_worlds = persist_challenge_worlds,
                 });
             return "{\"ok\":true,\"analysis\":" + analysis2_json(result) +
                 ",\"state\":" + state_json(*session_) + '}';

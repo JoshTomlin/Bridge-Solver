@@ -44,6 +44,21 @@ try {
     (move) => Array.isArray(move.outcomes) && move.outcomes.length > 0
   ));
 
+  const adaptive = parse(engine.analyze2(
+    16, 4, 6, 1, 1,
+    4, 4, 0.005, true,
+    1, 13, "11565831", 2
+  ));
+  assert.equal(adaptive.analysis.engine, "alpha-mu2");
+  assert.ok(adaptive.analysis.rootMoves.every(
+    (move) => Number.isFinite(move.weightedScore)
+  ));
+  assert.ok(Array.isArray(adaptive.analysis.alphaMu2.activeWorldWeights));
+  assert.ok(Array.isArray(adaptive.analysis.alphaMu2.challengeReservoirIndices));
+  assert.ok(Number.isFinite(
+    adaptive.analysis.alphaMu2.stats.policyFingerprintCollisions
+  ));
+
   console.log(
     `WASM smoke passed: ${result.analysis.bestMove}, ` +
     `${result.analysis.uniqueWorlds} worlds, ` +

@@ -3,8 +3,10 @@
 #include "bridge/quick_tricks.h"
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <cctype>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_set>
@@ -31,6 +33,20 @@ Card first_card_in_bridge_order(Hand cards) {
         }
     }
     return kNoCard;
+}
+
+std::vector<Card> cards_in_bridge_order(Hand cards) {
+    std::vector<Card> result;
+    result.reserve(card_count(cards));
+    for (const Suit suit : kHandRecordSuits) {
+        for (int rank = static_cast<int>(Rank::Ace);
+             rank >= static_cast<int>(Rank::Two);
+             --rank) {
+            const Card card = make_card(suit, static_cast<Rank>(rank));
+            if (contains(cards, card)) result.push_back(card);
+        }
+    }
+    return result;
 }
 
 std::uint8_t remaining_tricks(const Position& position) {
@@ -278,6 +294,7 @@ void AnalysisSession::set_defender_restrictions(DefenderRestrictions restriction
     }
     analysis_number_ = 0;
     policy_.reset();
+    challenge_worlds_.clear();
 }
 
 SeatRestrictions AnalysisSession::remaining_restrictions(
@@ -415,6 +432,115 @@ AnalysisSession::SampledWorlds AnalysisSession::sample_worlds(
     sampled.sampling_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - sampling_start).count();
     return sampled;
+}
+
+bool AnalysisSession::sampling_request_accepts(Hand east_hand) const {
+    const SamplingRequest request = sampling_request();
+    if (card_count(east_hand) != request.target_card_count ||
+        (east_hand & ~request.available_cards) != kEmptyHand ||
+        (east_hand & request.included_cards) != request.included_cards ||
+        (east_hand & request.excluded_cards) != kEmptyHand) {
+        return false;
+    }
+    const std::uint8_t hcp = high_card_points(east_hand);
+    if (hcp < request.constraints.min_hcp || hcp > request.constraints.max_hcp) {
+        return false;
+    }
+    for (const Suit suit : kHandRecordSuits) {
+        const std::size_t index = static_cast<std::size_t>(suit);
+        const std::uint8_t length = card_count(cards_in_suit(east_hand, suit));
+        if (length < request.constraints.min_lengths[index] ||
+            length > request.constraints.max_lengths[index]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::vector<AlphaMuWorld> AnalysisSession::generate_adversarial_worlds(
+    const std::vector<AlphaMuWorld>& probability_worlds,
+    std::size_t maximum) const {
+    if (maximum == 0 || probability_worlds.empty()) return {};
+
+    struct Candidate {
+        AlphaMuWorld world;
+        std::size_t novelty {};
+        std::size_t structural_pressure {};
+    };
+
+    const std::size_t bases = std::min<std::size_t>(24, probability_worlds.size());
+    std::vector<Candidate> candidates;
+    candidates.reserve(std::min<std::size_t>(4096, bases * 128));
+    std::unordered_set<Hand> seen;
+    for (const AlphaMuWorld& world : probability_worlds) {
+        seen.insert(hand_of(world.position.deal, Seat::East));
+    }
+
+    for (std::size_t base = 0; base < bases && candidates.size() < 4096; ++base) {
+        const Position& position = probability_worlds[base].position;
+        const Hand east = hand_of(position.deal, Seat::East);
+        const Hand west = hand_of(position.deal, Seat::West);
+        for (const Card east_card : cards_in_bridge_order(east)) {
+            for (const Card west_card : cards_in_bridge_order(west)) {
+                Hand mutated = remove_card(east, east_card);
+                mutated = add_card(mutated, west_card);
+                if (seen.contains(mutated) || !sampling_request_accepts(mutated)) {
+                    continue;
+                }
+                seen.insert(mutated);
+
+                std::size_t novelty = std::numeric_limits<std::size_t>::max();
+                for (const AlphaMuWorld& reference : probability_worlds) {
+                    novelty = std::min(
+                        novelty,
+                        static_cast<std::size_t>(std::popcount(
+                            mutated ^ hand_of(reference.position.deal, Seat::East))));
+                }
+                std::size_t pressure = 0;
+                const Hand defender_cards = east | west;
+                for (const Suit suit : kHandRecordSuits) {
+                    const std::size_t east_length = card_count(cards_in_suit(mutated, suit));
+                    const std::size_t total_length = card_count(
+                        cards_in_suit(defender_cards, suit));
+                    const std::size_t west_length = total_length - east_length;
+                    if (east_length <= 1 || west_length <= 1) pressure += 8;
+                    pressure += east_length > west_length
+                        ? east_length - west_length
+                        : west_length - east_length;
+                }
+                pressure += static_cast<std::size_t>(
+                    high_card_points(mutated) > high_card_points(east)
+                        ? high_card_points(mutated) - high_card_points(east)
+                        : high_card_points(east) - high_card_points(mutated));
+
+                Position candidate_position = position_;
+                hand_of(candidate_position.deal, Seat::East) = mutated;
+                hand_of(candidate_position.deal, Seat::West) =
+                    defender_cards & ~mutated;
+                candidates.push_back(Candidate {
+                    .world = AlphaMuWorld {.position = candidate_position},
+                    .novelty = novelty,
+                    .structural_pressure = pressure,
+                });
+                if (candidates.size() >= 4096) break;
+            }
+        }
+    }
+
+    std::sort(
+        candidates.begin(),
+        candidates.end(),
+        [](const Candidate& left, const Candidate& right) {
+            if (left.novelty != right.novelty) return left.novelty > right.novelty;
+            return left.structural_pressure > right.structural_pressure;
+        });
+    std::vector<AlphaMuWorld> result;
+    result.reserve(std::min(maximum, candidates.size()));
+    for (Candidate& candidate : candidates) {
+        if (result.size() >= maximum) break;
+        result.push_back(std::move(candidate.world));
+    }
+    return result;
 }
 
 AlphaMuConfig AnalysisSession::search_config(bool build_policy) const {
@@ -740,9 +866,72 @@ AlphaMu2SessionAnalysis AnalysisSession::analyze2(
     }
 
     SampledWorlds sampled = sample_worlds(settings.reservoir_world_count);
+    const std::size_t probability_world_count = sampled.worlds.size();
+    std::vector<double> reservoir_weights(
+        probability_world_count,
+        probability_world_count == 0
+            ? 0.0
+            : 1.0 / static_cast<double>(probability_world_count));
+    std::vector<std::size_t> challenge_indices;
+    std::unordered_set<Hand> represented_east_hands;
+    for (const AlphaMuWorld& world : sampled.worlds) {
+        represented_east_hands.insert(hand_of(world.position.deal, Seat::East));
+    }
+
+    std::size_t persistent_reused = 0;
+    for (const AlphaMuWorld& world : challenge_worlds_) {
+        const Position& candidate = world.position;
+        if (candidate.current_trick.leader != position_.current_trick.leader ||
+            candidate.current_trick.trump_suit !=
+                position_.current_trick.trump_suit ||
+            candidate.current_trick.card_count !=
+                position_.current_trick.card_count ||
+            candidate.current_trick.cards != position_.current_trick.cards ||
+            candidate.completed_tricks != position_.completed_tricks ||
+            candidate.played_cards != position_.played_cards ||
+            candidate.score.north_south != position_.score.north_south ||
+            candidate.score.east_west != position_.score.east_west ||
+            hand_of(candidate.deal, Seat::North) !=
+                hand_of(position_.deal, Seat::North) ||
+            hand_of(candidate.deal, Seat::South) !=
+                hand_of(position_.deal, Seat::South)) {
+            continue;
+        }
+        const Hand east = hand_of(candidate.deal, Seat::East);
+        if (!sampling_request_accepts(east) || represented_east_hands.contains(east)) {
+            continue;
+        }
+        represented_east_hands.insert(east);
+        challenge_indices.push_back(sampled.worlds.size());
+        sampled.worlds.push_back(world);
+        reservoir_weights.push_back(0.0);
+        ++persistent_reused;
+    }
+
+    const auto adversarial_start = std::chrono::steady_clock::now();
+    std::vector<AlphaMuWorld> adversarial = generate_adversarial_worlds(
+        std::vector<AlphaMuWorld>(
+            sampled.worlds.begin(),
+            sampled.worlds.begin() + probability_world_count),
+        settings.adversarial_world_count);
+    std::size_t adversarial_added = 0;
+    for (AlphaMuWorld& world : adversarial) {
+        const Hand east = hand_of(world.position.deal, Seat::East);
+        if (represented_east_hands.contains(east)) continue;
+        represented_east_hands.insert(east);
+        challenge_indices.push_back(sampled.worlds.size());
+        sampled.worlds.push_back(std::move(world));
+        reservoir_weights.push_back(0.0);
+        ++adversarial_added;
+    }
+    sampled.sampling_ms += std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - adversarial_start).count();
+
     AlphaMu2SessionAnalysis analysis {
         .possible_deals = sampled.possible_deals,
         .unique_reservoir_worlds = sampled.unique_worlds,
+        .adversarial_worlds = adversarial_added,
+        .persistent_worlds_reused = persistent_reused,
         .sampling_ms = sampled.sampling_ms,
     };
     analysis.search = alpha_mu2_search(
@@ -753,11 +942,42 @@ AlphaMu2SessionAnalysis AnalysisSession::analyze2(
             .max_refinement_rounds = settings.max_refinement_rounds,
             .counterexamples_per_round = settings.counterexamples_per_round,
             .search = search_config(true),
+            .reservoir_weights = reservoir_weights,
+            .initial_challenge_indices = challenge_indices,
+            .critical_weighted_tolerance = settings.critical_weighted_tolerance,
         });
     add_presampling_claim_stats(
         analysis.search.search.stats,
         presampling_claim_stats);
     policy_ = analysis.search.search.trick_policy;
+    if (settings.persist_challenge_worlds) {
+        challenge_worlds_.clear();
+        std::vector<std::size_t> retention_order =
+            analysis.search.counterexample_indices;
+        for (const std::size_t index : analysis.search.active_reservoir_indices) {
+            if (std::find(
+                    analysis.search.challenge_reservoir_indices.begin(),
+                    analysis.search.challenge_reservoir_indices.end(),
+                    index) != analysis.search.challenge_reservoir_indices.end()) {
+                retention_order.push_back(index);
+            }
+        }
+        retention_order.insert(
+            retention_order.end(),
+            analysis.search.challenge_reservoir_indices.begin(),
+            analysis.search.challenge_reservoir_indices.end());
+        std::unordered_set<Hand> retained;
+        for (const std::size_t index : retention_order) {
+            if (challenge_worlds_.size() >= settings.persistent_challenge_limit) break;
+            if (index >= analysis.search.reservoir.size()) continue;
+            const AlphaMuWorld& world = analysis.search.reservoir[index];
+            const Hand east = hand_of(world.position.deal, Seat::East);
+            if (retained.insert(east).second) challenge_worlds_.push_back(world);
+        }
+    } else {
+        challenge_worlds_.clear();
+    }
+    analysis.persistent_worlds_retained = challenge_worlds_.size();
     return analysis;
 }
 
@@ -826,6 +1046,26 @@ void AnalysisSession::advance_policy(Seat player, Card card) {
         : branch->continuation;
 }
 
+void AnalysisSession::advance_challenge_worlds(Card card) {
+    std::erase_if(
+        challenge_worlds_,
+        [&](AlphaMuWorld& world) {
+            Position& candidate = world.position;
+            if (is_deal_finished(candidate) ||
+                next_to_play(candidate.current_trick) !=
+                    next_to_play(position_.current_trick)) {
+                return true;
+            }
+            const Seat player = next_to_play(candidate.current_trick);
+            const Hand hand = hand_of(candidate.deal, player);
+            if (!is_legal_play(candidate.current_trick, hand, card)) {
+                return true;
+            }
+            play_card(candidate, card);
+            return false;
+        });
+}
+
 void AnalysisSession::play(Card card) {
     if (is_deal_finished(position_)) {
         throw std::logic_error("the deal is finished");
@@ -841,6 +1081,7 @@ void AnalysisSession::play(Card card) {
         .voids = voids_,
         .analysis_number = analysis_number_,
         .policy = policy_,
+        .challenge_worlds = challenge_worlds_,
     });
 
     if (!same_side(player, Seat::South) && position_.current_trick.card_count > 0 &&
@@ -849,12 +1090,9 @@ void AnalysisSession::play(Card card) {
             suit_of(position_.current_trick.cards[0]))] = true;
     }
 
-    const std::uint8_t completed_before = position_.completed_tricks;
     advance_policy(player, card);
+    advance_challenge_worlds(card);
     play_card(position_, card);
-    if (position_.completed_tricks != completed_before) {
-        policy_.reset();
-    }
 }
 
 bool AnalysisSession::undo() {
@@ -867,6 +1105,7 @@ bool AnalysisSession::undo() {
     voids_ = snapshot.voids;
     analysis_number_ = snapshot.analysis_number;
     policy_ = std::move(snapshot.policy);
+    challenge_worlds_ = std::move(snapshot.challenge_worlds);
     return true;
 }
 
@@ -875,6 +1114,7 @@ void AnalysisSession::replay() {
     voids_ = {};
     analysis_number_ = 0;
     policy_.reset();
+    challenge_worlds_.clear();
     history_.clear();
 }
 

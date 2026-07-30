@@ -218,7 +218,7 @@ void write_fingerprints(
         group_id[fingerprint] = id++;
     }
 
-    output << "| ID | DDS future tricks by root card | Reservoir weight";
+    output << "| ID | DDS future tricks by root card | Probability / layouts";
     for (const AlphaMu2RoundTrace& round : result.rounds) {
         output << " | Active R" << round.round;
     }
@@ -232,13 +232,15 @@ void write_fingerprints(
     for (const auto& [fingerprint, indices] : groups) {
         const AlphaMu2ScreeningVector& screening =
             result.screening[indices.front()];
+        double probability = 0.0;
+        for (const std::size_t index : indices) {
+            probability += result.reservoir_weights[index];
+        }
         output << "| F" << group_id[fingerprint] << " | `"
                << fingerprint_text(result, screening) << "` | "
-               << indices.size() << '/' << result.screening.size()
-               << " (" << std::fixed << std::setprecision(1)
-               << 100.0 * static_cast<double>(indices.size()) /
-                    static_cast<double>(result.screening.size())
-               << "%)";
+               << std::fixed << std::setprecision(1)
+               << 100.0 * probability << "% / "
+               << indices.size() << " layout(s)";
         for (const AlphaMu2RoundTrace& round : result.rounds) {
             const std::size_t active = static_cast<std::size_t>(std::count_if(
                 round.active_reservoir_indices.begin(),
@@ -286,12 +288,16 @@ void write_rounds(
                << round.search_ms << " ms. Completed M="
                << static_cast<int>(round.search.stats.completed_depth)
                << ". Nodes=" << round.search.stats.nodes << ".\n\n";
-        output << "**Proposed trick policy**\n\n";
+        output << "**Proposed policy (first trick shown)**\n\n";
         write_policy(output, round.search.trick_policy, root);
 
         output << "\n**Root alpha-mu results**\n\n";
         for (const AlphaMuRootMove& move : round.search.root_moves) {
             output << "- `" << to_string(move.move) << "`: "
+                   << std::fixed << std::setprecision(2)
+                   << 100.0 * move.score.weighted_wins
+                   << "% represented probability, "
+                   << move.score.critical_wins << " critical, "
                    << move.winning_worlds << '/'
                    << round.active_reservoir_indices.size()
                    << " active worlds, " << move.pareto_vectors
@@ -303,8 +309,8 @@ void write_rounds(
             output << "None.\n";
             continue;
         }
-        output << "| World | Fingerprint | Why it failed | Root regret | Distance | Decision | East / West |\n";
-        output << "|---:|---:|---|---:|---:|---|---|\n";
+        output << "| World | Fingerprint | Why it failed | Depth | Policy path | Root regret | Distance | Decision | East / West |\n";
+        output << "|---:|---:|---|---:|---:|---:|---:|---|---|\n";
         for (const AlphaMu2CounterexampleTrace& candidate : round.candidates) {
             const Position& world =
                 result.reservoir[candidate.reservoir_index].position;
@@ -315,6 +321,8 @@ void write_rounds(
                    << (candidate.unsupported_observation
                            ? "unseen defender observation"
                            : "fixed policy missed target")
+                   << " | " << candidate.failure_depth
+                   << " | `" << candidate.policy_signature << "`"
                    << " | " << static_cast<int>(candidate.root_regret)
                    << " | " << candidate.distance_from_active << " | ";
             if (candidate.selected) {
@@ -345,9 +353,16 @@ void write_analysis(
     output << "Turn: " << to_string(next_to_play(root.current_trick))
            << ". Possible constrained deals: " << analysis.possible_deals
            << ". Reservoir: " << result.stats.reservoir_worlds
-           << " (" << analysis.unique_reservoir_worlds << " unique). "
+           << " (" << analysis.unique_reservoir_worlds
+           << " unique probability samples, " << analysis.adversarial_worlds
+           << " adversarial, " << analysis.persistent_worlds_reused
+           << " remembered). "
            << "Distinct DDS fingerprints: "
-           << result.stats.distinct_screening_vectors << ".\n\n";
+           << result.stats.distinct_screening_vectors
+           << ". Policy-fingerprint collisions: "
+           << result.stats.policy_fingerprint_collisions
+           << ". Retained hard layouts: "
+           << analysis.persistent_worlds_retained << ".\n\n";
     output << "Timing: sample " << std::fixed << std::setprecision(1)
            << analysis.sampling_ms << " ms; screen "
            << result.stats.screening_ms << " ms; selection "
@@ -452,7 +467,7 @@ void run_report(
                 const AlphaMu2SessionAnalysis analysis = session.analyze2({
                     .reservoir_world_count = 256,
                     .initial_active_worlds = 30,
-                    .max_active_worlds = 30,
+                    .max_active_worlds = 64,
                     .max_refinement_rounds = 2,
                     .counterexamples_per_round = 3,
                 });

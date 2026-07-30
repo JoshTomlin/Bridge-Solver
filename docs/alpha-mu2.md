@@ -1,9 +1,9 @@
 # AlphaMu2: Adaptive World Selection
 
-AlphaMu2 is an experimental layer beside the existing alpha-mu engine. It does
-not replace or alter `alpha_mu_search()`. Its job is to choose a better small set
-of worlds, call the original search, and challenge the returned policy with
-worlds that were not searched.
+AlphaMu2 is an adaptive layer around the alpha-mu engine. Its job is to choose a
+better small set of worlds, assign the reservoir's exact probability mass to
+those representatives, and challenge the returned policy with worlds that were
+not searched.
 
 ## Pipeline
 
@@ -12,7 +12,7 @@ worlds that were not searched.
 3. Worlds with the same root score vector form a screening bucket.
 4. AlphaMu2 selects a small active set from those buckets.
 5. The original alpha-mu searches only the active set.
-6. AlphaMu2 executes the fixed selected trick policy in reserve worlds.
+6. AlphaMu2 executes the complete retained M-horizon policy in reserve worlds.
 7. Makeable worlds where that policy fails are added as counterexamples.
 8. The original search runs again after each counterexample batch.
 
@@ -44,10 +44,15 @@ Every distinct score vector receives one representative when capacity permits.
 If there are more vectors than slots, farthest-first selection favors vectors
 that disagree about making moves and trick totals.
 
-Remaining slots are distributed between selected buckets approximately in
-proportion to their reservoir frequency. This is currently implemented by
-D'Hondt-style slot allocation. It is a discrete approximation to weighted
-worlds and lets the original unweighted alpha-mu engine remain untouched.
+Remaining probability slots maximize structural distance rather than repeating
+common buckets. Every reservoir particle's probability is assigned to its
+nearest active probability representative, so bucket frequency remains exact
+without consuming extra world-mask slots.
+
+Adversarial, remembered, and discovered hard layouts form a separate challenge
+pool. They may have zero probability weight. Alpha-mu maximizes represented
+probability first; within a configurable near-tie tolerance it prefers the
+strategy that survives more challenge worlds.
 
 `AlphaMu2ScreeningVector::equivalent_worlds` records the full reservoir bucket
 size, so the approximation can be inspected.
@@ -59,7 +64,7 @@ Validation does not search for a new declarer strategy:
 - At declarer nodes, it plays the card already stored in the selected policy.
 - At defender nodes, it checks every legal defender card.
 - If an observed defender card has no policy branch, the world fails validation.
-- At the end of the retained trick policy, DDS evaluates the leaf.
+- At the end of the complete retained M-horizon policy, DDS evaluates the leaf.
 
 This is cheaper than alpha-mu because there are no declarer MAX choices, Pareto
 front combinations, or transposition-table searches for alternative policies.
@@ -76,11 +81,13 @@ followed by layouts with greater DDS regret and greater fingerprint distance.
 Counterexamples fill unused active slots first. If the active set is full,
 AlphaMu2 replaces a representative only from a duplicated screening bucket, so
 it does not discard the sole representative of a known root fingerprint.
+Several counterexamples can be added in one batch, but only one per distinct
+`(root fingerprint, policy-path signature)` behavior. Selected hard layouts are
+protected from same-round and later-round churn.
 
-A reserve failure is ignored when the retained policy already loses an active
-world with the same root fingerprint. Such a world is more evidence for a known
-weakness, not a new counterexample. This prevents refinement from repeatedly
-overweighting an unavoidable losing class.
+Reserve failures are never suppressed merely because an active world shares
+their root fingerprint. Their full policy-path signature and failure depth are
+recorded, exposing the collisions that root-only DDS screening cannot see.
 
 ## Public API
 
@@ -88,7 +95,7 @@ overweighting an unavoidable losing class.
 bridge::AlphaMu2SessionAnalysis analysis = session.analyze2({
     .reservoir_world_count = 256,
     .initial_active_worlds = 30,
-    .max_active_worlds = 30,
+    .max_active_worlds = 64,
     .max_refinement_rounds = 2,
     .counterexamples_per_round = 3,
 });
@@ -105,21 +112,24 @@ Useful diagnostics include:
 - `search_runs`
 - `reserve_worlds_checked`
 - `policy_dds_leaves`
+- `policy_fingerprint_collisions`
+- `challenge_worlds`
+- `active_world_weights`
 - `rounds`, including each intermediate search and candidate decision
 - screening, selection, search, and validation time
 
 ## Current Limitations
 
-- Bucket frequency is represented by repeated active slots, not exact weights.
-- Screening similarity sees only root DDS scores. Two worlds with identical root
-  scores may still require different responses after an observation.
-- Validation covers the retained current-trick policy and then uses a DDS leaf.
-  It does not yet execute a complete multi-trick policy.
+- Screening similarity still begins with root DDS scores. Full-policy
+  counterexamples repair collisions after the first search rather than making
+  the cheap fingerprint itself omniscient.
+- Alpha-mu fronts still use a 64-bit world mask, so at most 64 active worlds can
+  be searched at once. Probability reassignment and challenge selection make
+  those slots carry more information.
 - The alpha-mu time setting is a total AlphaMu2 decision budget. Screening,
   validation, and every refinement search share the same deadline.
-- The experiment is exposed in the native engine API but is not yet selected by
-  the website.
+- Complete-oracle policy validation can be much more expensive than DDS
+  coldness checks because it explores every legal defender observation.
 
-These limitations are deliberate boundaries for the first version. The next
-useful experiments are exact representative weights, batched policy leaves, and
-deeper observation fingerprints.
+The browser exposes AlphaMu2 directly, including adversarial-layout count,
+persistent hard-layout capacity, and critical near-tie tolerance.

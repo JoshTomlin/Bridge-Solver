@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <stdexcept>
 
 namespace bridge {
 
@@ -17,6 +18,74 @@ std::size_t best_winning_world_count(const ParetoFront& front) {
     std::size_t best = 0;
     for (const OutcomeVector& outcome : front.vectors) {
         best = std::max(best, winning_world_count(outcome));
+    }
+    return best;
+}
+
+AlphaMuScore alpha_mu_outcome_score(
+    const OutcomeVector& outcome,
+    const std::vector<double>& world_weights,
+    WorldMask critical_worlds,
+    WorldMask relevant_worlds) {
+    const WorldMask wins = outcome.wins & relevant_worlds;
+    AlphaMuScore score {
+        .critical_wins = static_cast<std::size_t>(
+            std::popcount(wins & critical_worlds)),
+        .winning_worlds = static_cast<std::size_t>(std::popcount(wins)),
+    };
+    if (world_weights.empty()) {
+        score.weighted_wins = static_cast<double>(score.winning_worlds);
+        return score;
+    }
+    if (world_weights.size() > 64) {
+        throw std::invalid_argument("alpha-mu supports at most 64 world weights");
+    }
+    for (std::size_t index = 0; index < world_weights.size(); ++index) {
+        if ((wins & (WorldMask {1} << index)) != 0) {
+            score.weighted_wins += world_weights[index];
+        }
+    }
+    return score;
+}
+
+bool alpha_mu_score_better(
+    const AlphaMuScore& candidate,
+    const AlphaMuScore& incumbent,
+    double weighted_tolerance) {
+    const double tolerance = std::max(0.0, weighted_tolerance);
+    if (candidate.weighted_wins > incumbent.weighted_wins + tolerance) {
+        return true;
+    }
+    if (incumbent.weighted_wins > candidate.weighted_wins + tolerance) {
+        return false;
+    }
+    if (candidate.critical_wins != incumbent.critical_wins) {
+        return candidate.critical_wins > incumbent.critical_wins;
+    }
+    if (candidate.weighted_wins != incumbent.weighted_wins) {
+        return candidate.weighted_wins > incumbent.weighted_wins;
+    }
+    return candidate.winning_worlds > incumbent.winning_worlds;
+}
+
+AlphaMuScore best_alpha_mu_score(
+    const ParetoFront& front,
+    const std::vector<double>& world_weights,
+    WorldMask critical_worlds,
+    WorldMask relevant_worlds,
+    double weighted_tolerance) {
+    AlphaMuScore best;
+    bool found = false;
+    for (const OutcomeVector& outcome : front.vectors) {
+        const AlphaMuScore score = alpha_mu_outcome_score(
+            outcome,
+            world_weights,
+            critical_worlds,
+            relevant_worlds);
+        if (!found || alpha_mu_score_better(score, best, weighted_tolerance)) {
+            best = score;
+            found = true;
+        }
     }
     return best;
 }

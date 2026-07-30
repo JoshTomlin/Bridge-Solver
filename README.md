@@ -78,6 +78,26 @@ worlds. `set audit on` prints the optimization events taken by `analyze`.
 The implementation map and interpretation guide are in
 `docs/alpha-mu-optimizations.md`.
 
+### Alpha-mu reliability tests
+
+AlphaMu2 now separates probability-bearing sampled worlds from zero-weight hard
+layouts, validates the full retained policy horizon, generates legal
+East/West-swap adversarial layouts, and remembers useful counterexamples across
+play. The browser exposes these controls and reports weighted probability,
+critical-layout wins, policy-fingerprint collisions, and failure depth.
+
+Run the exact corpus, collision miner, or paired rare-layout benchmark with:
+
+```powershell
+.\build\engine\Release\bridge_alpha_mu_lab.exe corpus engine\tests\data\alpha_mu_corpus.tsv
+.\build\engine\Release\bridge_alpha_mu_lab.exe mine
+.\build\engine\Release\bridge_alpha_mu_lab.exe paired 100 11565831
+.\build\engine\Release\bridge_alpha_mu_lab.exe bridgemaster6s 256 4 60 11565831 12376
+```
+
+See [docs/alpha-mu-testing.md](docs/alpha-mu-testing.md) for the corpus format and
+how to add authored or Bridge Master positions.
+
 ### JavaScript UI
 
 ```powershell

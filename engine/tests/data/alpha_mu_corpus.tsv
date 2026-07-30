@@ -1,0 +1,3 @@
+# case	north	east	south	west	leader	strain	target	max_m	played_prefix	expected_move
+discovery_play	AJT.-.-.-	7.AK.-.-	K32.-.-.-	Q98.-.-.-	S	NT	3	2		SK
+discovery_play	AJT.-.-.-	Q.AK.-.-	K32.-.-.-	987.-.-.-	S	NT	3	2		SK

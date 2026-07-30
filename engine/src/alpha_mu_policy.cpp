@@ -47,7 +47,8 @@ std::shared_ptr<const AlphaMuPolicyNode> build_policy_for_outcome(
 
     const Position& position = worlds[first_world(active_worlds)].position;
     if (is_deal_finished(position) ||
-        position.completed_tricks != starting_completed_tricks) {
+        (context.config.limit_policy_to_current_trick &&
+         position.completed_tricks != starting_completed_tricks)) {
         return nullptr;
     }
 
@@ -188,16 +189,32 @@ std::shared_ptr<const AlphaMuPolicyNode> build_policy_for_outcome(
     });
 }
 
-const OutcomeVector& highest_scoring_outcome(const ParetoFront& front) {
+const OutcomeVector& highest_scoring_outcome(
+    const ParetoFront& front,
+    WorldMask relevant_worlds,
+    const AlphaMuConfig& config) {
     if (front.vectors.empty()) {
         throw std::logic_error("cannot select a strategy from an empty Pareto front");
     }
-    return *std::max_element(
-        front.vectors.begin(),
-        front.vectors.end(),
-        [](const OutcomeVector& left, const OutcomeVector& right) {
-            return winning_world_count(left) < winning_world_count(right);
-        });
+    const OutcomeVector* best = &front.vectors.front();
+    AlphaMuScore best_score = alpha_mu_outcome_score(
+        *best,
+        config.world_weights,
+        config.critical_worlds,
+        relevant_worlds);
+    for (std::size_t index = 1; index < front.vectors.size(); ++index) {
+        const AlphaMuScore score = alpha_mu_outcome_score(
+            front.vectors[index],
+            config.world_weights,
+            config.critical_worlds,
+            relevant_worlds);
+        if (alpha_mu_score_better(
+                score, best_score, config.weighted_score_tolerance)) {
+            best = &front.vectors[index];
+            best_score = score;
+        }
+    }
+    return *best;
 }
 
 }  // namespace
@@ -231,7 +248,10 @@ std::shared_ptr<const AlphaMuPolicyNode> build_trick_policy(
         no_bounds,
         nullptr,
         0);
-    const OutcomeVector selected = highest_scoring_outcome(child.front);
+    const OutcomeVector selected = highest_scoring_outcome(
+        child.front,
+        active_worlds,
+        config);
 
     return std::make_shared<AlphaMuPolicyNode>(AlphaMuPolicyNode {
         .player = player_to_act(root),

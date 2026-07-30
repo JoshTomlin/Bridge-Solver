@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <bit>
 #include <cctype>
+#include <cmath>
 #include <stdexcept>
 #include <string>
 
@@ -474,6 +475,23 @@ void validate_worlds(
     const AlphaMuConfig& config) {
     if (worlds.empty() || worlds.size() > 64) {
         throw std::invalid_argument("alpha-mu requires between 1 and 64 worlds");
+    }
+    if (!config.world_weights.empty() &&
+        config.world_weights.size() != worlds.size()) {
+        throw std::invalid_argument(
+            "alpha-mu world weights must be empty or match the world count");
+    }
+    double total_weight = 0.0;
+    for (const double weight : config.world_weights) {
+        if (!std::isfinite(weight) || weight < 0.0) {
+            throw std::invalid_argument(
+                "alpha-mu world weights must be finite and non-negative");
+        }
+        total_weight += weight;
+    }
+    if (!config.world_weights.empty() && total_weight <= 0.0) {
+        throw std::invalid_argument(
+            "alpha-mu requires at least one positive world weight");
     }
 
     const Position& public_position = worlds.front().position;

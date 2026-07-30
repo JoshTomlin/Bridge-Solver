@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <bit>
+#include <cmath>
 #include <iostream>
 #include <optional>
 #include <sstream>
@@ -1525,6 +1526,217 @@ void test_alpha_mu_preserves_two_way_guess() {
             "duplicate winning vectors should collapse to one Pareto vector");
 }
 
+void test_alpha_mu_weighted_and_critical_selection() {
+    const auto worlds = two_way_guess_worlds();
+    bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = std::nullopt,
+        .target_tricks = 5,
+        .max_declarer_plies = 1,
+        .world_weights = {0.9, 0.1},
+    };
+    bridge::AlphaMuResult weighted = bridge::alpha_mu_search(worlds, config);
+    require(weighted.best_move == bridge::make_card(Suit::Spades, Rank::Jack),
+            "weighted alpha-mu should choose the guess favored by probability mass; got " +
+                bridge::to_string(weighted.best_move) + " at score " +
+                std::to_string(weighted.score.weighted_wins));
+    require(std::abs(weighted.score.weighted_wins - 0.9) < 1e-9,
+            "weighted alpha-mu should report the selected probability mass");
+
+    config.world_weights = {0.49, 0.51};
+    config.critical_worlds = 0b01;
+    config.weighted_score_tolerance = 0.03;
+    bridge::AlphaMuResult critical = bridge::alpha_mu_search(worlds, config);
+    require(critical.best_move == bridge::make_card(Suit::Spades, Rank::Jack) &&
+                critical.score.critical_wins == 1,
+            "critical worlds should break near ties within the configured tolerance");
+}
+
+void test_alpha_mu_weighted_duplicate_is_metamorphic() {
+    const auto base = two_way_guess_worlds();
+    bridge::AlphaMuConfig base_config {
+        .declarer = Seat::South,
+        .trump_suit = std::nullopt,
+        .target_tricks = 5,
+        .max_declarer_plies = 1,
+        .world_weights = {0.6, 0.4},
+    };
+    const bridge::AlphaMuResult original = bridge::alpha_mu_search(base, base_config);
+
+    const std::vector<bridge::AlphaMuWorld> duplicated {
+        base[0], base[0], base[1],
+    };
+    bridge::AlphaMuConfig duplicate_config = base_config;
+    duplicate_config.world_weights = {0.3, 0.3, 0.4};
+    const bridge::AlphaMuResult duplicate =
+        bridge::alpha_mu_search(duplicated, duplicate_config);
+    require(duplicate.best_move == original.best_move &&
+                std::abs(duplicate.score.weighted_wins -
+                         original.score.weighted_wins) < 1e-9,
+            "splitting one world's mass across duplicate particles must not change the decision");
+
+    std::vector<bridge::AlphaMuWorld> reversed = base;
+    std::reverse(reversed.begin(), reversed.end());
+    bridge::AlphaMuConfig reversed_config = base_config;
+    reversed_config.world_weights = {0.4, 0.6};
+    const bridge::AlphaMuResult reordered =
+        bridge::alpha_mu_search(reversed, reversed_config);
+    require(reordered.best_move == original.best_move,
+            "world order must not change a weighted alpha-mu decision");
+}
+
+void test_alpha_mu_suit_permutation_is_metamorphic() {
+    const auto original_worlds = two_way_guess_worlds();
+    const auto swap_spades_hearts = [](Suit suit) {
+        if (suit == Suit::Spades) return Suit::Hearts;
+        if (suit == Suit::Hearts) return Suit::Spades;
+        return suit;
+    };
+    const auto permute_hand = [&](Hand hand) {
+        Hand result = bridge::kEmptyHand;
+        for (const Card card : ordered_cards(hand)) {
+            result = bridge::add_card(
+                result,
+                bridge::make_card(
+                    swap_spades_hearts(bridge::suit_of(card)),
+                    bridge::rank_of(card)));
+        }
+        return result;
+    };
+    std::vector<bridge::AlphaMuWorld> permuted = original_worlds;
+    for (bridge::AlphaMuWorld& world : permuted) {
+        for (Hand& hand : world.position.deal.hands) hand = permute_hand(hand);
+        for (std::uint8_t index = 0;
+             index < world.position.current_trick.card_count;
+             ++index) {
+            const Card card = world.position.current_trick.cards[index];
+            world.position.current_trick.cards[index] = bridge::make_card(
+                swap_spades_hearts(bridge::suit_of(card)),
+                bridge::rank_of(card));
+        }
+        world.position.played_cards = permute_hand(world.position.played_cards);
+    }
+    const bridge::AlphaMuConfig config {
+        .declarer = Seat::South,
+        .trump_suit = std::nullopt,
+        .target_tricks = 5,
+        .max_declarer_plies = 1,
+    };
+    const bridge::AlphaMuResult original =
+        bridge::alpha_mu_search(original_worlds, config);
+    const bridge::AlphaMuResult transformed =
+        bridge::alpha_mu_search(permuted, config);
+    const auto outcome_masks = [](const bridge::ParetoFront& front) {
+        std::vector<bridge::WorldMask> masks;
+        for (const bridge::OutcomeVector& vector : front.vectors) {
+            masks.push_back(vector.wins);
+        }
+        std::sort(masks.begin(), masks.end());
+        return masks;
+    };
+    require(transformed.best_move == bridge::make_card(Suit::Hearts, Rank::Ace) &&
+                outcome_masks(transformed.front) == outcome_masks(original.front),
+            "renaming suits should rename the selected card without changing outcomes");
+}
+
+void test_alpha_mu2_refines_same_fingerprint_discovery_layout() {
+    const auto layouts = discovery_play_worlds();
+    std::vector<bridge::AlphaMuWorld> reservoir(15, layouts[0]);
+    reservoir.push_back(layouts[1]);
+    const bridge::AlphaMu2Result result = bridge::alpha_mu2_search(
+        reservoir,
+        bridge::AlphaMu2Config {
+            .initial_world_count = 1,
+            .max_world_count = 2,
+            .max_refinement_rounds = 2,
+            .counterexamples_per_round = 2,
+            .search = bridge::AlphaMuConfig {
+                .declarer = Seat::South,
+                .trump_suit = std::nullopt,
+                .target_tricks = 3,
+                .max_declarer_plies = 2,
+            },
+        });
+
+    require(result.stats.distinct_screening_vectors == 1,
+            "the discovery layouts should collide under root DDS screening");
+    require(result.stats.counterexamples_added == 1 &&
+                result.stats.final_worlds == 2,
+            "AlphaMu2 should retain a failing reserve world despite an identical DDS fingerprint");
+    require(result.stats.policy_fingerprint_collisions > 0,
+            "full-policy validation should diagnose the root DDS fingerprint collision");
+    require(result.search.best_move == bridge::make_card(Suit::Spades, Rank::King),
+            "same-fingerprint refinement should recover the discovery play");
+
+    for (std::size_t world = 0; world < layouts.size(); ++world) {
+        const bridge::AlphaMuPolicyEvaluation evaluation =
+            bridge::evaluate_alpha_mu_policy(
+                layouts[world].position,
+                result.search.trick_policy,
+                bridge::AlphaMuConfig {
+                    .declarer = Seat::South,
+                    .trump_suit = std::nullopt,
+                    .target_tricks = 3,
+                    .max_declarer_plies = 2,
+                    .limit_policy_to_current_trick = false,
+                });
+        require(evaluation.makes_target,
+                "the retained full-horizon discovery policy should pass every oracle layout");
+    }
+}
+
+void test_alpha_mu2_keeps_probability_and_challenge_pools_distinct() {
+    const auto layouts = discovery_play_worlds();
+    const bridge::AlphaMu2Result result = bridge::alpha_mu2_search(
+        layouts,
+        bridge::AlphaMu2Config {
+            .initial_world_count = 1,
+            .max_world_count = 1,
+            .max_refinement_rounds = 0,
+            .counterexamples_per_round = 0,
+            .search = bridge::AlphaMuConfig {
+                .declarer = Seat::South,
+                .trump_suit = std::nullopt,
+                .target_tricks = 3,
+                .max_declarer_plies = 2,
+            },
+            .reservoir_weights = {1.0, 0.0},
+            .initial_challenge_indices = {1},
+        });
+
+    require(result.active_reservoir_indices == std::vector<std::size_t> {0} &&
+                result.active_world_weights == std::vector<double> {1.0},
+            "a one-slot active set must keep a positive-mass representative");
+    require(result.challenge_reservoir_indices == std::vector<std::size_t> {1} &&
+                result.stats.challenge_worlds == 1,
+            "zero-weight hard layouts should remain explicit challenges");
+}
+
+void test_alpha_mu2_does_not_churn_a_full_single_slot() {
+    const auto layouts = discovery_play_worlds();
+    std::vector<bridge::AlphaMuWorld> reservoir(15, layouts[0]);
+    reservoir.push_back(layouts[1]);
+    const bridge::AlphaMu2Result result = bridge::alpha_mu2_search(
+        reservoir,
+        bridge::AlphaMu2Config {
+            .initial_world_count = 1,
+            .max_world_count = 1,
+            .max_refinement_rounds = 1,
+            .counterexamples_per_round = 1,
+            .search = bridge::AlphaMuConfig {
+                .declarer = Seat::South,
+                .trump_suit = std::nullopt,
+                .target_tricks = 3,
+                .max_declarer_plies = 2,
+            },
+        });
+    require(result.stats.counterexamples_found > 0 &&
+                result.stats.counterexamples_added == 0 &&
+                result.stats.final_worlds == 1 &&
+                result.active_reservoir_indices.front() == 0,
+            "a full one-slot set must report the conflict without evicting its only behavior");
+}
+
 void test_alpha_mu2_adds_missing_two_way_guess_counterexample() {
     const auto guesses = two_way_guess_worlds();
     const std::vector<bridge::AlphaMuWorld> reservoir {
@@ -2441,6 +2653,12 @@ int main() {
         test_alpha_mu_leaf_front_uses_world_bits();
         test_alpha_mu_one_ply_returns_legal_declarer_move();
         test_alpha_mu_preserves_two_way_guess();
+        test_alpha_mu_weighted_and_critical_selection();
+        test_alpha_mu_weighted_duplicate_is_metamorphic();
+        test_alpha_mu_suit_permutation_is_metamorphic();
+        test_alpha_mu2_refines_same_fingerprint_discovery_layout();
+        test_alpha_mu2_keeps_probability_and_challenge_pools_distinct();
+        test_alpha_mu2_does_not_churn_a_full_single_slot();
         test_alpha_mu2_adds_missing_two_way_guess_counterexample();
         test_alpha_mu2_screening_uses_equivalent_representatives();
         test_analysis_session_alpha_mu2_skips_sampling_for_forced_root();

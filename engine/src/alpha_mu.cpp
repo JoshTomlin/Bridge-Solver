@@ -17,6 +17,18 @@ namespace {
 
 struct SearchDeadlineReached {};
 
+AlphaMuScore score_front(
+    const ParetoFront& front,
+    WorldMask relevant_worlds,
+    const SearchContext& context) {
+    return best_alpha_mu_score(
+        front,
+        context.config.world_weights,
+        context.config.critical_worlds,
+        relevant_worlds,
+        context.config.weighted_score_tolerance);
+}
+
 void check_hard_deadline(SearchContext& context) {
     if (!context.config.hard_time_limit ||
         !context.deadline.has_value() ||
@@ -333,7 +345,7 @@ NodeEvaluation evaluate_max_node(
 
     ParetoFront result;
     Card best_move = kNoCard;
-    std::size_t best_score = 0;
+    AlphaMuScore best_score;
     bool pruned = false;
     for (const Card move : moves) {
         trace_line(trace, trace_depth + 1, "move " + to_string(move));
@@ -361,8 +373,9 @@ NodeEvaluation evaluate_max_node(
             trace,
             trace_depth + 2);
         pruned = pruned || child.pruned;
-        const std::size_t score = best_winning_world_count(child.front);
-        if (best_move == kNoCard || score > best_score) {
+        const AlphaMuScore score = score_front(child.front, useful_worlds, context);
+        if (best_move == kNoCard || alpha_mu_score_better(
+                score, best_score, context.config.weighted_score_tolerance)) {
             best_move = move;
             best_score = score;
         }
@@ -551,7 +564,7 @@ struct RootIteration {
 RootIteration search_root_iteration(
     const std::vector<AlphaMuWorld>& worlds,
     std::uint8_t depth,
-    std::optional<std::size_t> previous_score,
+    std::optional<AlphaMuScore> previous_score,
     SearchContext& context) {
     const WorldMask active_worlds = all_worlds_mask(worlds.size());
     const AlphaBounds no_bounds;
@@ -588,13 +601,14 @@ RootIteration search_root_iteration(
             root, legal_moves, kNoCard, context);
         std::vector<AlphaMuRootMove> root_moves;
         root_moves.reserve(moves.size());
-        const std::size_t score = best_winning_world_count(*bound);
+        const AlphaMuScore score = score_front(*bound, active_worlds, context);
         for (const Card move : moves) {
             root_moves.push_back(AlphaMuRootMove {
                 .move = move,
-                .winning_worlds = score,
+                .winning_worlds = score.winning_worlds,
                 .pareto_vectors = bound->vectors.size(),
                 .front = *bound,
+                .score = score,
             });
         }
         return RootIteration {
@@ -621,6 +635,7 @@ RootIteration search_root_iteration(
                 .winning_worlds = worlds.size(),
                 .pareto_vectors = bound->front.vectors.size(),
                 .front = bound->front,
+                .score = score_front(bound->front, active_worlds, context),
             }},
             .terminal_depth_independent_bound = true,
         };
@@ -640,6 +655,7 @@ RootIteration search_root_iteration(
                 .winning_worlds = best_winning_world_count(bound->front),
                 .pareto_vectors = bound->front.vectors.size(),
                 .front = bound->front,
+                .score = score_front(bound->front, active_worlds, context),
             }},
             .terminal_depth_independent_bound = true,
         };
@@ -658,6 +674,7 @@ RootIteration search_root_iteration(
                 .winning_worlds = best_winning_world_count(*forced),
                 .pareto_vectors = forced->vectors.size(),
                 .front = *forced,
+                .score = score_front(*forced, active_worlds, context),
             }},
         };
     }
@@ -682,7 +699,7 @@ RootIteration search_root_iteration(
     ParetoFront root_front;
     std::vector<AlphaMuRootMove> root_moves;
     Card best_move = kNoCard;
-    std::size_t best_score = 0;
+    AlphaMuScore best_score;
     bool cut = false;
     for (const Card move : representative_cards(
              root, legal_moves, preferred_move, context)) {
@@ -708,14 +725,16 @@ RootIteration search_root_iteration(
             child_bounds,
             nullptr,
             0);
-        const std::size_t score = best_winning_world_count(child.front);
+        const AlphaMuScore score = score_front(child.front, active_worlds, context);
         root_moves.push_back(AlphaMuRootMove {
             .move = move,
-            .winning_worlds = score,
+            .winning_worlds = score.winning_worlds,
             .pareto_vectors = child.front.vectors.size(),
             .front = child.front,
+            .score = score,
         });
-        if (best_move == kNoCard || score > best_score) {
+        if (best_move == kNoCard || alpha_mu_score_better(
+                score, best_score, context.config.weighted_score_tolerance)) {
             best_move = move;
             best_score = score;
         }
@@ -736,7 +755,10 @@ RootIteration search_root_iteration(
         if (!context.config.compare_all_root_moves &&
             context.config.optimizations.root_cut &&
             previous_score.has_value() &&
-            best_winning_world_count(root_front) >= *previous_score) {
+            !alpha_mu_score_better(
+                *previous_score,
+                score_front(root_front, active_worlds, context),
+                context.config.weighted_score_tolerance)) {
             ++context.stats.root_cuts;
             audit_line(
                 context,
@@ -744,7 +766,7 @@ RootIteration search_root_iteration(
                 "root-cut",
                 "depth " + std::to_string(depth) +
                     " reached previous iteration score " +
-                    std::to_string(*previous_score));
+                    std::to_string(previous_score->weighted_wins));
             cut = true;
             break;
         }
@@ -1120,7 +1142,7 @@ AlphaMuResult run_search(
     }
     NodeEvaluation final_evaluation;
     std::vector<AlphaMuRootMove> final_root_moves;
-    std::optional<std::size_t> previous_score;
+    std::optional<AlphaMuScore> previous_score;
     std::optional<double> previous_iteration_seconds;
     const std::uint8_t first_depth =
         config.optimizations.iterative_deepening && config.max_declarer_plies > 0
@@ -1159,7 +1181,10 @@ AlphaMuResult run_search(
             iteration->terminal_depth_independent_bound;
         final_evaluation = std::move(iteration->evaluation);
         final_root_moves = std::move(iteration->root_moves);
-        previous_score = best_winning_world_count(final_evaluation.front);
+        previous_score = score_front(
+            final_evaluation.front,
+            all_worlds_mask(worlds.size()),
+            context);
         ++context.stats.completed_iterations;
         context.stats.completed_depth = depth;
         const double iteration_seconds = std::chrono::duration<double>(
@@ -1170,7 +1195,10 @@ AlphaMuResult run_search(
             0,
             "iteration",
             "completed M=" + std::to_string(depth) +
-                " with best score " + std::to_string(*previous_score));
+                " with weighted score " +
+                    std::to_string(previous_score->weighted_wins) +
+                    " and " + std::to_string(previous_score->winning_worlds) +
+                    " winning world(s)");
         if (terminal_depth_independent_bound) {
             audit_line(
                 context,
@@ -1239,6 +1267,10 @@ AlphaMuResult run_search(
             std::chrono::steady_clock::now() - policy_start).count();
     }
 
+    const AlphaMuScore final_score = score_front(
+        final_evaluation.front,
+        all_worlds_mask(worlds.size()),
+        context);
     return AlphaMuResult {
         .best_move = final_evaluation.best_move,
         .front = std::move(final_evaluation.front),
@@ -1246,6 +1278,7 @@ AlphaMuResult run_search(
         .trick_policy = std::move(trick_policy),
         .stats = context.stats,
         .audit_log = context.audit.str(),
+        .score = final_score,
     };
 }
 

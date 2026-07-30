@@ -51,15 +51,22 @@ struct SessionAnalysis {
 struct AlphaMu2SessionSettings {
     std::size_t reservoir_world_count {256};
     std::size_t initial_active_worlds {30};
-    std::size_t max_active_worlds {30};
+    std::size_t max_active_worlds {64};
     std::size_t max_refinement_rounds {2};
     std::size_t counterexamples_per_round {3};
+    std::size_t adversarial_world_count {64};
+    std::size_t persistent_challenge_limit {32};
+    double critical_weighted_tolerance {0.005};
+    bool persist_challenge_worlds {true};
 };
 
 struct AlphaMu2SessionAnalysis {
     AlphaMu2Result search;
     std::uint64_t possible_deals {};
     std::size_t unique_reservoir_worlds {};
+    std::size_t adversarial_worlds {};
+    std::size_t persistent_worlds_reused {};
+    std::size_t persistent_worlds_retained {};
     double sampling_ms {};
 };
 
@@ -111,6 +118,7 @@ private:
         VoidTable voids;
         std::uint64_t analysis_number {};
         std::shared_ptr<const AlphaMuPolicyNode> policy;
+        std::vector<AlphaMuWorld> challenge_worlds;
     };
 
     struct SampledWorlds {
@@ -131,6 +139,11 @@ private:
     SeatRestrictions remaining_restrictions(Seat seat, Hand defender_cards) const;
     SamplingRequest sampling_request() const;
     SampledWorlds sample_worlds(std::size_t world_count);
+    bool sampling_request_accepts(Hand east_hand) const;
+    std::vector<AlphaMuWorld> generate_adversarial_worlds(
+        const std::vector<AlphaMuWorld>& probability_worlds,
+        std::size_t maximum) const;
+    void advance_challenge_worlds(Card card);
     AlphaMuConfig search_config(bool build_policy) const;
     void advance_policy(Seat player, Card card);
 
@@ -142,6 +155,7 @@ private:
     VoidTable voids_ {};
     std::uint64_t analysis_number_ {};
     std::shared_ptr<const AlphaMuPolicyNode> policy_;
+    std::vector<AlphaMuWorld> challenge_worlds_;
     std::vector<Snapshot> history_;
 };
 

@@ -5,7 +5,9 @@
 #include "bridge/quick_tricks.h"
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
+#include <cmath>
 #include <limits>
 #include <map>
 #include <set>
@@ -23,6 +25,8 @@ struct FingerprintGroup {
 struct PolicyCheck {
     bool makes_target {};
     bool unsupported_observation {};
+    std::uint64_t policy_signature {1469598103934665603ULL};
+    std::size_t failure_depth {};
 };
 
 struct CounterexampleCandidate {
@@ -30,7 +34,18 @@ struct CounterexampleCandidate {
     bool unsupported_observation {};
     std::uint8_t root_regret {};
     std::size_t distance_from_active {};
+    std::uint64_t policy_signature {};
+    std::size_t failure_depth {};
 };
+
+std::uint64_t extend_policy_signature(
+    std::uint64_t signature,
+    Seat player,
+    Card card) {
+    signature ^= static_cast<std::uint64_t>(seat_index(player) * 64 + card + 1);
+    signature *= 1099511628211ULL;
+    return signature;
+}
 
 std::uint8_t partnership_score(const Position& position, Seat declarer) {
     return same_side(declarer, Seat::North)
@@ -159,6 +174,24 @@ std::size_t fingerprint_distance(
     return distance;
 }
 
+std::size_t layout_distance(
+    const AlphaMuWorld& left,
+    const AlphaMuWorld& right) {
+    const Hand left_east = hand_of(left.position.deal, Seat::East);
+    const Hand right_east = hand_of(right.position.deal, Seat::East);
+    return static_cast<std::size_t>(std::popcount(left_east ^ right_east));
+}
+
+std::size_t strategic_distance(
+    std::size_t left,
+    std::size_t right,
+    const std::vector<AlphaMuWorld>& reservoir,
+    const std::vector<AlphaMu2ScreeningVector>& screening,
+    const std::vector<Card>& moves) {
+    return fingerprint_distance(screening[left], screening[right], moves) * 64 +
+        layout_distance(reservoir[left], reservoir[right]);
+}
+
 std::vector<FingerprintGroup> fingerprint_groups(
     std::vector<AlphaMu2ScreeningVector>& screening) {
     std::map<std::vector<std::uint8_t>, std::vector<std::size_t>> grouped;
@@ -185,6 +218,7 @@ std::vector<std::size_t> choose_group_indices(
     const std::vector<AlphaMu2ScreeningVector>& screening,
     const std::vector<Card>& moves,
     std::size_t count) {
+    if (count == 0 || groups.empty()) return {};
     if (groups.size() <= count) {
         std::vector<std::size_t> all(groups.size());
         for (std::size_t index = 0; index < groups.size(); ++index) {
@@ -237,34 +271,101 @@ std::vector<std::size_t> choose_group_indices(
 
 std::vector<std::size_t> select_initial_worlds(
     const std::vector<FingerprintGroup>& groups,
+    const std::vector<AlphaMuWorld>& reservoir,
     const std::vector<AlphaMu2ScreeningVector>& screening,
     const std::vector<Card>& moves,
-    std::size_t count) {
+    std::size_t count,
+    const std::vector<double>& reservoir_weights,
+    const std::vector<std::size_t>& challenge_indices) {
+    const std::size_t challenge_slots = challenge_indices.empty() || count <= 1
+        ? 0
+        : std::min({
+              challenge_indices.size(),
+              std::max<std::size_t>(1, count / 5),
+              count - 1,
+          });
+    const std::size_t probability_slots = count - challenge_slots;
+    std::vector<FingerprintGroup> probability_groups;
+    probability_groups.reserve(groups.size());
+    for (const FingerprintGroup& group : groups) {
+        FingerprintGroup probability_group {.fingerprint = group.fingerprint};
+        for (const std::size_t index : group.indices) {
+            if (reservoir_weights[index] > 0.0) {
+                probability_group.indices.push_back(index);
+            }
+        }
+        if (!probability_group.indices.empty()) {
+            probability_groups.push_back(std::move(probability_group));
+        }
+    }
     const std::vector<std::size_t> selected_groups =
-        choose_group_indices(groups, screening, moves, count);
-    std::vector<std::size_t> used(groups.size());
+        choose_group_indices(
+            probability_groups, screening, moves, probability_slots);
     std::vector<std::size_t> selected;
     selected.reserve(count);
     for (const std::size_t group : selected_groups) {
-        selected.push_back(groups[group].indices.front());
-        used[group] = 1;
+        selected.push_back(probability_groups[group].indices.front());
     }
 
-    // D'Hondt-style allocation approximately preserves each bucket's frequency
-    // after every distinct strategic fingerprint has one representative.
-    while (selected.size() < count) {
-        std::size_t best_group = groups.size();
-        for (const std::size_t group : selected_groups) {
-            if (used[group] >= groups[group].indices.size()) continue;
-            if (best_group == groups.size() ||
-                groups[group].indices.size() * (used[best_group] + 1) >
-                    groups[best_group].indices.size() * (used[group] + 1)) {
-                best_group = group;
+    while (selected.size() < probability_slots) {
+        std::size_t best = reservoir.size();
+        std::size_t best_distance = 0;
+        for (std::size_t candidate = 0; candidate < reservoir.size(); ++candidate) {
+            if (reservoir_weights[candidate] <= 0.0 ||
+                std::find(selected.begin(), selected.end(), candidate) != selected.end()) {
+                continue;
+            }
+            std::size_t minimum_distance =
+                std::numeric_limits<std::size_t>::max();
+            for (const std::size_t existing : selected) {
+                minimum_distance = std::min(
+                    minimum_distance,
+                    strategic_distance(
+                        candidate, existing, reservoir, screening, moves));
+            }
+            if (best == reservoir.size() || minimum_distance > best_distance) {
+                best = candidate;
+                best_distance = minimum_distance;
             }
         }
-        if (best_group == groups.size()) break;
-        selected.push_back(groups[best_group].indices[used[best_group]]);
-        ++used[best_group];
+        if (best == reservoir.size()) break;
+        selected.push_back(best);
+    }
+
+    // Challenge worlds are coverage constraints rather than probability mass.
+    // Keep a bounded, structurally diverse subset in the initial active set.
+    for (const std::size_t candidate : challenge_indices) {
+        if (selected.size() >= probability_slots + challenge_slots) break;
+        if (candidate >= reservoir.size() ||
+            std::find(selected.begin(), selected.end(), candidate) != selected.end()) {
+            continue;
+        }
+        selected.push_back(candidate);
+    }
+
+    // Exact weights preserve frequency, so spare slots can maximize structural
+    // coverage instead of duplicating common DDS buckets.
+    while (selected.size() < count) {
+        std::size_t best = reservoir.size();
+        std::size_t best_distance = 0;
+        for (std::size_t candidate = 0; candidate < reservoir.size(); ++candidate) {
+            if (std::find(selected.begin(), selected.end(), candidate) != selected.end()) {
+                continue;
+            }
+            std::size_t minimum_distance = std::numeric_limits<std::size_t>::max();
+            for (const std::size_t existing : selected) {
+                minimum_distance = std::min(
+                    minimum_distance,
+                    strategic_distance(
+                        candidate, existing, reservoir, screening, moves));
+            }
+            if (best == reservoir.size() || minimum_distance > best_distance) {
+                best = candidate;
+                best_distance = minimum_distance;
+            }
+        }
+        if (best == reservoir.size()) break;
+        selected.push_back(best);
     }
     return selected;
 }
@@ -278,30 +379,137 @@ std::vector<AlphaMuWorld> gather_worlds(
     return worlds;
 }
 
+std::vector<double> normalized_reservoir_weights(
+    std::size_t reservoir_size,
+    const std::vector<double>& configured) {
+    std::vector<double> weights;
+    if (configured.empty()) {
+        weights.assign(
+            reservoir_size,
+            reservoir_size == 0 ? 0.0 : 1.0 / static_cast<double>(reservoir_size));
+        return weights;
+    }
+    if (configured.size() != reservoir_size) {
+        throw std::invalid_argument(
+            "AlphaMu2 reservoir weights must match the reservoir size");
+    }
+    weights = configured;
+    double total = 0.0;
+    for (const double weight : weights) {
+        if (!std::isfinite(weight) || weight < 0.0) {
+            throw std::invalid_argument(
+                "AlphaMu2 reservoir weights must be finite and non-negative");
+        }
+        total += weight;
+    }
+    if (total <= 0.0) {
+        throw std::invalid_argument(
+            "AlphaMu2 requires positive probability mass in its reservoir");
+    }
+    for (double& weight : weights) weight /= total;
+    return weights;
+}
+
+std::vector<double> active_probability_weights(
+    const std::vector<std::size_t>& active,
+    const std::vector<double>& reservoir_weights,
+    const std::vector<AlphaMuWorld>& reservoir,
+    const std::vector<AlphaMu2ScreeningVector>& screening,
+    const std::vector<Card>& moves,
+    AlphaMu2Stats& stats) {
+    std::vector<double> weights(active.size());
+    std::vector<std::size_t> probability_positions;
+    for (std::size_t position = 0; position < active.size(); ++position) {
+        if (reservoir_weights[active[position]] > 0.0) {
+            probability_positions.push_back(position);
+        }
+    }
+    if (probability_positions.empty()) {
+        throw std::logic_error(
+            "AlphaMu2 active set lost every probability representative");
+    }
+
+    for (std::size_t world = 0; world < reservoir.size(); ++world) {
+        if (reservoir_weights[world] <= 0.0) continue;
+        std::size_t best_position = probability_positions.front();
+        std::size_t best_distance = strategic_distance(
+            world,
+            active[best_position],
+            reservoir,
+            screening,
+            moves);
+        for (const std::size_t position : probability_positions) {
+            const std::size_t distance = strategic_distance(
+                world,
+                active[position],
+                reservoir,
+                screening,
+                moves);
+            if (distance < best_distance) {
+                best_position = position;
+                best_distance = distance;
+            }
+        }
+        weights[best_position] += reservoir_weights[world];
+        if (active[best_position] != world) ++stats.probability_reassignments;
+    }
+    return weights;
+}
+
+WorldMask active_challenge_mask(
+    const std::vector<std::size_t>& active,
+    const std::set<std::size_t>& challenge_indices) {
+    WorldMask mask = 0;
+    for (std::size_t position = 0; position < active.size(); ++position) {
+        if (challenge_indices.contains(active[position])) {
+            mask |= WorldMask {1} << position;
+        }
+    }
+    return mask;
+}
+
 PolicyCheck evaluate_fixed_policy(
     Position position,
     const std::shared_ptr<const AlphaMuPolicyNode>& policy,
     const AlphaMuConfig& config,
-    std::uint8_t starting_completed_tricks,
-    AlphaMu2Stats& stats) {
+    AlphaMu2Stats& stats,
+    std::uint64_t signature = 1469598103934665603ULL,
+    std::size_t depth = 0) {
     if (partnership_score(position, config.declarer) >= config.target_tricks) {
-        return PolicyCheck {.makes_target = true};
+        return PolicyCheck {
+            .makes_target = true,
+            .policy_signature = signature,
+            .failure_depth = depth,
+        };
     }
-    if (is_deal_finished(position)) return {};
+    if (is_deal_finished(position)) {
+        return PolicyCheck {
+            .policy_signature = signature,
+            .failure_depth = depth,
+        };
+    }
 
-    // The retained policy intentionally ends with the current trick. DDS then
-    // supplies the same leaf evaluation used by alpha-mu.
-    if (!policy || position.completed_tricks != starting_completed_tricks) {
+    // DDS supplies the same leaf evaluation used by alpha-mu only after the
+    // complete retained policy horizon has ended.
+    if (!policy) {
         ++stats.policy_dds_leaves;
         const std::uint8_t total = static_cast<std::uint8_t>(
             partnership_score(position, config.declarer) +
             double_dummy_future_tricks(position, config.declarer));
-        return PolicyCheck {.makes_target = total >= config.target_tricks};
+        return PolicyCheck {
+            .makes_target = total >= config.target_tricks,
+            .policy_signature = signature,
+            .failure_depth = depth,
+        };
     }
 
     const Seat player = next_to_play(position.current_trick);
     if (policy->player != player) {
-        return PolicyCheck {.unsupported_observation = true};
+        return PolicyCheck {
+            .unsupported_observation = true,
+            .policy_signature = signature,
+            .failure_depth = depth,
+        };
     }
     const Hand hand = hand_of(position.deal, player);
     if (same_side(player, config.declarer)) {
@@ -310,15 +518,22 @@ PolicyCheck evaluate_fixed_policy(
                 position.current_trick,
                 hand,
                 policy->declarer_move)) {
-            return PolicyCheck {.unsupported_observation = true};
+            return PolicyCheck {
+                .unsupported_observation = true,
+                .policy_signature = signature,
+                .failure_depth = depth,
+            };
         }
+        signature = extend_policy_signature(
+            signature, player, policy->declarer_move);
         play_card(position, policy->declarer_move);
         return evaluate_fixed_policy(
             position,
             policy->continuation,
             config,
-            starting_completed_tricks,
-            stats);
+            stats,
+            signature,
+            depth + 1);
     }
 
     for (const Card card : cards_in_bridge_order(
@@ -330,7 +545,12 @@ PolicyCheck evaluate_fixed_policy(
                 return candidate.card == card;
             });
         if (branch == policy->defender_branches.end()) {
-            return PolicyCheck {.unsupported_observation = true};
+            return PolicyCheck {
+                .unsupported_observation = true,
+                .policy_signature = extend_policy_signature(
+                    signature, player, card),
+                .failure_depth = depth,
+            };
         }
         Position child = position;
         play_card(child, card);
@@ -338,26 +558,30 @@ PolicyCheck evaluate_fixed_policy(
             child,
             branch->continuation,
             config,
-            starting_completed_tricks,
-            stats);
+            stats,
+            extend_policy_signature(signature, player, card),
+            depth + 1);
         if (!check.makes_target) return check;
     }
-    return PolicyCheck {.makes_target = true};
+    return PolicyCheck {
+        .makes_target = true,
+        .policy_signature = signature,
+        .failure_depth = depth,
+    };
 }
 
 std::size_t distance_from_active(
     std::size_t candidate,
     const std::vector<std::size_t>& active,
+    const std::vector<AlphaMuWorld>& reservoir,
     const std::vector<AlphaMu2ScreeningVector>& screening,
     const std::vector<Card>& moves) {
     std::size_t distance = std::numeric_limits<std::size_t>::max();
     for (const std::size_t selected : active) {
         distance = std::min(
             distance,
-            fingerprint_distance(
-                screening[candidate],
-                screening[selected],
-                moves));
+            strategic_distance(
+                candidate, selected, reservoir, screening, moves));
     }
     return distance;
 }
@@ -374,9 +598,21 @@ std::vector<CounterexampleCandidate> find_counterexamples(
         reservoir.front().position,
         result.search.best_move,
         search_config.optimizations.max_equivalent_cards);
-    const WorldMask known_policy_wins = result.search.trick_policy
-        ? result.search.trick_policy->outcome.wins
-        : 0;
+    std::map<std::vector<std::uint8_t>, std::set<std::uint64_t>>
+        active_policy_signatures;
+    for (std::size_t active_position = 0;
+         active_position < active.size();
+         ++active_position) {
+        const std::size_t reservoir_index = active[active_position];
+        const PolicyCheck active_check = evaluate_fixed_policy(
+            reservoir[reservoir_index].position,
+            result.search.trick_policy,
+            search_config,
+            stats);
+        active_policy_signatures[
+            result.screening[reservoir_index].future_tricks].insert(
+                active_check.policy_signature);
+    }
 
     std::vector<CounterexampleCandidate> candidates;
     const auto validation_start = std::chrono::steady_clock::now();
@@ -386,30 +622,20 @@ std::vector<CounterexampleCandidate> find_counterexamples(
             continue;
         }
 
-        // A failure is only informative if this root fingerprint is absent or
-        // the retained policy succeeds in every active representative of it.
-        bool known_failure = false;
-        for (std::size_t active_position = 0;
-             active_position < active.size();
-             ++active_position) {
-            if (result.screening[active[active_position]].future_tricks ==
-                    result.screening[index].future_tricks &&
-                (known_policy_wins &
-                 (WorldMask {1} << active_position)) == 0) {
-                known_failure = true;
-                break;
-            }
-        }
-        if (known_failure) continue;
-
         ++stats.reserve_worlds_checked;
         const PolicyCheck check = evaluate_fixed_policy(
             reservoir[index].position,
             result.search.trick_policy,
             search_config,
-            reservoir[index].position.completed_tricks,
             stats);
         if (check.makes_target) continue;
+
+        const auto known = active_policy_signatures.find(
+            result.screening[index].future_tricks);
+        if (known != active_policy_signatures.end() &&
+            !known->second.contains(check.policy_signature)) {
+            ++stats.policy_fingerprint_collisions;
+        }
 
         const auto& scores = result.screening[index].future_tricks;
         const std::uint8_t best_score =
@@ -425,8 +651,11 @@ std::vector<CounterexampleCandidate> find_counterexamples(
             .distance_from_active = distance_from_active(
                 index,
                 active,
+                reservoir,
                 result.screening,
                 result.screening_moves),
+            .policy_signature = check.policy_signature,
+            .failure_depth = check.failure_depth,
         });
     }
     stats.validation_ms += std::chrono::duration<double, std::milli>(
@@ -445,6 +674,9 @@ std::vector<CounterexampleCandidate> find_counterexamples(
             if (left.distance_from_active != right.distance_from_active) {
                 return left.distance_from_active > right.distance_from_active;
             }
+            if (left.failure_depth != right.failure_depth) {
+                return left.failure_depth < right.failure_depth;
+            }
             return left.index < right.index;
         });
     return candidates;
@@ -455,6 +687,8 @@ bool add_counterexample(
     std::size_t candidate,
     std::size_t maximum,
     const std::vector<AlphaMu2ScreeningVector>& screening,
+    const std::vector<double>& reservoir_weights,
+    const std::set<std::size_t>& protected_indices,
     std::optional<std::size_t>& replaced) {
     if (std::find(active.begin(), active.end(), candidate) != active.end()) {
         return false;
@@ -471,6 +705,16 @@ bool add_counterexample(
     std::size_t replacement = active.size();
     std::size_t largest_count = 1;
     const auto& candidate_fingerprint = screening[candidate].future_tricks;
+    const std::size_t positive_representatives = static_cast<std::size_t>(
+        std::count_if(active.begin(), active.end(), [&](std::size_t index) {
+            return reservoir_weights[index] > 0.0;
+        }));
+    const auto replaceable = [&](std::size_t index) {
+        return !protected_indices.contains(index) &&
+            !(reservoir_weights[candidate] == 0.0 &&
+              reservoir_weights[index] > 0.0 &&
+              positive_representatives <= 1);
+    };
 
     // Replacing within the candidate's own duplicated bucket preserves the
     // bucket's frequency while introducing the newly observed policy behavior.
@@ -479,11 +723,13 @@ bool add_counterexample(
             active.begin(),
             active.end(),
             [&](std::size_t index) {
-                return screening[index].future_tricks == candidate_fingerprint;
+                return screening[index].future_tricks == candidate_fingerprint &&
+                    replaceable(index);
             }) - active.begin());
     }
     for (std::size_t position = 0; position < active.size(); ++position) {
         if (replacement != active.size()) break;
+        if (!replaceable(active[position])) continue;
         const std::size_t count =
             counts[screening[active[position]].future_tricks];
         if (count > largest_count) {
@@ -498,6 +744,22 @@ bool add_counterexample(
 }
 
 }  // namespace
+
+AlphaMuPolicyEvaluation evaluate_alpha_mu_policy(
+    Position position,
+    const std::shared_ptr<const AlphaMuPolicyNode>& policy,
+    const AlphaMuConfig& config) {
+    AlphaMu2Stats stats;
+    const PolicyCheck check = evaluate_fixed_policy(
+        std::move(position), policy, config, stats);
+    return AlphaMuPolicyEvaluation {
+        .makes_target = check.makes_target,
+        .unsupported_observation = check.unsupported_observation,
+        .policy_signature = check.policy_signature,
+        .failure_depth = check.failure_depth,
+        .dds_leaves = stats.policy_dds_leaves,
+    };
+}
 
 AlphaMu2Result alpha_mu2_search(
     const std::vector<AlphaMuWorld>& reservoir,
@@ -532,6 +794,20 @@ AlphaMu2Result alpha_mu2_search(
     AlphaMu2Result result;
     result.stats.reservoir_worlds = reservoir.size();
     result.reservoir = reservoir;
+    result.reservoir_weights = normalized_reservoir_weights(
+        reservoir.size(), config.reservoir_weights);
+    std::set<std::size_t> challenge_indices;
+    for (const std::size_t index : config.initial_challenge_indices) {
+        if (index >= reservoir.size()) {
+            throw std::invalid_argument(
+                "AlphaMu2 challenge index is outside the reservoir");
+        }
+        challenge_indices.insert(index);
+    }
+    for (std::size_t index = 0; index < result.reservoir_weights.size(); ++index) {
+        if (result.reservoir_weights[index] == 0.0) challenge_indices.insert(index);
+    }
+    result.stats.challenge_worlds = challenge_indices.size();
     std::size_t equivalent_screening_moves_skipped = 0;
     const Hand screening_legal = representative_move_mask(
         root,
@@ -551,6 +827,39 @@ AlphaMu2Result alpha_mu2_search(
             result.stats.initial_worlds = result.worlds.size();
             result.stats.final_worlds = result.worlds.size();
         }
+        if (!result.active_reservoir_indices.empty()) {
+            result.active_world_weights.clear();
+            result.active_world_weights.reserve(result.active_reservoir_indices.size());
+            double active_mass = 0.0;
+            for (const std::size_t index : result.active_reservoir_indices) {
+                const double weight = result.reservoir_weights[index];
+                result.active_world_weights.push_back(weight);
+                active_mass += weight;
+            }
+            if (active_mass > 0.0) {
+                for (double& weight : result.active_world_weights) weight /= active_mass;
+            }
+            const WorldMask relevant = first_worlds_mask(result.worlds.size());
+            const WorldMask critical = active_challenge_mask(
+                result.active_reservoir_indices, challenge_indices);
+            result.search.score = best_alpha_mu_score(
+                result.search.front,
+                result.active_world_weights,
+                critical,
+                relevant,
+                config.critical_weighted_tolerance);
+            for (AlphaMuRootMove& move : result.search.root_moves) {
+                move.score = best_alpha_mu_score(
+                    move.front,
+                    result.active_world_weights,
+                    critical,
+                    relevant,
+                    config.critical_weighted_tolerance);
+            }
+        }
+        result.challenge_reservoir_indices.assign(
+            challenge_indices.begin(), challenge_indices.end());
+        result.stats.challenge_worlds = challenge_indices.size();
         result.stats.total_ms = std::chrono::duration<double, std::milli>(
             std::chrono::steady_clock::now() - total_start).count();
         return result;
@@ -730,21 +1039,37 @@ AlphaMu2Result alpha_mu2_search(
     });
     std::vector<std::size_t> active = select_initial_worlds(
         groups,
+        reservoir,
         result.screening,
         result.screening_moves,
-        initial_count);
+        initial_count,
+        result.reservoir_weights,
+        std::vector<std::size_t>(challenge_indices.begin(), challenge_indices.end()));
     result.stats.initial_worlds = active.size();
     result.stats.selection_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - selection_start).count();
 
     AlphaMuConfig search_config = config.search;
     search_config.build_trick_policy = true;
+    search_config.limit_policy_to_current_trick = false;
     const auto elapsed_seconds = [&]() {
         return std::chrono::duration<double>(
             std::chrono::steady_clock::now() - total_start).count();
     };
     const auto run_search = [&]() {
         AlphaMuConfig run_config = search_config;
+        result.active_world_weights = active_probability_weights(
+            active,
+            result.reservoir_weights,
+            reservoir,
+            result.screening,
+            result.screening_moves,
+            result.stats);
+        run_config.world_weights = result.active_world_weights;
+        run_config.critical_worlds = active_challenge_mask(
+            active, challenge_indices);
+        run_config.weighted_score_tolerance =
+            config.critical_weighted_tolerance;
         if (config.search.max_search_seconds > 0.0) {
             const double remaining =
                 config.search.max_search_seconds - elapsed_seconds();
@@ -810,28 +1135,41 @@ AlphaMu2Result alpha_mu2_search(
                     candidate.unsupported_observation,
                 .root_regret = candidate.root_regret,
                 .distance_from_active = candidate.distance_from_active,
+                .policy_signature = candidate.policy_signature,
+                .failure_depth = candidate.failure_depth,
             });
         }
 
         std::size_t added = 0;
         const std::vector<std::size_t> previous_active = active;
+        const std::set<std::size_t> previous_challenge_indices = challenge_indices;
         const std::size_t previous_counterexample_count =
             result.counterexample_indices.size();
+        std::set<std::pair<std::vector<std::uint8_t>, std::uint64_t>>
+            selected_behaviors;
         for (std::size_t candidate_index = 0;
              candidate_index < candidates.size();
              ++candidate_index) {
             if (added >= config.counterexamples_per_round) break;
             const CounterexampleCandidate& candidate =
                 candidates[candidate_index];
+            const auto behavior = std::make_pair(
+                result.screening[candidate.index].future_tricks,
+                candidate.policy_signature);
+            if (selected_behaviors.contains(behavior)) continue;
             std::optional<std::size_t> replaced;
             if (!add_counterexample(
                     active,
                     candidate.index,
                     std::min(config.max_world_count, reservoir.size()),
                     result.screening,
+                    result.reservoir_weights,
+                    challenge_indices,
                     replaced)) {
                 continue;
             }
+            challenge_indices.insert(candidate.index);
+            selected_behaviors.insert(behavior);
             round_trace.candidates[candidate_index].selected = true;
             round_trace.candidates[candidate_index].replaced_reservoir_index =
                 replaced;
@@ -841,6 +1179,7 @@ AlphaMu2Result alpha_mu2_search(
         if (added == 0) break;
         if (!run_search()) {
             active = previous_active;
+            challenge_indices = previous_challenge_indices;
             result.counterexample_indices.resize(
                 previous_counterexample_count);
             for (AlphaMu2CounterexampleTrace& candidate :
@@ -857,6 +1196,9 @@ AlphaMu2Result alpha_mu2_search(
     result.active_reservoir_indices = active;
     result.worlds = gather_worlds(reservoir, active);
     result.stats.final_worlds = active.size();
+    result.challenge_reservoir_indices.assign(
+        challenge_indices.begin(), challenge_indices.end());
+    result.stats.challenge_worlds = challenge_indices.size();
     result.stats.total_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - total_start).count();
     return result;

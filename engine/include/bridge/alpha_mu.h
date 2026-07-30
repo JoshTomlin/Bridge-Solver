@@ -28,6 +28,14 @@ struct ParetoFront {
     std::vector<OutcomeVector> vectors;
 };
 
+// Selection score for one strategy. Pareto dominance remains purely set based;
+// these values are used only to choose between non-dominated strategies.
+struct AlphaMuScore {
+    double weighted_wins {};
+    std::size_t critical_wins {};
+    std::size_t winning_worlds {};
+};
+
 // Compatibility names retained for existing callers.
 using AlphaMuVector = OutcomeVector;
 using AlphaMuFront = ParetoFront;
@@ -36,6 +44,21 @@ using AlphaMuFront = ParetoFront;
 bool outcome_dominates(const OutcomeVector& a, const OutcomeVector& b);
 std::size_t winning_world_count(const OutcomeVector& outcome);
 std::size_t best_winning_world_count(const ParetoFront& front);
+AlphaMuScore alpha_mu_outcome_score(
+    const OutcomeVector& outcome,
+    const std::vector<double>& world_weights = {},
+    WorldMask critical_worlds = 0,
+    WorldMask relevant_worlds = ~WorldMask {0});
+AlphaMuScore best_alpha_mu_score(
+    const ParetoFront& front,
+    const std::vector<double>& world_weights = {},
+    WorldMask critical_worlds = 0,
+    WorldMask relevant_worlds = ~WorldMask {0},
+    double weighted_tolerance = 0.0);
+bool alpha_mu_score_better(
+    const AlphaMuScore& candidate,
+    const AlphaMuScore& incumbent,
+    double weighted_tolerance = 0.0);
 
 // Adds candidate if it is not dominated or duplicated, removing vectors it dominates.
 bool add_to_pareto_front(ParetoFront& front, OutcomeVector candidate);
@@ -142,6 +165,19 @@ struct AlphaMuConfig {
     // interrupted, iterative deepening returns the last completed iteration.
     // The normal engine leaves this false and retains soft-limit semantics.
     bool hard_time_limit {false};
+
+    // Empty means one unit per world. Non-empty weights are indexed like the
+    // world vector and may include zero-weight challenge worlds.
+    std::vector<double> world_weights;
+
+    // Critical worlds break weighted-score ties (or near ties within the
+    // tolerance), followed by the unweighted winning-world count.
+    WorldMask critical_worlds {};
+    double weighted_score_tolerance {};
+
+    // Normal analysis resamples after each trick. Adaptive analysis can retain
+    // and validate the searched policy across its complete M horizon.
+    bool limit_policy_to_current_trick {true};
 };
 
 struct AlphaMuSearchStats {
@@ -199,6 +235,7 @@ struct AlphaMuRootMove {
     std::size_t winning_worlds {};
     std::size_t pareto_vectors {};
     ParetoFront front;
+    AlphaMuScore score;
 };
 
 struct AlphaMuPolicyNode;
@@ -211,7 +248,8 @@ struct AlphaMuPolicyBranch {
     std::shared_ptr<const AlphaMuPolicyNode> continuation;
 };
 
-// The selected contingent strategy for the remainder of the current trick.
+// The selected contingent strategy through the configured Max-ply horizon.
+// Standard alpha-mu sessions may still request a current-trick-only policy.
 // At a declarer-side node, declarer_move and continuation are used. At a
 // defender node, the observed card selects one of defender_branches.
 struct AlphaMuPolicyNode {
@@ -231,6 +269,7 @@ struct AlphaMuResult {
     std::shared_ptr<const AlphaMuPolicyNode> trick_policy;
     AlphaMuSearchStats stats {};
     std::string audit_log;
+    AlphaMuScore score;
 };
 
 AlphaMuResult alpha_mu_search(

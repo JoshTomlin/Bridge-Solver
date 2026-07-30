@@ -246,10 +246,17 @@
             <div class="settings-grid">
               <label class="field"><span>Reservoir worlds</span><input id="alpha-mu2-reservoir-worlds" type="number" min="1" max="512" value="256"></label>
               <label class="field"><span>Initial active</span><input id="alpha-mu2-initial-worlds" type="number" min="1" max="64" value="30"></label>
-              <label class="field"><span>Max active</span><input id="alpha-mu2-max-worlds" type="number" min="1" max="64" value="30"></label>
+              <label class="field"><span>Max active</span><input id="alpha-mu2-max-worlds" type="number" min="1" max="64" value="64"></label>
               <label class="field"><span>Refinement rounds</span><input id="alpha-mu2-refinement-rounds" type="number" min="0" max="12" value="2"></label>
               <label class="field"><span>Counterexamples / round</span><input id="alpha-mu2-counterexamples" type="number" min="0" max="16" value="3"></label>
+              <label class="field"><span>Adversarial layouts</span><input id="alpha-mu2-adversarial-worlds" type="number" min="0" max="256" value="64"></label>
+              <label class="field"><span>Remember hard layouts</span><input id="alpha-mu2-persistent-limit" type="number" min="0" max="64" value="32"></label>
+              <label class="field"><span>Critical near-tie</span><div class="input-suffix"><input id="alpha-mu2-critical-tolerance" type="number" min="0" max="25" step="0.1" value="0.5"><span>%</span></div></label>
             </div>
+            <label class="toggle-field">
+              <input id="alpha-mu2-persist-challenges" type="checkbox" checked>
+              <span><strong>Carry hard layouts forward</strong><small>Recheck counterexamples after later cards instead of forgetting them on the next trick.</small></span>
+            </label>
           </div>
           <label class="toggle-field">
             <input id="dd-card-labels" type="checkbox">
