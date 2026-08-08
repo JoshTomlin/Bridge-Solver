@@ -1,8 +1,8 @@
-# Second-Paper Optimization Results
+# Alpha-Mu Optimization Results
 
-This file records a reproducible validation snapshot for the optimizations from
-Cazenave, Legras, and Ventos, *Optimizing alpha-mu*. The implementation details
-and switch names are in `docs/alpha-mu-optimizations.md`.
+> This is a reproducible snapshot from the implementation of the second-paper
+> optimizations. The current switch and code map is in
+> [the optimization guide](../alpha-mu-optimizations.md).
 
 ## Correctness Checks
 

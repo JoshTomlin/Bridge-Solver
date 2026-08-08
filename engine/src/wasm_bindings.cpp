@@ -341,6 +341,40 @@ std::string dd_scores_json(const AnalysisSession& session) {
     return score_json.str();
 }
 
+std::string defender_decision_json(const DefenderDecision& decision) {
+    std::ostringstream output;
+    output << "{\"card\":" << json_quote(to_string(decision.card))
+           << ",\"declarerFutureTricks\":"
+           << static_cast<int>(decision.declarer_future_tricks)
+           << ",\"policyAvailable\":"
+           << (decision.policy_available ? "true" : "false")
+           << ",\"reason\":" << json_quote(decision.reason)
+           << ",\"candidates\":[";
+    for (std::size_t index = 0; index < decision.candidates.size(); ++index) {
+        if (index != 0) output << ',';
+        const DefenderCardAssessment& candidate = decision.candidates[index];
+        output << "{\"card\":" << json_quote(to_string(candidate.card))
+               << ",\"declarerFutureTricks\":"
+               << static_cast<int>(candidate.declarer_future_tricks)
+               << ",\"ddOptimal\":"
+               << (candidate.dd_optimal ? "true" : "false")
+               << ",\"policyBranchSupported\":"
+               << (candidate.policy_branch_supported ? "true" : "false")
+               << ",\"policyMakesTarget\":"
+               << (candidate.policy_makes_target ? "true" : "false")
+               << ",\"unsupportedObservation\":"
+               << (candidate.unsupported_observation ? "true" : "false")
+               << ",\"failureDepth\":" << candidate.failure_depth
+               << ",\"policyWinningWorlds\":"
+               << candidate.policy_winning_worlds
+               << ",\"policyPossibleWorlds\":"
+               << candidate.policy_possible_worlds
+               << ",\"resourceCost\":" << candidate.resource_cost << '}';
+    }
+    output << "]}";
+    return output.str();
+}
+
 std::string state_json(const AnalysisSession& session) {
     const Position& position = session.position();
     const bool finished = is_deal_finished(position);
@@ -524,6 +558,20 @@ std::string alpha_mu2_screening_json(const AlphaMu2Result& result) {
     return output.str();
 }
 
+std::string alpha_mu_policy_steps_json(
+    const std::vector<AlphaMuPolicyStep>& steps) {
+    std::ostringstream output;
+    output << '[';
+    for (std::size_t index = 0; index < steps.size(); ++index) {
+        if (index != 0) output << ',';
+        output << "{\"player\":" << json_quote(to_string(steps[index].player))
+               << ",\"card\":" << json_quote(to_string(steps[index].card))
+               << '}';
+    }
+    output << ']';
+    return output.str();
+}
+
 std::string alpha_mu2_candidates_json(
     const std::vector<AlphaMu2CounterexampleTrace>& candidates) {
     std::ostringstream output;
@@ -539,6 +587,10 @@ std::string alpha_mu2_candidates_json(
                << ",\"policySignature\":"
                << json_quote(std::to_string(candidate.policy_signature))
                << ",\"failureDepth\":" << candidate.failure_depth
+               << ",\"failureReason\":"
+               << json_quote(candidate.failure_reason)
+               << ",\"failurePath\":"
+               << alpha_mu_policy_steps_json(candidate.failure_path)
                << ",\"selected\":"
                << (candidate.selected ? "true" : "false")
                << ",\"replacedReservoirIndex\":";
@@ -547,6 +599,14 @@ std::string alpha_mu2_candidates_json(
         } else {
             output << "null";
         }
+        output << ",\"revalidated\":"
+               << (candidate.revalidated ? "true" : "false")
+               << ",\"repairedByNextPolicy\":"
+               << (candidate.repaired_by_next_policy ? "true" : "false")
+               << ",\"revisedFailureReason\":"
+               << json_quote(candidate.revised_failure_reason)
+               << ",\"revisedFailurePath\":"
+               << alpha_mu_policy_steps_json(candidate.revised_failure_path);
         output << '}';
     }
     output << ']';
@@ -570,12 +630,27 @@ std::string alpha_mu2_rounds_json(const AlphaMu2Result& result) {
                << ",\"criticalWins\":" << round.search.score.critical_wins
                << ",\"completedDepth\":"
                << static_cast<int>(round.search.stats.completed_depth)
+               << ",\"heldOutWorlds\":" << round.held_out_worlds
+               << ",\"makeableWorldsChecked\":"
+               << round.makeable_worlds_checked
+               << ",\"policyPasses\":" << round.policy_passes
+               << ",\"policyFailures\":" << round.policy_failures
+               << ",\"unsupportedFailures\":"
+               << round.unsupported_failures
+               << ",\"counterexamplesSelected\":"
+               << round.counterexamples_selected
+               << ",\"activeWorldsAfter\":"
+               << round.active_worlds_after
                << ",\"rootMoves\":"
                << root_moves_json(
                    round.search.root_moves,
                    round.active_reservoir_indices)
                << ",\"candidates\":"
                << alpha_mu2_candidates_json(round.candidates)
+               << ",\"policy\":"
+               << policy_json(
+                   round.search.trick_policy,
+                   round.active_reservoir_indices.size())
                << '}';
     }
     output << ']';
@@ -823,6 +898,18 @@ public:
         }
     }
 
+    std::string defender_move(const std::string& hold_order) const {
+        try {
+            require_session();
+            const DefenderDecision decision = session_->defender_move(hold_order);
+            return "{\"ok\":true,\"card\":" +
+                json_quote(to_string(decision.card)) +
+                ",\"decision\":" + defender_decision_json(decision) + '}';
+        } catch (const std::exception& error) {
+            return error_json(error);
+        }
+    }
+
     std::string dd_scores() const {
         try {
             require_session();
@@ -855,5 +942,6 @@ EMSCRIPTEN_BINDINGS(bridge_solver_browser) {
         .function("replay", &bridge::BrowserBridgeEngine::replay)
         .function("policyMove", &bridge::BrowserBridgeEngine::policy_move)
         .function("ddsMove", &bridge::BrowserBridgeEngine::dds_move)
+        .function("defenderMove", &bridge::BrowserBridgeEngine::defender_move)
         .function("ddScores", &bridge::BrowserBridgeEngine::dd_scores);
 }

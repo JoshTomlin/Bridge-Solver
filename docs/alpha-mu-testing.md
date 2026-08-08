@@ -1,7 +1,9 @@
-# Alpha-mu reliability lab
+# Alpha-Mu Reliability Lab
 
-The reliability work treats sampled probability and hard-layout coverage as two
-different signals:
+The reliability lab tests more than the recommended opening card. It checks
+whether the retained policy continues to work after every legal defensive
+observation through its M horizon. Sampled probability and hard-layout coverage
+are treated as different signals:
 
 - Reservoir particles carry normalized probability mass.
 - Adversarial, remembered, and discovered counterexamples are challenge worlds.
@@ -11,15 +13,26 @@ different signals:
   near-tie tolerance it prefers the policy that survives more challenge worlds,
   then uses exact probability and unweighted world count as tie-breakers.
 - AlphaMu2 validates the complete retained M-horizon policy, records the policy
-  path signature and failure depth, and keeps independently failing policies
-  from the same DDS root-fingerprint bucket.
+  path signature and failure depth, and keeps distinct counterexamples from the
+  same DDS root-fingerprint bucket when their policy paths differ.
 
 The analysis session also creates adversarial layouts by swapping one unknown
 East/West card in sampled deals. It ranks legal mutations for structural
 pressure (voids, singletons, extreme shapes, and HCP imbalance). Selected hard
 layouts are carried forward through later play while they remain legal.
 
-## Automated checks
+## Test Layers
+
+| Layer | What it checks |
+|---|---|
+| Native unit suite | Card/game rules, constrained sampling, Pareto algebra, exact cuts, weighted choice, policy reconstruction, AlphaMu2 traces, and defender safety |
+| Authored corpus | Expected root move and fixed-policy success across all listed layouts for each information set |
+| Collision miner | Two layouts with the same root DDS fingerprint but different policy requirements |
+| Paired benchmark | Baseline and AlphaMu2 on the same shuffled rare-layout reservoirs and exact two-layout oracle |
+| Bridge Master 6S oracle | Coldness and fixed-policy coverage over all 12,376 legal hidden layouts |
+| Browser tests | Deal utilities, static UI/report contracts, and a real WebAssembly engine response |
+
+## Running the Checks
 
 Build the native engine, then run:
 
@@ -29,6 +42,15 @@ Build the native engine, then run:
 .\build\engine\Release\bridge_alpha_mu_lab.exe mine
 .\build\engine\Release\bridge_alpha_mu_lab.exe paired 100 11565831
 .\build\engine\Release\bridge_alpha_mu_lab.exe bridgemaster6s 256 4 60 11565831 12376
+```
+
+After a WebAssembly build, run the browser checks with:
+
+```powershell
+cd website
+npm test
+npm run test:ui
+npm run test:wasm
 ```
 
 The unit suite includes weighted-choice, critical near-tie, duplicate-particle,
@@ -49,10 +71,10 @@ can be compared directly.
 `bridgemaster6s` exhaustively proves the reconstructed 6S discovery hand cold,
 then compares fixed policies against either the complete 12,376-layout oracle
 or a deterministic held-out subset. See
-[bridge-master-6s-test.md](bridge-master-6s-test.md) for the assumptions and
-measured results.
+[Bridge Master 6S discovery benchmark](results/bridge-master-6s.md) for the
+assumptions and measured results.
 
-## Corpus format
+## Corpus Format
 
 The corpus is tab-separated, with one layout per line and eleven fields:
 
@@ -66,7 +88,7 @@ Rows with the same case name form one imperfect-information oracle and must
 share the same public position and settings. The lab requires the expected root
 move and the resulting fixed policy to make the target in every listed layout.
 
-## Adding Bridge Master or authored problems
+## Adding Bridge Master or Authored Problems
 
 Add only deals you are entitled to store. Reduce each problem to the decision
 position being tested, then add every relevant hidden layout as a row under one

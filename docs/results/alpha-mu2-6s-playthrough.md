@@ -1,4 +1,8 @@
-# AlphaMu2 playthrough
+# AlphaMu2 6S Playthrough
+
+> This is a point-in-time generated run. It preserves the exact settings and
+> diagnostics used at the time; see the current [AlphaMu2 design](../alpha-mu2.md)
+> for the present report format and implementation.
 
 Target: 12 tricks in S. Opening leader: West. Reservoir seed: 11565831. Maximum M: 26. Total AlphaMu2 budget per decision: 30 seconds.
 

@@ -58,6 +58,20 @@ try {
   assert.ok(Number.isFinite(
     adaptive.analysis.alphaMu2.stats.policyFingerprintCollisions
   ));
+  assert.ok(Number.isFinite(
+    adaptive.analysis.alphaMu2.rounds[0].makeableWorldsChecked
+  ));
+  assert.ok(Number.isFinite(
+    adaptive.analysis.alphaMu2.rounds[0].policyFailures
+  ));
+  assert.equal(typeof engine.defenderMove, "function");
+  parse(engine.play(adaptive.analysis.bestMove));
+  const defence = parse(engine.defenderMove("SHDC"));
+  assert.ok(defence.card);
+  assert.ok(defence.decision.reason);
+  assert.ok(defence.decision.candidates.find(
+    (candidate) => candidate.card === defence.card
+  )?.ddOptimal);
 
   console.log(
     `WASM smoke passed: ${result.analysis.bestMove}, ` +

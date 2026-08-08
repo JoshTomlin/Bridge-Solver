@@ -5,6 +5,10 @@ better small set of worlds, assign the reservoir's exact probability mass to
 those representatives, and challenge the returned policy with worlds that were
 not searched.
 
+It does not replace alpha-mu. It decides which layouts alpha-mu should search,
+how much reservoir probability each active layout represents, and whether the
+resulting fixed policy survives layouts held back from that search.
+
 ## Pipeline
 
 1. The constrained sampler creates a larger uniform reservoir.
@@ -89,6 +93,32 @@ Reserve failures are never suppressed merely because an active world shares
 their root fingerprint. Their full policy-path signature and failure depth are
 recorded, exposing the collisions that root-only DDS screening cannot see.
 
+The trace also records the actual defender/declarer card path to the failure,
+the plain-language failure reason, and whether the next completed policy repairs
+each promoted layout. Per-round counters distinguish held-out layouts, layouts
+where the contract is DD-makeable, policy passes, policy failures, unseen
+defensive observations, and the distinct failures selected for promotion.
+
+## Reading the Browser Report
+
+The primary report is a search-and-challenge timeline:
+
+- **Plan layouts** are the small active set used to construct a policy.
+- **Held-out layouts** come from the larger reservoir and test that fixed policy.
+- A **counterexample** is a held-out DD-makeable layout where the fixed policy
+  fails.
+- A promoted **hard layout** joins the next search as a critical coverage case;
+  its original probability is not inflated.
+
+Each promoted layout shows its East/West hands, the failing card sequence, why
+the fixed plan failed, and its result under the next policy. A first-card DD loss
+of zero means the recommended root card remained correct and only the
+continuation failed—the most relevant case for discovery play.
+
+Opening-card DDS profiles, representative weights, policy hashes, novelty
+scores, and timings are kept under **Advanced engine diagnostics** because they
+explain implementation and selection behavior rather than the bridge plan.
+
 ## Public API
 
 ```cpp
@@ -133,3 +163,8 @@ Useful diagnostics include:
 
 The browser exposes AlphaMu2 directly, including adversarial-layout count,
 persistent hard-layout capacity, and critical near-tie tolerance.
+
+For a concrete exact-oracle example, see the
+[Bridge Master 6S discovery benchmark](results/bridge-master-6s.md). The
+[forced-prefix analysis](results/alpha-mu2-forced-prefix.md) is a longer
+point-in-time trace of screening and refinement in one position.

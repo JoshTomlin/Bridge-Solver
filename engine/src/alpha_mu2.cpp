@@ -27,6 +27,8 @@ struct PolicyCheck {
     bool unsupported_observation {};
     std::uint64_t policy_signature {1469598103934665603ULL};
     std::size_t failure_depth {};
+    std::string failure_reason;
+    std::vector<AlphaMuPolicyStep> failure_path;
 };
 
 struct CounterexampleCandidate {
@@ -36,6 +38,8 @@ struct CounterexampleCandidate {
     std::size_t distance_from_active {};
     std::uint64_t policy_signature {};
     std::size_t failure_depth {};
+    std::string failure_reason;
+    std::vector<AlphaMuPolicyStep> failure_path;
 };
 
 std::uint64_t extend_policy_signature(
@@ -474,7 +478,8 @@ PolicyCheck evaluate_fixed_policy(
     const AlphaMuConfig& config,
     AlphaMu2Stats& stats,
     std::uint64_t signature = 1469598103934665603ULL,
-    std::size_t depth = 0) {
+    std::size_t depth = 0,
+    std::vector<AlphaMuPolicyStep> path = {}) {
     if (partnership_score(position, config.declarer) >= config.target_tricks) {
         return PolicyCheck {
             .makes_target = true,
@@ -486,6 +491,8 @@ PolicyCheck evaluate_fixed_policy(
         return PolicyCheck {
             .policy_signature = signature,
             .failure_depth = depth,
+            .failure_reason = "deal ended below the target",
+            .failure_path = std::move(path),
         };
     }
 
@@ -496,11 +503,17 @@ PolicyCheck evaluate_fixed_policy(
         const std::uint8_t total = static_cast<std::uint8_t>(
             partnership_score(position, config.declarer) +
             double_dummy_future_tricks(position, config.declarer));
-        return PolicyCheck {
+        PolicyCheck result {
             .makes_target = total >= config.target_tricks,
             .policy_signature = signature,
             .failure_depth = depth,
         };
+        if (!result.makes_target) {
+            result.failure_reason =
+                "retained policy ended below the target at its DDS horizon";
+            result.failure_path = std::move(path);
+        }
+        return result;
     }
 
     const Seat player = next_to_play(position.current_trick);
@@ -509,6 +522,8 @@ PolicyCheck evaluate_fixed_policy(
             .unsupported_observation = true,
             .policy_signature = signature,
             .failure_depth = depth,
+            .failure_reason = "retained policy expected a different player",
+            .failure_path = std::move(path),
         };
     }
     const Hand hand = hand_of(position.deal, player);
@@ -518,12 +533,24 @@ PolicyCheck evaluate_fixed_policy(
                 position.current_trick,
                 hand,
                 policy->declarer_move)) {
+            if (policy->declarer_move != kNoCard) {
+                path.push_back(AlphaMuPolicyStep {
+                    .player = player,
+                    .card = policy->declarer_move,
+                });
+            }
             return PolicyCheck {
                 .unsupported_observation = true,
                 .policy_signature = signature,
                 .failure_depth = depth,
+                .failure_reason = "stored declarer card was not legal",
+                .failure_path = std::move(path),
             };
         }
+        path.push_back(AlphaMuPolicyStep {
+            .player = player,
+            .card = policy->declarer_move,
+        });
         signature = extend_policy_signature(
             signature, player, policy->declarer_move);
         play_card(position, policy->declarer_move);
@@ -533,11 +560,17 @@ PolicyCheck evaluate_fixed_policy(
             config,
             stats,
             signature,
-            depth + 1);
+            depth + 1,
+            std::move(path));
     }
 
     for (const Card card : cards_in_bridge_order(
              legal_plays(position.current_trick, hand))) {
+        std::vector<AlphaMuPolicyStep> branch_path = path;
+        branch_path.push_back(AlphaMuPolicyStep {
+            .player = player,
+            .card = card,
+        });
         const auto branch = std::find_if(
             policy->defender_branches.begin(),
             policy->defender_branches.end(),
@@ -550,6 +583,9 @@ PolicyCheck evaluate_fixed_policy(
                 .policy_signature = extend_policy_signature(
                     signature, player, card),
                 .failure_depth = depth,
+                .failure_reason =
+                    "legal defender card had no retained response branch",
+                .failure_path = std::move(branch_path),
             };
         }
         Position child = position;
@@ -560,7 +596,8 @@ PolicyCheck evaluate_fixed_policy(
             config,
             stats,
             extend_policy_signature(signature, player, card),
-            depth + 1);
+            depth + 1,
+            std::move(branch_path));
         if (!check.makes_target) return check;
     }
     return PolicyCheck {
@@ -591,8 +628,11 @@ std::vector<CounterexampleCandidate> find_counterexamples(
     const std::vector<std::size_t>& active,
     const AlphaMu2Result& result,
     const AlphaMuConfig& search_config,
-    AlphaMu2Stats& stats) {
+    AlphaMu2Stats& stats,
+    AlphaMu2RoundTrace& round_trace) {
     std::set<std::size_t> active_set(active.begin(), active.end());
+    round_trace.held_out_worlds = reservoir.size() - active_set.size();
+    round_trace.active_worlds_after = active.size();
     const std::size_t chosen_index = screening_index_for_move(
         result.screening_moves,
         reservoir.front().position,
@@ -617,18 +657,26 @@ std::vector<CounterexampleCandidate> find_counterexamples(
     std::vector<CounterexampleCandidate> candidates;
     const auto validation_start = std::chrono::steady_clock::now();
     for (std::size_t index = 0; index < reservoir.size(); ++index) {
-        if (active_set.contains(index) ||
-            result.screening[index].making_moves == kEmptyHand) {
+        if (active_set.contains(index)) {
             continue;
         }
+        if (result.screening[index].making_moves == kEmptyHand) continue;
 
         ++stats.reserve_worlds_checked;
+        ++round_trace.makeable_worlds_checked;
         const PolicyCheck check = evaluate_fixed_policy(
             reservoir[index].position,
             result.search.trick_policy,
             search_config,
             stats);
-        if (check.makes_target) continue;
+        if (check.makes_target) {
+            ++round_trace.policy_passes;
+            continue;
+        }
+        ++round_trace.policy_failures;
+        if (check.unsupported_observation) {
+            ++round_trace.unsupported_failures;
+        }
 
         const auto known = active_policy_signatures.find(
             result.screening[index].future_tricks);
@@ -656,6 +704,8 @@ std::vector<CounterexampleCandidate> find_counterexamples(
                 result.screening_moves),
             .policy_signature = check.policy_signature,
             .failure_depth = check.failure_depth,
+            .failure_reason = check.failure_reason,
+            .failure_path = check.failure_path,
         });
     }
     stats.validation_ms += std::chrono::duration<double, std::milli>(
@@ -758,6 +808,8 @@ AlphaMuPolicyEvaluation evaluate_alpha_mu_policy(
         .policy_signature = check.policy_signature,
         .failure_depth = check.failure_depth,
         .dds_leaves = stats.policy_dds_leaves,
+        .failure_reason = check.failure_reason,
+        .failure_path = check.failure_path,
     };
 }
 
@@ -1118,15 +1170,17 @@ AlphaMu2Result alpha_mu2_search(
          ++round) {
         if (!result.search.trick_policy) break;
         if (result.stats.stopped_by_time_limit) break;
+        const std::size_t trace_index = result.rounds.size() - 1;
+        AlphaMu2RoundTrace& round_trace = result.rounds[trace_index];
         const std::vector<CounterexampleCandidate> candidates =
             find_counterexamples(
                 reservoir,
                 active,
                 result,
                 search_config,
-                result.stats);
+                result.stats,
+                round_trace);
         result.stats.counterexamples_found += candidates.size();
-        AlphaMu2RoundTrace& round_trace = result.rounds.back();
         round_trace.candidates.reserve(candidates.size());
         for (const CounterexampleCandidate& candidate : candidates) {
             round_trace.candidates.push_back(AlphaMu2CounterexampleTrace {
@@ -1137,6 +1191,8 @@ AlphaMu2Result alpha_mu2_search(
                 .distance_from_active = candidate.distance_from_active,
                 .policy_signature = candidate.policy_signature,
                 .failure_depth = candidate.failure_depth,
+                .failure_reason = candidate.failure_reason,
+                .failure_path = candidate.failure_path,
             });
         }
 
@@ -1176,6 +1232,8 @@ AlphaMu2Result alpha_mu2_search(
             result.counterexample_indices.push_back(candidate.index);
             ++added;
         }
+        round_trace.counterexamples_selected = added;
+        round_trace.active_worlds_after = active.size();
         if (added == 0) break;
         if (!run_search()) {
             active = previous_active;
@@ -1187,7 +1245,24 @@ AlphaMu2Result alpha_mu2_search(
                 candidate.selected = false;
                 candidate.replaced_reservoir_index.reset();
             }
+            round_trace.counterexamples_selected = 0;
+            round_trace.active_worlds_after = previous_active.size();
             break;
+        }
+        AlphaMu2Stats revalidation_stats;
+        AlphaMu2RoundTrace& completed_trace = result.rounds[trace_index];
+        for (AlphaMu2CounterexampleTrace& candidate :
+             completed_trace.candidates) {
+            if (!candidate.selected) continue;
+            const PolicyCheck revised = evaluate_fixed_policy(
+                reservoir[candidate.reservoir_index].position,
+                result.search.trick_policy,
+                search_config,
+                revalidation_stats);
+            candidate.revalidated = true;
+            candidate.repaired_by_next_policy = revised.makes_target;
+            candidate.revised_failure_reason = revised.failure_reason;
+            candidate.revised_failure_path = revised.failure_path;
         }
         result.stats.counterexamples_added += added;
         ++result.stats.refinement_rounds;

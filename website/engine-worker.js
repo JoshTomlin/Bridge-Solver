@@ -120,6 +120,7 @@ async function runFull(settings) {
     const declarerSide = current.turn === "North" || current.turn === "South";
     let card;
     let source;
+    let defenderDecision = null;
     if (declarerSide) {
       const retained = parseResult(engine.policyMove()).card;
       if (retained) {
@@ -133,8 +134,12 @@ async function runFull(settings) {
         source = settings.engine === "alpha-mu2" ? "alpha-mu2" : "alpha-mu";
       }
     } else {
-      card = parseResult(engine.ddsMove(settings.defenderHoldOrder || "SHDC")).card;
-      source = "dds";
+      const result = parseResult(
+        engine.defenderMove(settings.defenderHoldOrder || "SHDC")
+      );
+      card = result.card;
+      defenderDecision = result.decision;
+      source = defenderDecision?.policyAvailable ? "policy-breaker" : "DD-safe";
     }
 
     const played = parseResult(engine.play(card));
@@ -143,7 +148,8 @@ async function runFull(settings) {
       seat: current.turn,
       card,
       source,
-      analysisIndex: declarerSide ? currentAnalysisIndex : null
+      analysisIndex: declarerSide ? currentAnalysisIndex : null,
+      defenderDecision
     };
     plays.push(play);
     frames.push({ state: played.state, play });

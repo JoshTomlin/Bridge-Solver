@@ -1,5 +1,8 @@
 # DTAC-Style Claim Bounds
 
+This is the more general of the two public-information claim proofs used by
+alpha-mu. The cheaper [quick-trick bound](quick-tricks.md) runs first.
+
 Source reference: Paul Bethe's DTAC repository, `github.com/pmbethe09/DTAC`.
 
 This project does not compile DTAC directly. The upstream code has its own

@@ -113,6 +113,17 @@ std::string card_list(const std::vector<const AlphaMuPolicyBranch*>& branches) {
     return output.str();
 }
 
+std::string policy_path_text(const std::vector<AlphaMuPolicyStep>& path) {
+    if (path.empty()) return "no card sequence recorded";
+    std::ostringstream output;
+    for (std::size_t index = 0; index < path.size(); ++index) {
+        if (index != 0) output << " -> ";
+        output << to_string(path[index].player).front() << ' '
+               << to_string(path[index].card);
+    }
+    return output.str();
+}
+
 std::string policy_condition(
     const ResponseGroup& group,
     const std::vector<AlphaMuPolicyBranch>& all,
@@ -288,6 +299,20 @@ void write_rounds(
                << round.search_ms << " ms. Completed M="
                << static_cast<int>(round.search.stats.completed_depth)
                << ". Nodes=" << round.search.stats.nodes << ".\n\n";
+        if (round.makeable_worlds_checked > 0) {
+            output << "**Challenge result:** replayed the fixed policy in "
+                   << round.makeable_worlds_checked
+                   << " held-out DD-makeable layouts; "
+                   << round.policy_passes << " passed and "
+                   << round.policy_failures << " failed. Promoted "
+                   << round.counterexamples_selected
+                   << " distinct failure(s), leaving "
+                   << round.active_worlds_after
+                   << " plan-building layouts for the next search.\n\n";
+        } else {
+            output << "**Challenge result:** no later held-out validation pass "
+                      "was recorded for this policy.\n\n";
+        }
         output << "**Proposed policy (first trick shown)**\n\n";
         write_policy(output, round.search.trick_policy, root);
 
@@ -309,8 +334,8 @@ void write_rounds(
             output << "None.\n";
             continue;
         }
-        output << "| World | Fingerprint | Why it failed | Depth | Policy path | Root regret | Distance | Decision | East / West |\n";
-        output << "|---:|---:|---|---:|---:|---:|---:|---|---|\n";
+        output << "| Layout | Opening profile | Why the fixed plan failed | Failure line | First-card DD loss | Decision | After promotion | East / West |\n";
+        output << "|---:|---:|---|---|---:|---|---|---|\n";
         for (const AlphaMu2CounterexampleTrace& candidate : round.candidates) {
             const Position& world =
                 result.reservoir[candidate.reservoir_index].position;
@@ -319,12 +344,12 @@ void write_rounds(
                        result.screening[candidate.reservoir_index].future_tricks]
                    << " | "
                    << (candidate.unsupported_observation
-                           ? "unseen defender observation"
-                           : "fixed policy missed target")
-                   << " | " << candidate.failure_depth
-                   << " | `" << candidate.policy_signature << "`"
+                           ? "new legal defensive observation: "
+                           : "continuation failure: ")
+                   << candidate.failure_reason
+                   << " | `" << policy_path_text(candidate.failure_path) << "`"
                    << " | " << static_cast<int>(candidate.root_regret)
-                   << " | " << candidate.distance_from_active << " | ";
+                   << " | ";
             if (candidate.selected) {
                 output << "**selected**";
                 if (candidate.replaced_reservoir_index) {
@@ -333,6 +358,19 @@ void write_rounds(
                 }
             } else {
                 output << "not selected";
+            }
+            output << " | ";
+            if (!candidate.revalidated) {
+                output << "not rechecked";
+            } else if (candidate.repaired_by_next_policy) {
+                output << "**revised policy passed**";
+            } else {
+                output << "still failed: " << candidate.revised_failure_reason;
+                if (!candidate.revised_failure_path.empty()) {
+                    output << " (`"
+                           << policy_path_text(candidate.revised_failure_path)
+                           << "`)";
+                }
             }
             output << " | E `" << format_hand(
                 hand_of(world.deal, Seat::East))
@@ -453,11 +491,9 @@ void run_report(
             Card card = kNoCard;
             std::string source;
             if (!same_side(player, Seat::South)) {
-                card = choose_double_dummy_defender_card(
-                    session.position(),
-                    Seat::South,
-                    "SHDC");
-                source = "DDS defence";
+                const DefenderDecision defence = session.defender_move("SHDC");
+                card = defence.card;
+                source = "DD-safe defence: " + defence.reason;
             } else if (const std::optional<Card> retained =
                            session.policy_move()) {
                 card = *retained;

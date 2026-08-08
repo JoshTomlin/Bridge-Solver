@@ -1,4 +1,7 @@
-# AlphaMu2 forced-prefix report
+# AlphaMu2 Forced-Prefix Analysis
+
+> This is a recorded experiment with fixed settings and a fixed seed. It is
+> evidence for the world-selection design, not a current performance guarantee.
 
 ## Position and run
 

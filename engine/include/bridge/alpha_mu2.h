@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "bridge/alpha_mu.h"
@@ -57,6 +58,11 @@ struct AlphaMu2Stats {
     double total_ms {};
 };
 
+struct AlphaMuPolicyStep {
+    Seat player {Seat::North};
+    Card card {kNoCard};
+};
+
 struct AlphaMu2CounterexampleTrace {
     std::size_t reservoir_index {};
     bool unsupported_observation {};
@@ -66,6 +72,12 @@ struct AlphaMu2CounterexampleTrace {
     std::size_t failure_depth {};
     bool selected {};
     std::optional<std::size_t> replaced_reservoir_index;
+    std::string failure_reason;
+    std::vector<AlphaMuPolicyStep> failure_path;
+    bool revalidated {};
+    bool repaired_by_next_policy {};
+    std::string revised_failure_reason;
+    std::vector<AlphaMuPolicyStep> revised_failure_path;
 };
 
 struct AlphaMu2RoundTrace {
@@ -74,6 +86,13 @@ struct AlphaMu2RoundTrace {
     AlphaMuResult search;
     std::vector<AlphaMu2CounterexampleTrace> candidates;
     double search_ms {};
+    std::size_t held_out_worlds {};
+    std::size_t makeable_worlds_checked {};
+    std::size_t policy_passes {};
+    std::size_t policy_failures {};
+    std::size_t unsupported_failures {};
+    std::size_t counterexamples_selected {};
+    std::size_t active_worlds_after {};
 };
 
 struct AlphaMu2Result {
@@ -97,6 +116,8 @@ struct AlphaMuPolicyEvaluation {
     std::uint64_t policy_signature {};
     std::size_t failure_depth {};
     std::size_t dds_leaves {};
+    std::string failure_reason;
+    std::vector<AlphaMuPolicyStep> failure_path;
 };
 
 // Executes a fixed alpha-mu policy without making new declarer choices. Every

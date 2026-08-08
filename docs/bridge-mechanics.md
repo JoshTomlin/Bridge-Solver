@@ -21,6 +21,12 @@ trick operations.
 - `engine/src/dds_solver.cpp`: conversion to DDS data structures
 - `engine/include/bridge/engine.h`: umbrella header plus sampling API
 - `engine/src/engine.cpp`: constrained-hand counting and sampling
+- `engine/include/bridge/alpha_mu2.h`: adaptive world-selection API and trace types
+- `engine/src/alpha_mu2.cpp`: reservoir screening and policy counterexamples
+- `engine/include/bridge/analysis_session.h`: analysis orchestration and lifetime
+- `engine/src/analysis_session.cpp`: restrictions, sampling, undo, and policy advancement
+- `engine/include/bridge/defender.h`: DD-safe policy-aware defender API
+- `engine/src/defender.cpp`: defender scoring and resource-preservation tie-breaks
 
 ## Why Value Structs and Free Functions
 
@@ -149,4 +155,4 @@ The expensive part of the program is not bridge mechanics. It is the number of
 search branches, Pareto vectors, sampled worlds, and DDS leaf calls.
 
 For the optimization switches and measurements around those costs, continue
-with `docs/alpha-mu-optimizations.md`.
+with the [alpha-mu optimization guide](alpha-mu-optimizations.md).

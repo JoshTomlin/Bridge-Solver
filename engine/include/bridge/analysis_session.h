@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "bridge/alpha_mu2.h"
+#include "bridge/defender.h"
 #include "bridge/engine.h"
 
 namespace bridge {
@@ -102,6 +103,8 @@ public:
         AlphaMu2SessionSettings settings = {});
     OptimizationBenchmark benchmark(AlphaMuOptimization optimization);
     std::optional<Card> policy_move() const;
+    DefenderDecision defender_move(
+        std::string_view hold_order = "SHDC") const;
     void play(Card card);
     bool undo();
     void replay();

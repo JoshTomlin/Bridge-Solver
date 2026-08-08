@@ -1,5 +1,9 @@
 # Quick-Trick Bounds
 
+This is one of the exact pre-sampling and interior bounds used by alpha-mu. See
+the [optimization guide](alpha-mu-optimizations.md) for its switch, counters,
+and place in the search order.
+
 ## What DDS Does
 
 Bo Haglund's DDS applies several bounds before expanding ordinary moves in

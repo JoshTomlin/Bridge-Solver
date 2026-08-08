@@ -1,4 +1,7 @@
-# Bridge Master 6S discovery benchmark
+# Bridge Master 6S Discovery Benchmark
+
+> This report records a fixed-seed, fixed-horizon correctness experiment. The
+> reproduction command remains part of the native reliability lab.
 
 ## Reconstructed hand
 

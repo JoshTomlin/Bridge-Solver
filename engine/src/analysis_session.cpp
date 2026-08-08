@@ -1026,6 +1026,17 @@ std::optional<Card> AnalysisSession::policy_move() const {
     return policy_->declarer_move;
 }
 
+DefenderDecision AnalysisSession::defender_move(
+    std::string_view hold_order) const {
+    return choose_competent_defender_card(
+        position_,
+        Seat::South,
+        policy_,
+        search_config(false),
+        hold_order,
+        settings_.random_seed ^ analysis_number_);
+}
+
 void AnalysisSession::advance_policy(Seat player, Card card) {
     if (policy_ == nullptr || policy_->player != player) {
         policy_.reset();

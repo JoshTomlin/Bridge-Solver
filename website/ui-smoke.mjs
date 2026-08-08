@@ -94,7 +94,18 @@ assert.ok(!ids.includes("history-live"), "full-trick navigation must not add a m
 assert.ok(app.includes("activeTableLayoutIndex"),
   "one alternative true layout must be selectable without a batch run");
 assert.ok(worker.includes("defenderHoldOrder"),
-  "full play must pass the defender suit-preservation order to DDS");
+  "full play must pass the defender suit-preservation order to the DD-safe selector");
+assert.ok(worker.includes("engine.defenderMove") && worker.includes("policy-breaker"),
+  "full play must use the DD-safe policy-breaker defender");
+assert.ok(app.includes("defenderDecision?.reason"),
+  "play review must retain the competent defender's selection reason");
+assert.ok(app.includes("How AlphaMu2 challenged this plan") &&
+  app.includes("Search and challenge timeline") &&
+  app.includes("Layouts that changed the test set"),
+  "AlphaMu2 detail must lead with the refinement story rather than engine hashes");
+assert.ok(app.includes("failurePath") && app.includes("repairedByNextPolicy") &&
+  app.includes("Advanced engine diagnostics"),
+  "counterexamples must show their failing card line and move raw diagnostics aside");
 assert.match(html, /id="world-count"[^>]*value="30"/,
   "the default analysis should sample 30 worlds");
 assert.ok(

@@ -1,4 +1,7 @@
-# Alpha-Mu 7NT Adaptive Five-Second Experiment
+# Alpha-Mu 7NT Adaptive Search Experiment
+
+> This report records a ten-deal experiment from an earlier engine revision.
+> Timings are useful only within the same configuration and machine.
 
 Settings: 64 sampled worlds per decision, target 13 tricks, maximum `M=13`,
 five-second adaptive soft budget per alpha-mu decision, trick-scoped policies,
@@ -46,9 +49,12 @@ Completed depth across the 130 decisions was:
 | 9 | 13 | 13 | 13 | 23.783 s | 34,176 | 2,045 | M4=7, M6=2, M13=4 |
 | 10 | 13 | 13 | 13 | 23.287 s | 20,501 | 1,796 | M4=7, M6=2, M13=4 |
 
-The wall-clock comparison measures the complete current engine, not equivalent
-cards in isolation. The older reports do not contain equivalent-card counters,
-and several optimizations changed together. Use the same-world `benchmark
-max-equals` command for an isolated position-level A/B measurement.
+The wall-clock comparison measures the complete engine at the time, not
+equivalent cards in isolation. The older reports do not contain equivalent-card
+counters, and several optimizations changed together. Use the same-world
+`benchmark max-equals` command for an isolated position-level A/B measurement.
 
 The generated full play log is `build/alpha_mu_7nt_adaptive_5s_batch_10.log`.
+The older comparison inputs are retained as
+[M=3 raw output](raw/alpha-mu-7nt-m3-batch-10.txt) and
+[M=4 raw output](raw/alpha-mu-7nt-m4-batch-10.txt).

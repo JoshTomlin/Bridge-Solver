@@ -1667,6 +1667,25 @@ void test_alpha_mu2_refines_same_fingerprint_discovery_layout() {
             "full-policy validation should diagnose the root DDS fingerprint collision");
     require(result.search.best_move == bridge::make_card(Suit::Spades, Rank::King),
             "same-fingerprint refinement should recover the discovery play");
+    require(result.rounds.size() >= 2 &&
+                result.rounds.front().makeable_worlds_checked == 15 &&
+                result.rounds.front().policy_passes +
+                    result.rounds.front().policy_failures == 15 &&
+                result.rounds.front().counterexamples_selected == 1 &&
+                result.rounds.front().active_worlds_after == 2,
+            "the refinement trace should explain the held-out challenge coverage");
+    const auto selected_trace = std::find_if(
+        result.rounds.front().candidates.begin(),
+        result.rounds.front().candidates.end(),
+        [](const bridge::AlphaMu2CounterexampleTrace& candidate) {
+            return candidate.selected;
+        });
+    require(selected_trace != result.rounds.front().candidates.end() &&
+                !selected_trace->failure_reason.empty() &&
+                !selected_trace->failure_path.empty() &&
+                selected_trace->revalidated &&
+                selected_trace->repaired_by_next_policy,
+            "a promoted counterexample should retain its failing card line and repair result");
 
     for (std::size_t world = 0; world < layouts.size(); ++world) {
         const bridge::AlphaMuPolicyEvaluation evaluation =
@@ -2559,6 +2578,162 @@ void test_dds_defender_uses_hold_order_only_for_equal_discards() {
         "CSHD should preserve clubs over hearts when both discards are DD-equal");
 }
 
+bridge::Position equal_discard_position(Card heart_card) {
+    const Card opening_lead = bridge::make_card(Suit::Spades, Rank::Ace);
+    const bridge::Deal deal {.hands = {
+        bridge::make_hand({bridge::make_card(Suit::Spades, Rank::Two)}),
+        bridge::make_hand({
+            heart_card,
+            bridge::make_card(Suit::Clubs, Rank::Two),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::King),
+            bridge::make_card(Suit::Hearts, Rank::Three),
+        }),
+        bridge::make_hand({
+            bridge::make_card(Suit::Spades, Rank::Three),
+            bridge::make_card(Suit::Diamonds, Rank::Two),
+        }),
+    }};
+    return bridge::Position {
+        .deal = deal,
+        .current_trick = bridge::Trick {
+            .leader = Seat::North,
+            .cards = {
+                opening_lead,
+                bridge::kNoCard,
+                bridge::kNoCard,
+                bridge::kNoCard,
+            },
+            .card_count = 1,
+        },
+        .played_cards = bridge::kFullDeck & ~(
+            deal.hands[0] | deal.hands[1] | deal.hands[2] | deal.hands[3]),
+    };
+}
+
+void test_competent_defender_preserves_an_equal_dd_honor() {
+    const bridge::Position position = equal_discard_position(
+        bridge::make_card(Suit::Hearts, Rank::King));
+    const bridge::DefenderDecision decision =
+        bridge::choose_competent_defender_card(
+            position,
+            Seat::South,
+            nullptr,
+            bridge::AlphaMuConfig {
+                .declarer = Seat::South,
+                .target_tricks = 1,
+                .max_declarer_plies = 1,
+            },
+            "SHDC",
+            17);
+
+    require(decision.card == bridge::make_card(Suit::Clubs, Rank::Two),
+            "a DD-tied defender should retain the heart king instead of gifting it");
+    require(std::count_if(
+                decision.candidates.begin(),
+                decision.candidates.end(),
+                [](const bridge::DefenderCardAssessment& candidate) {
+                    return candidate.dd_optimal;
+                }) == 2,
+            "the honour-preservation fixture should contain two exact DD ties");
+    require(decision.reason.find("preserves defensive") != std::string::npos,
+            "the defender decision should explain its resource-preserving tie-break");
+}
+
+void test_competent_defender_probes_an_unsupported_policy_observation() {
+    const Card heart_two = bridge::make_card(Suit::Hearts, Rank::Two);
+    const Card club_two = bridge::make_card(Suit::Clubs, Rank::Two);
+    const bridge::Position position = equal_discard_position(heart_two);
+    auto policy = std::make_shared<bridge::AlphaMuPolicyNode>();
+    policy->player = Seat::East;
+    policy->possible_worlds = 1;
+    policy->outcome.wins = 1;
+    policy->defender_branches.push_back(bridge::AlphaMuPolicyBranch {
+        .card = club_two,
+        .possible_worlds = 1,
+    });
+
+    const bridge::DefenderDecision decision =
+        bridge::choose_competent_defender_card(
+            position,
+            Seat::South,
+            policy,
+            bridge::AlphaMuConfig {
+                .declarer = Seat::South,
+                .target_tricks = 1,
+                .max_declarer_plies = 1,
+            },
+            "SHDC",
+            23);
+
+    require(decision.card == heart_two && decision.policy_available,
+            "an unsupported DD-tied observation should challenge the retained policy");
+    const auto selected = std::find_if(
+        decision.candidates.begin(),
+        decision.candidates.end(),
+        [&](const bridge::DefenderCardAssessment& candidate) {
+            return candidate.card == decision.card;
+        });
+    require(selected != decision.candidates.end() &&
+                selected->dd_optimal &&
+                selected->unsupported_observation,
+            "the selected policy probe must remain DD-best and be diagnosed as unsupported");
+}
+
+void test_competent_defender_never_sacrifices_a_dd_trick() {
+    std::size_t tie_positions = 0;
+    for (const Seat leader : {Seat::East, Seat::West}) {
+        for (const std::optional<Suit> trump : {
+                 std::optional<Suit> {},
+                 std::optional<Suit> {Suit::Clubs},
+                 std::optional<Suit> {Suit::Diamonds},
+                 std::optional<Suit> {Suit::Hearts},
+                 std::optional<Suit> {Suit::Spades}}) {
+            const bridge::Position position {
+                .deal = sample_dds_deal(),
+                .current_trick = bridge::Trick {
+                    .leader = leader,
+                    .trump_suit = trump,
+                },
+            };
+            const bridge::DefenderDecision decision =
+                bridge::choose_competent_defender_card(
+                    position,
+                    Seat::South,
+                    nullptr,
+                    bridge::AlphaMuConfig {
+                        .declarer = Seat::South,
+                        .trump_suit = trump,
+                        .target_tricks = 7,
+                        .max_declarer_plies = 1,
+                    },
+                    "SHDC",
+                    29 + static_cast<std::uint64_t>(tie_positions));
+            const auto selected = std::find_if(
+                decision.candidates.begin(),
+                decision.candidates.end(),
+                [&](const bridge::DefenderCardAssessment& candidate) {
+                    return candidate.card == decision.card;
+                });
+            require(selected != decision.candidates.end() &&
+                        selected->dd_optimal &&
+                        selected->declarer_future_tricks ==
+                            decision.declarer_future_tricks,
+                    "competent defender tie-breaking must never sacrifice a DD trick");
+            const std::size_t ties = static_cast<std::size_t>(std::count_if(
+                decision.candidates.begin(),
+                decision.candidates.end(),
+                [](const bridge::DefenderCardAssessment& candidate) {
+                    return candidate.dd_optimal;
+                }));
+            if (ties > 1) ++tie_positions;
+        }
+    }
+    require(tie_positions > 0,
+            "the DD-safety matrix should exercise at least one tied defender position");
+}
+
 void test_analysis_session_rejects_lost_grand_slam_before_sampling() {
     const bridge::Deal deal {.hands = {
         bridge::suit_mask(Suit::Hearts),
@@ -2679,6 +2854,9 @@ int main() {
         test_claim_rejects_side_winner_while_trumps_remain();
         test_claim_proves_draw_trumps_and_crossruff_long_clubs();
         test_dds_defender_uses_hold_order_only_for_equal_discards();
+        test_competent_defender_preserves_an_equal_dd_honor();
+        test_competent_defender_probes_an_unsupported_policy_observation();
+        test_competent_defender_never_sacrifices_a_dd_trick();
         test_analysis_session_rejects_lost_grand_slam_before_sampling();
         test_alpha_mu_supports_full_26_ply_ceiling();
     } catch (const std::exception& error) {

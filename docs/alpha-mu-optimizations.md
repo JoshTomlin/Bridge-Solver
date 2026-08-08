@@ -8,11 +8,11 @@ questions for every optimization:
 3. Where is it implemented?
 4. How can it be disabled, measured, and regression-tested?
 
-The core algorithm is described separately in `docs/alpha-mu.md`. Bridge card,
-trick, and position mechanics are in `docs/bridge-mechanics.md`.
+The core algorithm is described in [alpha-mu](alpha-mu.md). Bridge card, trick,
+and position mechanics are in [bridge mechanics](bridge-mechanics.md).
 
 The five optimizations proposed in Cazenave, Legras, and Ventos,
-*Optimizing alpha-mu* (`docs/Optimising Alpha-Mu.pdf`) are implemented here:
+[*Optimizing alpha-mu*](references/optimising-alpha-mu.pdf), are implemented here:
 useful worlds, world cuts, empty entries, alpha cuts, and cut on win. The
 paper's leaf parallelization is implemented through DDS's batched-board API.
 The older paper's early and root cuts were already present.
@@ -114,7 +114,8 @@ hidden split permits. After X rounds exhaust X defender cards, the remaining
 length is established. In a trump contract it counts a side-suit winner only
 after this process has removed every defender trump. These choices make the
 bound conservative but sound under hidden layouts. See
-`docs/quick-tricks.md` for the algorithm and its relationship to DDS.
+[quick-trick bounds](quick-tricks.md) for the algorithm and its relationship to
+DDS.
 
 `claim-bounds` runs after `quick-tricks` because it is more general and more
 expensive. It ports the core DTAC idea into `engine/src/claim.cpp`: declarer and
@@ -123,7 +124,7 @@ that trick can be beaten by any split. This proves crossruffs, ruff/pitch
 claims, and draw-trumps-then-claim lines that a cashing-only proof cannot see.
 The implementation is still conservative and has a fixed state budget; failure
 to prove a claim simply falls through to normal alpha-mu. See
-`docs/dtac-claim.md` for details.
+[DTAC-style claim bounds](dtac-claim.md) for details.
 
 ## Cache Lifetime And Repeatable Simulations
 
@@ -330,7 +331,7 @@ The full recursive vector calculation remains available through
 explains only avoided work.
 
 Measured stress runs and the same-seed 7NT before/after comparison are recorded
-in `docs/alpha-mu-second-paper-results.md`.
+in the [optimization results](results/alpha-mu-optimization-results.md).
 
 ## Adding an Optimization
 

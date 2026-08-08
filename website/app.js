@@ -889,7 +889,61 @@ function isAlphaMu2Analysis(analysis) {
   return analysis?.engine === "alpha-mu2" || Boolean(analysis?.alphaMu2);
 }
 
-function alphaMu2ReportMarkup(analysis) {
+function policyPathText(path) {
+  if (!path?.length) return "No card sequence was recorded before the failure";
+  return path.map((step) =>
+    `${step.player?.[0] || "?"} ${step.card || "?"}`
+  ).join(" → ");
+}
+
+function counterexampleMarkup(entry, reservoirByIndex) {
+  const { candidate, round } = entry;
+  const world = reservoirByIndex.get(candidate.reservoirIndex);
+  const rootExplanation = Number(candidate.rootRegret || 0) === 0
+    ? `${round.bestMove} was still a DD-correct first card; its continuation failed.`
+    : `${round.bestMove} lost ${candidate.rootRegret} DD trick${candidate.rootRegret === 1 ? "" : "s"} against the best first card in this layout.`;
+  const repair = !candidate.revalidated
+    ? "No completed later search was available to recheck this layout."
+    : candidate.repairedByNextPolicy
+      ? "The next retained policy passed this layout against every legal defensive branch through its M horizon."
+      : `The next policy still failed: ${candidate.revisedFailureReason || "target missed"}.`;
+  const repairClass = candidate.revalidated && candidate.repairedByNextPolicy
+    ? "is-repaired"
+    : candidate.revalidated ? "is-unresolved" : "";
+  return `
+    <article class="counterexample-card ${repairClass}">
+      <div class="counterexample-heading">
+        <div><small>Promoted after search ${round.round + 1}</small><strong>Held-out layout ${candidate.reservoirIndex + 1}</strong></div>
+        <span>${candidate.unsupportedObservation ? "New defensive observation" : "Continuation failure"}</span>
+      </div>
+      <p>${escapeHtml(rootExplanation)}</p>
+      <div class="failure-story">
+        <small>How the original policy broke</small>
+        <strong>${escapeHtml(policyPathText(candidate.failurePath))}</strong>
+        <span>${escapeHtml(candidate.failureReason || (candidate.unsupportedObservation ? "The policy had no response for a legal defender card." : "The fixed continuation missed the target."))}</span>
+      </div>
+      ${world ? `<div class="counterexample-layouts">
+        <div><small>West</small>${worldHandRecordMarkup(world.west)}</div>
+        <div><small>East</small>${worldHandRecordMarkup(world.east)}</div>
+      </div>` : ""}
+      <div class="repair-story">
+        <small>After promotion</small>
+        <strong>${escapeHtml(repair)}</strong>
+        ${candidate.revalidated && !candidate.repairedByNextPolicy && candidate.revisedFailurePath?.length
+          ? `<span>${escapeHtml(policyPathText(candidate.revisedFailurePath))}</span>`
+          : ""}
+      </div>
+      <details class="counterexample-technical">
+        <summary>Why this layout was selected</summary>
+        <p>${candidate.unsupportedObservation
+          ? "It exposed a legal defensive observation missing from the retained policy, which receives first priority."
+          : "It followed a distinct policy path that failed to make the target."}</p>
+        <small>Failure depth ${candidate.failureDepth} · opening-card DD loss ${candidate.rootRegret} · novelty ${candidate.distanceFromActive} · path ID ${escapeHtml(candidate.policySignature || "0")}${candidate.replacedReservoirIndex == null ? " · filled an available slot" : ` · replaced layout ${candidate.replacedReservoirIndex + 1}`}</small>
+      </details>
+    </article>`;
+}
+
+function alphaMu2TechnicalReportMarkup(analysis) {
   const detail = analysis.alphaMu2;
   if (!detail) return "";
   const stats = detail.stats || {};
@@ -933,7 +987,7 @@ function alphaMu2ReportMarkup(analysis) {
   );
   return `
     <details class="alpha2-report">
-      <summary><strong>AlphaMu2 detailed report</strong><span>${formatNumber(stats.reservoirWorlds)} reservoir | ${formatNumber(stats.distinctScreeningVectors)} DDS fingerprints | ${formatNumber(stats.counterexamplesAdded)} counterexamples</span></summary>
+      <summary><strong>AlphaMu2 detailed report</strong><span>${formatNumber(stats.reservoirWorlds)} reservoir | ${formatNumber(stats.distinctScreeningVectors)} DDS fingerprints | ${formatNumber(stats.counterexamplesAdded)} ${Number(stats.counterexamplesAdded) === 1 ? "counterexample" : "counterexamples"}</span></summary>
       <dl class="stat-grid alpha2-stat-grid">
         <div><dt>Screening</dt><dd>${formatMs(stats.screeningMs || 0)}</dd></div>
         <div><dt>Selection</dt><dd>${formatMs(stats.selectionMs || 0)}</dd></div>
@@ -984,6 +1038,72 @@ function alphaMu2ReportMarkup(analysis) {
             <small>policy ${escapeHtml(candidate.policySignature || "0")} · ${candidate.replacedReservoirIndex == null ? "added" : `replaced R${candidate.replacedReservoirIndex + 1}`}</small>
           </div>`).join("")}</div>` : "<p class=\"muted-copy\">No counterexamples were added.</p>"}
       </section>
+    </details>`;
+}
+
+function alphaMu2ReportMarkup(analysis) {
+  const detail = analysis.alphaMu2;
+  if (!detail) return "";
+  const stats = detail.stats || {};
+  const rounds = detail.rounds || [];
+  const selectedCandidates = rounds.flatMap((round) =>
+    (round.candidates || [])
+      .filter((candidate) => candidate.selected)
+      .map((candidate) => ({ candidate, round }))
+  );
+  const reservoirByIndex = new Map(
+    (detail.reservoirWorlds || []).map((world) => [world.index, world])
+  );
+  const totalChecked = rounds.reduce(
+    (total, round) => total + Number(round.makeableWorldsChecked || 0), 0
+  );
+  const totalFailures = rounds.reduce(
+    (total, round) => total + Number(round.policyFailures || 0), 0
+  );
+  const initialWorlds = Number(
+    stats.initialWorlds || rounds[0]?.activeReservoirIndices?.length || 0
+  );
+  const story = Number(stats.counterexamplesAdded || 0) > 0
+    ? `Started with ${initialWorlds} plan-building layouts. ${totalFailures} held-out validation failure${totalFailures === 1 ? " was" : "s were"} found, and ${stats.counterexamplesAdded} distinct hard layout${stats.counterexamplesAdded === 1 ? " was" : "s were"} promoted before choosing ${analysis.bestMove}.`
+    : `Built the ${analysis.bestMove} policy from ${initialWorlds} representative layouts and found no held-out makeable layout that broke it in ${totalChecked} policy check${totalChecked === 1 ? "" : "s"}.`;
+  return `
+    <details class="alpha2-report" open>
+      <summary><strong>How AlphaMu2 challenged this plan</strong><span>${formatNumber(stats.searchRuns)} searches · ${formatNumber(stats.counterexamplesAdded)} hard layout${Number(stats.counterexamplesAdded) === 1 ? "" : "s"} added</span></summary>
+      <section class="alpha2-story">
+        <p class="alpha2-story-summary">${escapeHtml(story)}</p>
+        <div class="alpha2-term-row">
+          <span><b>Plan layouts</b> build the policy</span>
+          <span><b>Held-out layouts</b> test it</span>
+          <span><b>Hard layouts</b> are failures promoted into the next search</span>
+        </div>
+      </section>
+      <section class="alpha2-subreport">
+        <h3>Search and challenge timeline</h3>
+        <div class="refinement-timeline">
+          ${rounds.map((round) => `
+            <article class="refinement-step">
+              <div class="refinement-number">${round.round + 1}</div>
+              <div class="refinement-copy">
+                <strong>Built a policy from ${formatNumber(round.activeReservoirIndices?.length)} layouts: play ${escapeHtml(round.bestMove)}</strong>
+                <span>${(Number(round.weightedScore || 0) * 100).toFixed(1)}% represented probability · M${round.completedDepth} · ${formatMs(round.searchMs)}</span>
+                ${Number(round.makeableWorldsChecked || 0) > 0
+                  ? `<p>Challenged that exact policy in <b>${formatNumber(round.makeableWorldsChecked)}</b> held-out layouts where the contract was DD-makeable. <b>${formatNumber(round.policyPasses)}</b> passed and <b>${formatNumber(round.policyFailures)}</b> broke the policy${Number(round.unsupportedFailures || 0) ? `, including ${formatNumber(round.unsupportedFailures)} new defensive observation${round.unsupportedFailures === 1 ? "" : "s"}` : ""}. ${Number(round.counterexamplesSelected || 0) ? `<b>${formatNumber(round.counterexamplesSelected)}</b> distinct failure${round.counterexamplesSelected === 1 ? " was" : "s were"} promoted, giving the next search ${formatNumber(round.activeWorldsAfter)} plan layouts.` : "No new layout could be promoted."}</p>`
+                  : `<p>This policy was not followed by another held-out challenge pass, usually because the refinement or time limit had been reached.</p>`}
+              </div>
+            </article>`).join("")}
+        </div>
+      </section>
+      <section class="alpha2-subreport">
+        <h3>Layouts that changed the test set</h3>
+        ${selectedCandidates.length
+          ? `<div class="counterexample-list">${selectedCandidates.map((entry) => counterexampleMarkup(entry, reservoirByIndex)).join("")}</div>`
+          : "<p class=\"muted-copy\">No held-out makeable layout broke the retained policy strongly enough to be promoted.</p>"}
+      </section>
+      <details class="alpha2-advanced">
+        <summary>Advanced engine diagnostics</summary>
+        <p>Opening-card DD profiles, representative weights, hashes, novelty scores, and timing are implementation diagnostics. They are not additional bridge recommendations.</p>
+        ${alphaMu2TechnicalReportMarkup(analysis)}
+      </details>
     </details>`;
 }
 function worldHandRecordMarkup(hand) {
@@ -1141,7 +1261,7 @@ function analysisMarkup(analysis) {
       <span>${formatMs(analysis.searchMs)} search</span>
       <span>${formatMs(analysis.samplingMs)} sampling</span>
       <span>${formatNumber(analysis.possibleDeals)} possible deals</span>
-      ${alphaMu2 ? `<span>${formatNumber(reservoirCount)} reservoir worlds</span><span>${formatNumber(analysis.alphaMu2?.stats?.counterexamplesAdded || 0)} counterexamples</span>` : ""}
+      ${alphaMu2 ? `<span>${formatNumber(reservoirCount)} reservoir worlds</span><span>${formatNumber(analysis.alphaMu2?.stats?.counterexamplesAdded || 0)} ${Number(analysis.alphaMu2?.stats?.counterexamplesAdded || 0) === 1 ? "counterexample" : "counterexamples"}</span>` : ""}
     </div>
     ${alphaMu2ReportMarkup(analysis)}
     <div class="analysis-subhead"><h3>Root cards</h3><small>Open a card for ${worldLabel} details</small></div>
@@ -1356,9 +1476,12 @@ function policyResponseMarkup(policy, trick) {
 function policyTrickCardMarkup(play) {
   const display = suitDisplay[play.card?.[0]];
   const action = play.source === "alpha-mu" || play.source === "alpha-mu2" ? "chosen" : play.source || "played";
+  const defenderReason = play.defenderDecision?.reason
+    ? ` title="${escapeHtml(play.defenderDecision.reason)}"`
+    : "";
   return `<div class="policy-trick-play" data-trick-seat="${escapeHtml(play.seat)}">
     <span class="policy-review-card suit-${display?.className || "spades"}">${cardFaceMarkup(play.card)}</span>
-    <small>${escapeHtml(play.seat?.[0] || "?")} | ${escapeHtml(action)}</small>
+    <small${defenderReason}>${escapeHtml(play.seat?.[0] || "?")} | ${escapeHtml(action)}</small>
   </div>`;
 }
 
@@ -1542,7 +1665,7 @@ function runSummary(run) {
         <div class="run-actions">
           ${full ? `<button class="button secondary compact" data-review-run="${run.id}" type="button">Review on table</button>` : `<button class="button secondary compact" data-open-analysis-run="${run.id}" type="button">Open analysis</button>`}
         </div>
-        ${full ? `<ol class="play-record">${run.result.plays.map((play) => `<li>${escapeHtml(play.seat)} ${escapeHtml(play.card)} <small>${escapeHtml(play.source)}</small></li>`).join("")}</ol>` : ""}
+        ${full ? `<ol class="play-record">${run.result.plays.map((play) => `<li>${escapeHtml(play.seat)} ${escapeHtml(play.card)} <small>${escapeHtml(play.source)}${play.defenderDecision?.reason ? ` — ${escapeHtml(play.defenderDecision.reason)}` : ""}</small></li>`).join("")}</ol>` : ""}
       </div>
     </details>`;
 }

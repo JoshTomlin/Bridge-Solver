@@ -1,9 +1,9 @@
-# Alpha-Mu Implementation
+# Alpha-Mu Search
 
 The implementation follows the binary-outcome alpha-mu algorithm described in
-the papers in this directory. Its purpose is to avoid strategy fusion: declarer
-must choose one move based on public information instead of choosing a different
-move after looking at each hidden world.
+the papers under [`references/`](references/). Its purpose is to avoid strategy
+fusion: declarer must choose one move based on public information instead of
+choosing a different move after looking at each hidden world.
 
 ## Files and Public Types
 
@@ -17,7 +17,7 @@ split by responsibility:
 - `alpha_mu_internal.h`: the deliberately small private interface between them
 
 Read them in that order. The detailed switch, counter, and benchmark map is in
-`docs/alpha-mu-optimizations.md`.
+the [alpha-mu optimization guide](alpha-mu-optimizations.md).
 
 The types are small value types rather than class hierarchies:
 
@@ -168,13 +168,25 @@ kept for API compatibility, but `max_moves_left` is used inside the recursion.
 
 ## Selecting the Root Move
 
-Each sampled world currently has equal weight. The score of an outcome is its
-number of 1 bits. `winning_world_count` and `best_winning_world_count` expose
-this calculation. The root chooses the move whose front contains the
-highest-scoring vector. Equal scores use deterministic card order.
+Pareto dominance and final strategy selection are separate. Dominance asks only
+whether one outcome wins every world won by another outcome. Selection assigns
+a score to each non-dominated outcome:
 
-Weighted worlds would require replacing popcount with a sum of world weights;
-the Pareto dominance rule itself would remain valid for positive weights.
+1. represented probability mass won;
+2. critical challenge worlds won when probability scores are within the
+   configured tolerance;
+3. exact represented probability; and
+4. unweighted worlds won.
+
+With an empty `world_weights` vector, every world has weight one and the first
+score is the familiar popcount. This is the baseline alpha-mu mode. AlphaMu2
+passes normalized reservoir weights to the probability representatives and
+zero weights to hard challenge layouts. A critical layout can therefore break
+a near tie without pretending that a rare deal is common.
+
+The root chooses the card whose Pareto front contains the best-scoring outcome.
+Equal scores use deterministic card order. Weighting changes the choice between
+non-dominated strategies; it does not change the set-based Pareto recurrence.
 
 ## Correctness Invariants
 
@@ -205,12 +217,13 @@ plain recurrence used as the correctness reference.
 `AlphaMuSearchStats` reports tree-search time, policy-reconstruction time, node
 and DDS counts, table activity, and a separate counter for each kind of cut or
 equivalent branch. `collect_audit_log` records the concrete shortcuts taken in
-one run. See `docs/alpha-mu-optimizations.md` for the complete code map,
-dependencies, CLI commands, and extension checklist.
+one run. See the [optimization guide](alpha-mu-optimizations.md) for the complete
+code map, dependencies, CLI commands, and extension checklist.
 
-## Interactive Example 2 Playthrough
+## Native Playthrough Demo
 
-The CLI can play the 6NT example from `docs/Example Hands.txt` card by card:
+The CLI can play the 6NT example from
+[`references/example-hands.txt`](references/example-hands.txt) card by card:
 
 ```powershell
 .\build\engine\Release\bridge_engine_cli.exe --alpha-mu-playthrough
