@@ -22,6 +22,14 @@ algorithms; use the result reports when you want a concrete measured example.
 
 | Document | Subject |
 |---|---|
+| [Relay practice](relay-practice.md) | Major, revised minor, club and Dappleton exercises, auction constraints, hand sampling and DDS comparisons |
+| [Relay system tables](relay-system/README.md) | Readable family-by-family bidding tables, response ladders and practice qualifications |
+| [Relay exercise catalogue](relay-system/scenario-catalog.md) | Generated inventory of all 63 entries, prefixes, initial calls and asking roles |
+| [Relay coverage and remaining work](relay-system/coverage.md) | Delivered behaviour, unresolved partnership decisions, source boundaries and backlog |
+| [Relay maintenance](relay-maintenance.md) | Engine contracts, documentation/source update workflow and verification commands |
+| [Partnership system sources](system-sources/README.md) | Retained Word originals, searchable notes, July email content and source precedence |
+| [Advanced relay source review](relay-advanced-source.md) | Strong club, split-range and Horton tables and practice policies |
+| [Reordered rebid source review](relay-reordering-source.md) | Single-suiters, reverses, mini–mega splinters and playable-game strength escapes |
 | [Alpha-mu optimization guide](alpha-mu-optimizations.md) | Every search shortcut, its safety argument, switch, counter, and test strategy |
 | [Quick-trick bounds](quick-tricks.md) | Layout-independent proof of consecutive cashing winners |
 | [DTAC-style claim bounds](dtac-claim.md) | Conservative public claim proof using the combined defender pool |

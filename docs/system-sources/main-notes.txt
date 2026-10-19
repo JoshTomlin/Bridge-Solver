@@ -1,0 +1,2016 @@
+P0001 INDEX
+P0002 2  - Preamble
+P0003 4  - Development and Acknowledgements
+P0004 5  - 1NT Opening 1st and 2nd
+P0005 10 – 1NT Continuations 1st and 2nd
+P0006 11 - 1NT in Competition and Bruce Redoubles
+P0007 13 - 1C Opening 1st and 2nd
+P0008 21 - 1C Balanced Hand Continuations
+P0009 25 - 1C Unbalanced Hand Continuations
+P0010 31 - Competitive 1C 1st and 2nd
+P0011 33 - 1D Opening 1st and 2nd
+P0012 40 - Competitive 1D 1st and 2nd
+P0013 40 - 1M Opening 1st and 2nd
+P0014 46 - Competitive 1M 1st and 2nd
+P0015 48 - Horton Two’s
+P0016 54 - 2C Opening
+P0017 56 - 2NT Opening 1st and 2nd
+P0018 60 – 3NT Opening
+P0019 60 - 3 and 4 Level Openings 1st and 2nd
+P0020 60 - Mini Mega Maxi Splinters
+P0021 61 - 1D/H/S-2NT 1st and 2nd
+P0022 62 - 1M-2C “3 Way”
+P0023 63 - Split Range M Suit Raise and 3(4) Card Major Support Relay
+P0024 69 - Serious/Non-Serious
+P0025 69 – 4C and 4D as a Raise and Raising in Competition
+P0026 71 - 1C Opening 3rd and 4th
+P0027 73 – 1D/H/S 3rd and 4th
+P0028 73 - 20+ Balanced hands 3rd and 4th
+P0029 74 – Grand Slam Force
+P0030 74 - Ghestem
+P0031 74 – 2nd Seat (1X) Overcalling
+P0032 75 – Giorgio
+P0033 75 - Overcalling Opposite a Passed Hand
+P0034 77 - Intermediate Jumps
+P0035 77 - Opponents 2 Suited Overcalls
+P0036 79 – Opponents 2D Multi Opening
+P0037 81 – Opponents Weak 2D Opening
+P0038 81 - (3x)-3NT Continuations
+P0039 8 - Carding
+P0041 Preamble
+P0042 Playing Outback Acol is more about a style than adopting rules for a new system. I therefore recommend reading the pre-amble.
+P0043 Ideally, I would be a mathematician so that the style that under-pins Outback Acol could be explained in a formal, and perhaps more convincing way. Instead, the system is built on an understanding of how the maths might work. The start point is spotting nonsense lurking behind accepted bridge bidding theory, conventions, and systems. I do not know how good Outback Acol is, but I do have a well-reasoned sense when other systems and styles are non-optimal, or bad.
+P0044 The first nonsense thing to notice about mainstream bidding is an obsessive pursuit of precision. The constraints of a bridge auction do not seem to be properly considered, and while sometimes impressive precision can be achieved to obtain a constructive result, that is not the sole way that a bridge auction obtains value.
+P0045 The thing to value in a bridge auction is efficiency. A bridge auction is a four handed landscape where your team competes for the time and space to exchange information with both the quality and quantity of information being valuable.
+P0046 The easy and superficial way to judge the success of a bridge auction is to look at the constructive result that was achieved. An expert player is untroubled to look at two hands and conclude that the best final contract is X. The harder thing to visualise and appreciate is what impact it will have on your opponent’s auction when you take away time and space. Disturbing your opponent’s time and space is difficult to value and mainstream bidding does not adequately seek to define or understand that value beyond truisms like “it’s a bidder’s game” and “pre-empts work”.
+P0047 Outback Acol is based on a belief that when properly balancing all the objectives of a bridge auction there is an understandable tendency in mainstream theory to over value the two-handed objectives and under value the four-handed objectives. The system therefore seeks to go back to a fundamental view and place a higher value on bidding when it can achieve a four-handed goal.
+P0048 Outback Acol sacrifices precision to ensure that four-handed goals are achieved. The obvious things to value when you are seeking to achieve four-handed goals are opening the bidding and entering an auction your opponents have commenced, as often and as quickly as possible.
+P0049 Outback Acol values opening the bidding more than other systems. The accuracy of the information exchanged suffers when you open the bidding more often and the first thing to give up when playing Outback Acol is that sense of precision. The base skill that every serious bridge player needs in a bridge auction is good judgement. Outback Acol requires great judgement, but that judgement will commonly occur in a broader field of possibilities than with other styles and systems.
+P0050 There is no “safe place” in a bridge auction. No matter how clear a choice of bid may be, the monsters are always under the bed. Outback Acol is not bothered to “embrace the variance” and the systems view is that bad results arising from a lack of precision are nothing more than the normal expectation in the optimal range of results.
+P0051 Opening the bidding more often creates a clearer understanding for what is defined when we choose to pass rather than open. An opening pass in Outback Acol is more tightly defined than for other systems and the lack of accuracy that occurs with a broader range of opening bid is compensated by the additional accuracy of “pass”. Outback Acol is obsessive about collecting value from a better definition of an opening pass.
+P0052 Outback Acol enters an auction already commenced by our opponents more often than other styles or systems. Rather than place significant value on the risks associated with entering auctions, Outback Acol is focused on the four-handed objectives. Second seat after your opponents have opened the bidding is plainly the best opportunity to create a contested auction and capitalise on four-handed goals. Outback Acol all but ignores the risks attached to vulnerability and less precise constructive auctions to enter an auction in this position, believing that adequate compensation will accrue from realising four-handed value.
+P0053 Pre-empting in Outback Acol is again valued from a destructive, or four-handed perspective and little value is given to a constructive goal. The common view will be that the pre-empting standards of Outback Acol are too extreme and that being punished with a penalty double will result in many disastrous results. The contrary view is that the pre-empting standards of Outback Acol will obtain optimal four-handed equity and in that sense are better balanced than the generally accepted range for pre-empting.
+P0054 Pre-empting should always consider the range of hands that are pre-empting rather than one individual hand. Outback Acol believes that the true value of a hand in a pre-empting range cannot be properly determined by considering its individual value. The individual value of a hand in a pre-empting range might be negative but it does not follow that this hand should not be included in a range of hands that pre-empt. I call this concept “Shania” which is eclectic poker slang for a similar principle. In practice, Shania is reflected in the desire to maintain a broad range of hands in positions like pre-empting rather than consider the merits of an individual hand.
+P0055 Ugly and disastrous results will occur when accepting the pre-empting ranges in Outback Acol. As with the other non-mainstream ranges adopted by Outback Acol this propensity is to be viewed as nothing more than the usual variance in the optimal range of results.
+P0056 The different ranges for opening, overcalling, and pre-empting used by Outback Acol are easy to adopt in the sense that they are well defined in the notes. Avoiding these ranges whilst playing Outback Acol is to swim against the stream as the structure of the system, like any good system, is built upon those standards. The difficulty for a serious player who correctly submits to the system and style will be how to best deal with the large and unfamiliar landscape created.
+P0057 Common feedback for a new Outback Acol player will include “we never invite”. The statement is untrue but reflects a clear understanding about the maths for inviting and a required adjustment from a mainstream view about invitational sequences when playing Outback Acol. Broader ranges for common bids do not increase the value for inviting and in most circumstances, a broader range decreases the value for an invitational sequence.
+P0058 The broader ranges in Outback Acol cannot profitably be “resolved” by choosing an invitational sequence. This is especially true for the 9-13(14) 1st and 2nd seat 1NT opening. Vulnerability is a significant factor when considering to invite such that inviting when not vulnerable should almost never occur after the weak 1NT opening. The system agreement is always to invite “heavy” and accept “light” as this optimises the value of an invitational sequence.
+P0059 A different way to argue for the Outback Acol view of inviting is to consider it a ruthless pursuit of positive expected value from all bids.
+P0060 Another common refrain for a new Outback Acol player is, “we never sacrifice”. Again, this statement is untrue. The broader ranges used by Outback Acol provide less certainty and in that context the equity accrued by those openings will be mis-spent by acting over an opponent’s action which is a “guess”. Sacrificing has value as a goal in a bridge auction however the prospect that bidding over an opponent guessing as a sacrifice will be a phantom, is larger playing a system with bigger ranges than the mainstream.
+P0061 When bidding with potential value as a sacrifice the common Outback Acol view is that the bid must also derive value from another source, such as some small potential that the contract makes or the sensible prospect that the opponents will compete too high given the tempo of the auction.
+P0062 Competitive auctions in Outback Acol are also governed by the idea that precision should not be attempted. Competing at the 3 level is primarily determined by a consideration of the Law of Total Tricks and competing to 4m can only occur when that bid has some significant value as an invitational bid.
+P0063 The range of possible bridge hands is so large as to be overwhelming. Outback Acol ignores sensitive approaches for valuing a given hand and slavishly uses a 9 high card point line for opening the bidding. When considering whether a hand is balanced or unbalanced (or semi-balanced) the system takes the simple view that a hand with no 0/1 shortage in a suit is balanced rather than relying on supposedly more precise evaluations.
+P0064 Development and Acknowledgments.
+P0065 Outback Acol has been constantly changing over decades. The process of change has been largely driven by suggestions from regular partners and some acknowledgment of that is made in naming parts of the system. The primary contributors over time have been David Horton, Justin Williams (Bruce), Joachim Haffer and David Appleton.
+P0066 The other contributor is alternatively known as the Pack Leader, Puppet Master, or SWMBO. Always being right is tough and the PL, PM, SWMBO does not know Outback Acol or bridge at all but accurately describes my preferred system as “chaos bridge”. Thanks Babe.
+P0067 The constructive elements in Outback Acol are a personal weakness and remain somewhat under-developed and perhaps to a system guru’s eye, clunky. The system is open to change and addition, particularly in the constructive auctions. I am always a bitch about that, determined to be a brutal gate keeper to the foundations. The usual rate of change is maybe eight valid and sensible ideas before any one change or addition is adopted; however, I am always interested in suggestions.
+P0069 1NT Opening in 1st and 2nd
+P0070 In 1st and 2nd seat a 1NT opening is 9-13(14) but the strength will vary slightly based on vulnerability and which of 1st or 2nd seat. The given range of 9-13(14) high card points is accurate because it will never be 15 and only on rare occasions will it be 8 – it can always be 9 or 14.
+P0071 The 1NT opening attempts to cover the field of weak balanced or semi-balanced opening hands and routinely includes (4333), (4432), 5-card minor (5332), and 5-card minor (5422) hands. Other shapes that open 1NT will always be in the lower range of 9-13(14), about 9-11. These shapes are 5-card major (5332) (5422), 6-card minor (6322), 6-card hearts (6322) and 7-card minor (7222).
+P0072 Opening 1NT with a shortage is normal when the shortage is a singleton ace, king or queen and again, usually when the hand fits into the lower, 9-11 range.
+P0073 When a hand contains an exceptional quality 5 card major suit in the 9-11 range it is preferred to open 1M, especially with spades.
+P0074 Without attempting precision, where “4” is the strongest range and “1” is the weakest range the variation for opening 1NT based on vulnerability and seat is as follows,
+P0075               Unfavourable        All                    Nil                   Favourable
+P0076 1st          4                              2                      2                      1
+P0077 2nd           4                              3                      3                      2
+P0078 The total variation in strength of the 1NT opening based on vulnerability and seat is small. In position 4 the 1NT opening will include maybe 35% of balanced 14 counts compared to about 15% of balanced 14 counts in position 1. In position 1 the 1NT opening will include 95% of balanced 9 counts compared to about 75% of balanced 9 counts in position 4.
+P0079 Opening 1NT with 14 high card points is rare. Such an opening will almost never contain a 5-card suit and will most commonly be a (4333) shape. The other primary evaluation used will be the number of king-based controls (ace=2, king=1). Given a range of 9-(13)14 the average controls for a 1NT opening will be about 4 so opening 1NT with a 14 count will usually be a hand containing 3 or less king-based controls.
+P0080 KJ73
+P0081 QJ6
+P0082 QJ4
+P0083 KJ5
+P0084 This is a 1NT opening in any seat.
+P0085 AJ84
+P0086 K92
+P0087 QJ42
+P0088 K2
+P0089 This is a 1NT opening in positions 3+4 and a 1C opening in positions 1+2.
+P0090 KJ6
+P0091 QJ
+P0092 AQ7
+P0093 J9742
+P0094 This is a 1NT opening only in position 4.
+P0095 In position 4 a (4333) or (4432) 10 high card point hand can be passed but only when such a hand contains less than 3 controls and not when the hand contains 4 spades and can be opened with a Horton Two bid. In positions 2+3 it is rare not to open a 9 high card point hand and such a hand should not contain 3 controls.
+P0096 KJ4
+P0097 K73
+P0098 Q764
+P0099 J986
+P0100 This hand can choose to pass in position 4 rather than open 1NT.
+P0101 Q965
+P0102 K5
+P0103 K984
+P0104 Q85
+P0105 This hand is a 1NT opening in every position.
+P0106 KQ94
+P0107 86
+P0108 KJ94
+P0109 1086
+P0110 This hand is a weak 1NT opening in positions 1+2 and a 2D opening in positions 3+4.
+P0111 When vulnerable a 9 high card point 1NT opening will commonly contain a 5+ suit or contain a 4-card spade suit in a shape other than 4333.
+P0112 AKQ73
+P0113 1083
+P0114 53
+P0115 986
+P0118 KQ1094
+P0119 K9
+P0120 Q84
+P0121 1096
+P0123 QJ1083
+P0124 92
+P0125 A98
+P0126 KJ3
+P0127 These hands are a 1 spade opening.
+P0129 92
+P0130 QJ1083
+P0131 A98
+P0132 KJ3
+P0134 1073
+P0135 Q98642
+P0136 A3
+P0137 K5
+P0138 These hands are a 1NT opening.
+P0140 Q7642
+P0141 AJ3
+P0142 Q4
+P0143 QJ2
+P0144 This hand is a 1NT opening.
+P0149 K8
+P0150 A92
+P0151 98
+P0152 KQ10862
+P0153 This hand is a 1 club opening.
+P0155 J107
+P0156 A9
+P0157 J82
+P0158 KQ10754
+P0159 This hand is on the border between a 1NT opening and a 1 club opening. A distinction can be made based on which position the hand is held such that in positions 1+2 this hand is a 1 club opening and in positions 3+4 this hand is a 1NT opening.
+P0160 84
+P0161 AJ104
+P0162 KJ953
+P0163 74
+P0165 J7
+P0166 A982
+P0167 J7542
+P0168 K2
+P0170 K972
+P0171 Q9854
+P0172 A4
+P0173 K9
+P0175 J865
+P0176 AQJ53
+P0177 Q4
+P0178 75
+P0180 A1096
+P0181 KJ1042
+P0182 J5
+P0183 97
+P0184 These hands are a 1NT opening in any seat.
+P0186 A1072
+P0187 KQJ62
+P0188 Q3
+P0189 94
+P0190 This hand is a 1 heart opening.
+P0192 J9653
+P0193 K943
+P0194 A5
+P0195 J2
+P0196 This hand is a 1NT opening in positions 1 or 2 and a 2H opening in positions 3 or 4.
+P0197 The guidelines for opening a weak 1NT can be shaded in favour of opening 1NT to emphasis its frequency and/or destructive effect.  Examples of these situations:
+P0198 1 – Very early in a match.
+P0199 2 – During a match in which we have opened a weak 1NT a lot with good results.
+P0200 3 – Against any opponent who does not like it when we open a weak 1NT.
+P0201 4 – In an attempt to generate swings on the rare occasions this is a good strategy.
+P0202 The guidelines for opening a weak 1NT should rarely be shaded in favour of not opening it, as to do so would interfere with partners opening range and judgement about correct level. The system for opening bids in third or fourth seat depends on opening 1NT in first and second seat when in the stated range to do so.
+P0203 The only time it is appropriate to shade the guidelines in favour of not opening a weak 1NT is when we have a substantial lead late in an imp match and we are vulnerable.
+P0205 1NT Continuations 1st and 2nd
+P0206 Outback Acol uses simple Stayman after a 1NT opening but this will include a broad range of Junk Stayman hands and advanced run hands (defined as 0-7 (4333) or (4432) shapes). Using Stayman does not promise a 4-card major and is the only way to invite opener to bid 3NT with a balanced hand.
+P0207 After a 2D response to Stayman, 2M is to play and a 2H bid is correctable if opener is 32(xx).
+P0208 1NT-2C-2x-2NT is natural and invitational.
+P0209 1NT-2C-2H-2S is natural and invitational although responder should not routinely use this sequence when holding 4 spades and an invitational hand, sometimes choosing 2NT rather than 2S to avoid the transaction cost.
+P0210 1NT-2C-2x-3m is natural and mildly invitational and will always include a 4-card major, a 5+ card minor, and be unbalanced. This sequence will always show a responding hand that would bid game if opener had the right major but would otherwise prefer to play in 3m unless opener has a great hand in context to play game.
+P0211 1NT-2C-2D-3M is Smolen showing a 4-card suit and 5 cards in the other major, game forcing. When opener intends to play 4M in responders 5 card suit they should cue-bid with a good hand for slam.
+P0212 1NT-2C-2H-3S and 1NT-2C-2S-3H are slam interest hands agreeing the suit shown by opener. In both sequences opener should predominantly bid 3NT as non-serious and otherwise bid 4M or cue-bid with the bottom and top 15-20% of hands.
+P0213 Outback Acol uses 2D and 2H over 1NT as a transfer to the corresponding major suit promising 5+ cards in the major unless responder is utilising an advanced running option with a 0-7 (4333), (4432) hand. When a transfer is used as an advanced run responder will usually have 4 cards in the major suit or in rare cases when not vulnerable, 2 cards.
+P0214 1NT-2H-2S-3H shows 5+/5+ in the majors, game forcing, given that we play Smolen. A 3S continuation shows a decent+ hand to play in spades and 4m shows a decent+ hand for hearts and a cue bid, 3NT is to play.
+P0215 A slam interest (5332) with a major suit can be shown either by bidding a quant 4NT when the major is hearts, 1NT-2D-2H-4NT, or when holding spades via what would usually be a heart splinter, 1NT-2H-2S-4H. 1NT-2H-2S-4NT is Kickback, 1NT-2H-2S-4H-4NT is to play.
+P0216 A transfer to a major followed by a jump shift in a new suit is a splinter (except 1NT-2H-2S-4H as above) showing a 6+ card major and mild slam interest with a shortage. A hand with a 6+ major, a shortage, and serious slam interest will respond 3M to a 1NT opening.
+P0217 Outback Acol only super accepts after a transfer to 2M when opener has a big maximum or a bad minimum with 4(5) card support. Maybe 60% of the time (the middle range), opener with 4(5) card support for responders assumed major, should simply accept the transfer.
+P0218 The only super accept bid is 2NT. After a super accept, responder can bid the final contract or retransfer, or bid 3NT asking opener to bid 4M. Bidding step (3C) after a super accept asks opener to clarify his hand. Opener will either bid 3M with a minimum or non-serious with a maximum (opener should not cue-bid with a maximum).
+P0219 A new suit after a transfer is natural and game forcing. We prefer to bid 3NT holding just a 4-card minor after a major suit transfer unless holding a serious slam try. A transfer and a new suit will therefore always have some small+ slam interest. After a transfer and a new suit opener will evaluate his hand for slam and respond using fast arrival with a new suit being a good hand and a cue for responders second suit. If opener bids 4 of responders second suit it shows a fit for both suits and a good hand for slam (the exception to that will be 1NT-2H-2S-3H-4H which shows a minimum hand wanting to play 4H’s as described above).
+P0220 A 2S response to 1NT is Baron promising at least mild slam interest. Opener responds 2NT with any (4333) and 3C, 3D or 3H as the lower of 2 suits in a (4432) hand which might also be a (5422) hand. When opener has a (5332) major suit 1NT opening, it is described as a (4333). Step after one of these responses asks opener to bid his unknown suit or bid 3NT when step was openers unknown suit. A 3S response to Baron promises 5+ clubs and a 3NT response promises 5+ diamonds.
+P0221 Opener should bid on after responder signs off in game in a Baron auction when they hold a maximum 1NT opener or excellent shape and values for the game responder has decided upon.
+P0222 A 2NT response to a 1NT opening is a transfer to 3m with less than game values, there are no strong options. Opener simply bids 3C and passes a 3D correction from responder. In a competitive auction 2NT is used the same way however can be any suit to play at the 3 level.
+P0223 A 3 of a suit response to 1NT is natural with at least mild slam interest. After a 3m response opener can bid 3NT with no support and a bad hand and a new suit is a cue bid showing at least a good hand and average support or a poorish hand and good support. Opener can also bid 4m or 5m with 0/1 keycards and great support but an otherwise poor hand.
+P0224 After a 3M response to 1NT opener can bid non-serious, or 4M with a bad hand for slam, or cue bid a new suit with support and a good hand for slam.
+P0225 1NT-3NT is to play as is any 4-level suit response to a 1NT opening.
+P0226 1NT-4NT is the minors 5+/5+. A quant hand will prefer to start with 2S Baron and can then construct either a quant 4NT or slam invitational auction.
+P0228 1NT in Competition and Bruce Redoubles.
+P0229 Outback Acol uses an advanced running method after 1NT-(P). There are no firm rules governing how to run but all 4333 or 4432 hands in the 0-7 range should bid something other than pass. When the 1NT opening was in second seat this range can be lowered to 0-5/6. With a 5+ suit (usually a minor suit) in the 0-7 range responder can pass after 1NT-(P) and later run by simply bidding the 5-card suit.
+P0230 After 1NT-(P)-P-(X) we “automatically” redouble with the rare exception being when we hold a poor 5/6 card suit and a 9 count for our 1NT opening. Opener can also bid a suit after 1NT-(P)-P-(X) with 9-11 hands when protecting a lead late in the match or against certain opponents. It is important Shania to nearly always redouble in this position.
+P0231 When responder bids after opener’s automatic redouble it is assumed to be a single suited hand but it can also be an “impossible” advanced running hand like a (32)44.
+P0232 After the automatic redouble by opener, or an immediate redouble by responder showing 8+, a double of a suit bid by the opponents is takeout and the next double, and subsequent doubles, are penalties (a variant of 1-2-3 doubles where the redouble is 1).
+P0233 After 1NT-(X), XX is (7)8+ balanced or possibly more values and semi balanced. It is rare to XX with an unbalanced hand. A double of a suit bid by the opponents after this start is Takeout in a 1-2-3 structure. After 1NT-(X) “pass” asks opener to bid a 5+ card suit or alternatively, redouble. After opener’s redouble in this auction responder will notionally bid the lower of 2 suits. Opener can pass in the auction 1NT-(X)-P-(P), usually with a (4333) shape but it should be rare.
+P0234 Responder will prefer to bid a 5+ suit after 1NT-(X) rather than pass and then show a 2 suited hand with a 5-card suit.
+P0235 Outback Acol uses simple Lebensohl after a 1NT opening and in competition. This applies after the auction starts 1NT-(X) or any other 2 level interference, allowing responder to play 3x in their long suit. If responder has passed a 1NT opening a subsequent 2NT bid shows a 2 suited hand wishing to compete at the 3 level.
+P0236 If Stayman is doubled Outback Acol responds 2M as if there had been no double. If opener does not have a 2M response it is normal to respond 2D. Pass and redouble show 4+ clubs with the natural meaning being reversed. A pass shows a great hand with (4)5+ great or good clubs and redouble shows 4+ decent clubs willing to stand a pass. When the auction is 1NT-(P)-2C-(X)-P-(P) a redouble is to play and all subsequent doubles are penalty. A 2D bid after 1NT-(P)-2C-(X) infers diamonds.
+P0237 If a transfer over a 1NT opening is doubled Outback Acol responds as if there had been no double with the exception being to XX to show exactly 3 card support and a surprising maximum. Outback Acol never chooses “pass” after a transfer is doubled and will never super accept in these auctions.
+P0238 Dealing with interference at the 2 level after a 1NT opening, responder or opener can double a bid that shows the suit bid as takeout. When the interference does not promise the suit bid, responder can double as “values” in a 1-2-3 structure. When opener doubles 2 level interference that does not promise the suit bid it shows a great (4)5+ holding in the suit.
+P0239 Dealing with interference at the 3 level after a 1NT opening, responder or opener can double as takeout. This takeout double will however always be based on a willingness to defend when partner has a suitable hand.
+P0240 When 1NT is doubled in the immediate seat responder has 2 ways to play in 3 of a suit, either by bidding 3x immediately or via 2NT as Lebensohl. When responder chooses Lebensohl in these sequences it shows a greater willingness to defend a game contract and an immediate 3 level bid shows extra shape and some willingness to sacrifice.
+P0241 Competitive auctions after a 1st or 2nd seat 1NT opening are difficult to judge given the large range of that opening. Responder should choose to either target game or part score accepting that big range and avoiding an invitation. When responder shows values with an initial double in these auctions and then competes to the 3 level it is assumed to be mildly invitational. When responder bids freely at the 3 level rather than using Lebensohl it is choice of game.
+P0242 Complying with the 1-2-3 structure to show a takeout double is not mandatory when opener or responder has a bad minimum type hand. Choosing to penalise the opponent’s interference in these auctions is largely based on the holding of a “trump surprise” and doubles based on high cards should generally be avoided.
+P0243 2NT, other than being defined as Lebensohl, is always scrambling, 2 places to play, in a competitive 1NT auction.
+P0245 1C Opening 1st and 2nd
+P0246 The 1st and 2nd seat 1C opening is any (14)15-19(20) balanced/semi-balanced hand without a 5+ major suit, any 9+ unbalanced hand with clubs, and 12/13 (322)6/2227 hands which are not included in the opening 1NT range.
+P0247 The unbalanced range for a 1C opening includes a 4414 shape but otherwise will show 5+ clubs and will have a 0/1 shortage unless 12+ (322)6, 2227.
+P0248 The objective of this over-loaded 1C opening is primarily to control the level of a final contract when opener has a 14+ balanced hand. The transfer/relay continuations after a 1C opening embed both the (14)15-17, and 18/19(20) range of balanced hands, at or below, 1NT.
+P0249 In addition to enabling accuracy at a low level regarding best strain and game/slam contracts another advantage is the ability to respond to a 1C opening holding sub-minimum hands given that opener will rarely be jumping to a high level with their rebid. The 1st and 2nd seat 1C opening is forcing although it does not “protect” any game forcing hands and responder can choose pass with 5+ clubs 0-3/4 albeit that a 1NT response is generally preferred.
+P0250 The responses to a 1st or 2nd seat 1C opening are,
+P0251 1C-1D shows 4+H’s.
+P0252 1C-1H shows 4+S’s.
+P0253 1C-1S shows (7)8+ usually without a 4-card major suit.
+P0254 1C-1NT shows 0-6(7) usually without a good 4-card major suit.
+P0255 1C-2C shows 10+, with 6+D’s single suited.
+P0256 1C-2D/H/S shows 6(7) in the suit bid 0-6(7).
+P0257 1C-2NT does not exist.
+P0258 1C-3C shows 6+C’s 3-6(7).
+P0259 1C-3D/H/S shows (6)7 in the suit bid 0-6(7).
+P0260 1C-1D
+P0261 Responder holding 4/4 in the majors should respond 1D rather than 1H to a 1C opening. The 1D response includes hands with 4H’s and a longer minor.
+P0262 Continuations after 1C-1D are as follows,
+P0263 1H – 14-17 balanced with 2-4 H’s, if holding 4H’s the range will be (16)17(18)
+P0264 1C-1D-1H – Pass will always be a 5-card heart suit and 0-7.
+P0265 1C-1D-1H - 1S is a range enquiry, opener bids - 1NT with 14/15 balanced - 2C with 16+ balanced.
+P0266 1C-1D-1H – 1NT 3-6(7) usually with a decent 4 card heart suit, to play.
+P0267 1C-1D-1H – all other continuations are based on the transfer/relay structure used after opener. shows a balanced range by accepting the 1 level transfer or rebidding 1NT.
+P0268 1S – natural, unbalanced hand 5+C’s.
+P0269 1C-1D-1S – 1NT natural 5-10.
+P0270 1C-1D-1S – 2C 3+C’s 5-9.
+P0271 1C-1D-1S – 2D 4th suit game forcing, includes 4S’s 15+ hands, 13+ 6+H hands without a solid suit.
+P0272 1C-1D-1S – 2H (5)6+ H’s (7)8-12.
+P0273 1C-1D-1S – 2S 4S’s 5-9, balanced, club shortage or stiff A/K in diamonds.
+P0274 1C-1D-1S – 2NT natural with diamond stoppers 12-14.
+P0275 1C-1D-1S – 3C 3+C’s 10-12.
+P0276 1C-1D-1S – 3D splinter, 4S’s 6-9 or 13+.
+P0277 1C-1D-1S – 3H solid 6+H’s, game forcing.
+P0278 1C-1D-1S – 3S 4S’s 10-12, balanced, club shortage or stiff A/K in diamonds.
+P0279 1C-1D-1S – 3NT natural with diamond stoppers 15/16.
+P0280 1C-1D-1S – 4C to play.
+P0281 1C-1D-1S – 4D splinter, 4S’s 10-12.
+P0282 1C-1D-1S – 4H to play.
+P0283 1C-1D-1S – 4S 4S’s 13/14 either balanced, club shortage or stiff A/K in diamonds.
+P0284 1C-1D-1S – 4NT Kickback.
+P0285 1NT – (17)18/19(20) balanced 2/3 H’s.
+P0286 Continuations as per the 1C transfer/relay structure.
+P0287 2C – natural 5+C’s, 9-14 (if in the 9-10(11) range 0-2H’s)
+P0288 1C-1D-2C – 2D artificial game force (see Bourke Relay).
+P0289 1C-1D-2C – 2H (5)6+ H’s (7)8-12.
+P0290 1C-1D-2C – 2S natural, non-forcing 12-14.
+P0291 1C-1D-2C – 2NT natural 12-14.
+P0292 1C-1D-2C – 3C 3+C’s 10-12.
+P0293 1C-1D-2C – 3D splinter, 4+C’s game forcing 13/14.
+P0294 1C-1D-2C – 3H solid 6+H’s, game forcing.
+P0295 1C-1D-2C – 3S splinter, 4+C’s game forcing 13/14.
+P0296 1C-1D-2C – 3NT, 15/16 to play.
+P0297 1C-1D-2C – 4C to play.
+P0298 1C-1D-2C – 4D Kickback.
+P0299 1C-1D-2C – 4H to play.
+P0300 1C-1D-2C – 4S Kickback.
+P0301 2D – 6+C’s (13)14+, 0-2H’s (see Reordering Openers Rebid).
+P0302 2H – split range raise, either 14/15(16) balanced 4H’s, or unbalanced 3/4H’s 9-10(11).
+P0303 Step is a game forcing relay for shape and strength and other bids are invitational (see Split Range M Suit Raise).
+P0304 2S – diamond reverse 5+C’s, 4+D’s 16+ or 14/15 1345 (see Reordering Openers Rebid).
+P0306 2NT – 14+ 6+C’s and 3H’s.
+P0307 1C-1D-2NT – 3C to play unless opener is 17+.
+P0308 1C-1D-2NT – 3D agrees C’s, shortage ask NHL (opener can be a 2326 shape). A 3NT response to the Shortage Ask is forcing with a non-minimum.
+P0309 1C-1D-2NT – 3H 0-5/6 5-card suit, to play.
+P0310 1C-1D-2NT – 3S agrees hearts, Shortage Ask NHL.
+P0311 1C-1D-2NT – 3NT to play.
+P0312 1C-1D-2NT – 4C agrees C’s and asks opener to Keycard.
+P0313 1C-1D-2NT – 4D Kickback.
+P0314 1C-1D-2NT – 4H minimum 6-9, to play.
+P0315 1C-1D-2NT – 4S Kickback.
+P0316 3C – spade splinter, 5+C’s 4H’s, 11-13 or 16+ (see Mini/Mega/Maxi Splinters).
+P0317 3D – diamond splinter, 5+C’s 4H’s (unless 4414), 11-13 or 16+ (see Mini/Mega/Maxi Splinters).
+P0318 3H – (17)18-19 balanced 4H’s.
+P0319 serious/non-serious continuations.
+P0320 3S – maxi spade splinter, 5+C’s 4H’s (unless 4414) 14/15 (see Mini/Mega/Maxi Splinters).
+P0321 4C – 7+C’s 9-10 with a poor suit.
+P0322 4D – maxi diamond splinter, 5+C’s 4H’s (unless 4414) 14/15 (see Mini/Mega/Maxi Splinters).
+P0323 4H – does not exist.
+P0324 4S – Kickback.
+P0325 5C – to play.
+P0326 1C-1H
+P0327 Follows the same pattern as 1C-1D, and can be 4 spades and a longer minor. Continuations are as follows,
+P0328 1S – 14-17 balanced with 2-4 S’s, if 4S’s the range will be (16)17(18).
+P0329 1C-1H-1S – Pass will always be a 5-card spade suit 0-6(7).
+P0330 1C-1H-1S – 1NT is 3-6(7) with a decent 4 card spade suit, to play.
+P0331 1C-1H-1S – all other continuations are based on the transfer/relay structure used after opener shows a balanced range.
+P0332 1NT – (17)18/19(20) balanced 2/3 S’s.
+P0333 Continuations as per the transfer/relay structure.
+P0334 2C – natural 5+C’s, 9-13 (if in the 9-10(11) range 0-2S’s).
+P0335 1C-1H-2C – 2D artificial game force (see Bourke Relay).
+P0336 1C-1H-2C – 2H natural, non-forcing 12-14.
+P0337 1C-1H-2C – 2S (5)6+ S’s (7)8-12.
+P0338 1C-1H-2C – 2NT natural 12-14.
+P0339 1C-1H-2C – 3C 3+C’s 10-12.
+P0340 1C-1H-2C – 3D splinter, 4+C’s game forcing 13/14.
+P0341 1C-1H-2C – 3H splinter, 4+C’s game forcing 13/14.
+P0342 1C-1H-2C – 3S solid 6+S’s game forcing.
+P0343 1C-1H-2C – 3NT, 15/16 to play.
+P0344 1C-1H-2C – 4C to play.
+P0345 1C-1H-2C – 4D kickback.
+P0346 1C-1H-2C – 4H 5+S’s, 5+H’s to play in 4M.
+P0347 1C-1H-2C – 4S to play.
+P0348 2D - 6+C’s (13)14+, 0-2S’s (see Reordering Openers Rebid).
+P0349 2H – diamond reverse 5+C’s, 4+D’s 16+ or 14/15 1345 (see Reordering Openers Rebid).
+P0350 2S – split range raise, either 14/15(16) balanced 4S’s or unbalanced 3/4S’s 9-10(11).
+P0351 Step is a game forcing relay for shape and strength and other bids are invitational (see Split Range M Suit Raise).
+P0352 2NT – 14+ 6+C’s and 3S’s.
+P0353 1C-1H-2NT – 3C to play unless opener is 17+.
+P0354 1C-1H-2NT – 3D agrees C’s shortage ask NHL (opener can be a 3226 shape). A 3NT response to the Shortage Ask is forcing with a non-minimum.
+P0355 1C-1H-2NT – 3H agrees spades, Shortage Ask NHL.
+P0356 1C-1H-2NT – 3S 0-5/6 5-card suit, to play.
+P0357 1C-1H-2NT – 3NT to play.
+P0358 1C-1H-2NT – 4C agrees C’s.
+P0359 1C-1H-2NT – 4D kickback.
+P0360 1C-1H-2NT – 4H does not exist.
+P0361 1C-1H-2NT – 4S to play.
+P0362 1C-1H-2NT - Kickback
+P0363 3C – heart reverse 5+C’s, 4+H’s 16+ or 14/15 3415 (see Reordering Openers Rebid).
+P0364 3D – heart splinter 4+S’s, 5+C’s 11-13 or 16+ (see Mini/Mega/Maxi splinter continuations).
+P0365 3H – diamond splinter 4+S’s, 5+C’s (or 4414) 11-13 or 16+ (see Mini/Mega/Maxi splinter continuations).
+P0366 3S - (17)18/19 balanced 4S’s.
+P0367 4C – 7+C’s, 9-11 with a bad suit.
+P0368 4D – maxi heart splinter 4+S’s 5+C’s (or 4414) 14/15 (see Mini/Mega/Maxi splinter continuations).
+P0369 4H – maxi diamond splinter 4+S’s 5+C’s 14/15 (see Mini/Mega/Maxi splinter continuations).
+P0370 4S – does not exist.
+P0371 4NT – Kickback.
+P0372 5C – to play.
+P0375 1C-1S
+P0376 A primary purpose of the 1S response to 1C is to define invitational+ hands opposite the 14-17 balanced range for a 1C opening. A 1S response will therefore be (7)8+. When opener has the 14+ balanced range for a 1C opening the 1S response facilitates playing 1NT when opener is 14/15 and responder is (7)8/9.
+P0377 A 1S response will only have a 4-card major suit when it is a bad suit and usually when responder has a hand in the lower range, (7)8/9. The shape range for the 1S response will commonly be one or both minors although it will not include 10+ 6+ D’s single suited (1C-2C).
+P0378 When opener has an unbalanced 1C opening the combined range after 1C-1S leans towards minor suit contracts and hands with significant high card values but with no making game contract.
+P0379 3NT contracts after the auction starts 1C-1S and opener has an unbalanced 1C opening, are not particularly common and will generally prefer to be declared by responder as it will usually be easy for the defence to know openers shortage. The system commonly reflects opener first bidding NT’s when it is unlikely that 3NT is the best contract.
+P0380 1C-1S,
+P0381 1NT either 14/15(16) balanced or 14-16 with a D shortage.
+P0382 2C 16-19(20) balanced or 17+ unbalanced.
+P0383 2D 9-13 not solid C’s, 0-3D’s (including (11)12/13 (322)6, 2227).
+P0384 2H 14-16 S shortage, 2-3D’s, 5+C’s.
+P0385 2S 14-16 H shortage, 2-3D’s, 5+C’s.
+P0386 2NT 14-16 5+C’s, 4+D’s.
+P0387 3C 9-13 solid 6+C’s.
+P0388 3D 9-13 5+C’s, 4+D’s.
+P0389 3H 6+C’s, 5H’s 14-16.
+P0390 3S 6+C’s, 5S’s 14-16.
+P0391 3NT 17-19 (322)6, 2227.
+P0392 1C-1S-1NT,
+P0393 2C/D to play but opener can bid on with a great hand for the auction.
+P0394 2H 5+/5+ minors.
+P0395 2S Baron with (43), (44) in the minors or (5332) with a minor or (64) minors.
+P0396 2NT 4D’s 5C’s.
+P0397 3C 4C’s 5D’s.
+P0398 3D middle, heart shortage 6+C’s.
+P0399 3H high, spade shortage 6+C’s.
+P0400 3S low, diamond shortage 6+C’s.
+P0401 3NT to play.
+P0402 1C-1S-2C follows the same pattern as 1C-1S-1NT except that a 2D bid is now a transfer to 3NT allowing opener to describe an unbalanced 17+ hand.
+P0403 When responder has a (5332) shape with a minor and wishes to investigate slam after 1C-1S-2C there is another option. 1C-1S-2C-2D-3NT-4m. This sequence shows a (5332) with the minor bid and can be used as a weaker option than proceeding via Baron and bidding 4m after a response.
+P0404 1C-1S-1NT/2C-2H,
+P0405 2S Shortage Ask HLE. Continuations after a response to the Shortage Ask are, step Shortage Keycard for C’s, step+1 Shortage Keycard for D’s (excluding 3NT as a step).
+P0406 2NT no interest in the minors.
+P0407 3m Shortage Ask agreeing the minor bid.
+P0408 1C-1S-1NT/2C-2S,
+P0409 2NT 4+C’s. A 3C continuation agrees clubs followed by step, 3D as a Shortage Ask. A 3D continuation shows 4/5 diamonds and opener should either bid 3NT without 4D’s or bid 3H as a Shortage Ask with 4D’s. A 3M continuation shows a 6/4 (3H xx64 and 3S xx46).
+P0410 3C 4+D’s. A 3D continuation agrees diamonds followed by step, 3H as a Shortage Ask. A 3M continuation shows a 6/4 (3H xx46 and 3S xx64).
+P0411 3D no 4-card minor. A 3M continuation shows a 6/4 (3H xx46 and 3S xx64). A 3NT continuation is quant.
+P0412 3H 17+ middle, heart splinter.
+P0413 3S 17+ high, spade splinter.
+P0414 3NT 14-16 or 17+ low, diamond splinter.
+P0415 Following opener’s response to Baron in the sequence 1C-1S-1NT/2C-2S responder can bid 3NT to show a quant hand. Responder can also bid 4C to show a usually balanced 6+ club hand wanting opener to keycard or 4D as Kickback.
+P0416 1C-1S-1NT/2C-2NT/3C,
+P0417 3m agrees suit and is a Shortage Ask, 1C-1S-1NT/2C-3C-3H agrees clubs and is a Shortage Ask. A 3NT continuation denies a fit.
+P0418 1C-1S-1NT/2C-3D/H/S,
+P0419 step agrees clubs and is Shortage Keycard (excluding 3NT, 1C-1S-1NT/2C-3S-4C agrees clubs and is Shortage Keycard). A 3NT continuation denies a good fit and is an offer to play with a minimum hand. Responder can choose to show shortage over a 3NT response. When opener signs off in 3NT responder can choose to bid on responding to Shortage Keycard with the appropriate hand.
+P0420 1C-1S-2C-2D,
+P0421 Opener should always bid 3NT over 2D with a balanced hand unless they have a super maximum, 19/20 balanced hand which can respond 2NT. When opener has an unbalanced 17+ hand they should respond on the same schedule as when showing a 14-16 hand after 1C-1S (1C-1S-2C-2D-3D is natural showing 17+ unbalanced with 5+C’s and 4+D’s with step, 3H now being a Shortage Ask followed by 4m as Shortage Keycard in the minor bid).
+P0422 1C-1S-2M or 1C-1S-2C-2D-2M,
+P0423 2NT only applies after 1C-1S-2M and shows a minimum hand wanting to play in 3m, responder bids 3C and will pass a 3D continuation.
+P0424 3C agrees suit and is Shortage Keycard.
+P0425 3D shows 5 diamonds, responder should answer Shortage Keycard for diamonds with 3 diamonds bypassing 3NT which is to play showing a doubleton diamond.
+P0426 1C-1S-2NT,
+P0427 3m agrees the minor bid and is a Shortage Ask HL.
+P0429 1C-1S-2C-2D-2NT,
+P0430 3m shows some slam interest with a 4-card minor and 3M shows a corresponding 5/6 card minor looking for support. 3NT is a minimum, to play. Continuations after responder shows a minor are step (excluding 3NT) as a Shortage Ask in responder’s minor.
+P0431 1C-1S-3C, 1C-1S-2C-2D-3C,
+P0432 3D agrees clubs and is a Shortage Ask.
+P0433 1C-1S-3D, 1C-1S-2C-2D-3D,
+P0434 3M agrees the corresponding minor (3H=C’s and 3S=D’s) and is a Shortage Ask.
+P0435 1C-1S-3M, 1C-1S-2C-2D-3M,
+P0436 3NT is to play. Step agrees clubs and is a Shortage ask. Step+1 agrees the major and is a Shortage Ask.
+P0437 1C-2C.
+P0438 2D 0-2D’s unbalanced, to play opposite 10-13.
+P0439 2H Shortage Ask followed by Strength Relay (10-12, 13-15, 16+) and Shortage Keycard.
+P0440 2S 6+ decent C’s, Shortage Ask followed by Strength Relay and Shortage Keycard.
+P0441 3C 9-11 (6)7+ clubs, probably a short diamond.
+P0442 3D 3+D’s unbalanced 9-12. Step is a Shortage Ask.
+P0443 1C-2D/H/S
+P0444 Continuations after responder shows a weak, 0-6(7) hand with a 6+ suit are natural, to play except a 2NT bid which is a genuine invite correctable to 3X or game. An immediate 3X bid is to play.
+P0445 1C Dappleton Transfer/Relay Structure After Opener Shows a Balanced Range.
+P0446 The structure for these continuations follows a path of responder describing their hand to opener when opener has a 14-20 balanced hand having opened 1C and responder transferring to a 4+ major suit at the 1 level. The structure changes marginally depending on whether responder transfers to hearts or spades but is the same whether opener shows a 14-17 or 18/19(20) range.
+P0447 1C-1H-1S/1NT,
+P0448 1C-1H-1S, 1NT 4 spades in the 3-6/7 range, to play.
+P0449 2C puppet to 2D, to play, or an invite, or to show 5+ spades and a game forcing+ hand including 6+ spades not solid slam try. Denies 4H’s as those hands proceed through 2D/H.
+P0450 2D 4+H’s game forcing. Opener should show preference based on 54xx with 2H/S/NT.
+P0451 2H invitational 7-9 54xx. Opener should now pass or bid the final contract.
+P0452 2S Baron (4S’s unless via the 2C puppet, then 5S’s). Responder promises a 4 or 6 card minor and some slam interest.
+P0453 2NT transfer to 3C promising exactly 5C’s and 4S’s (5+S’s if via the 2C puppet) and some slam interest.
+P0454 3C transfer to 3D promising exactly 5D’s and 4S’s (5+S’s if via the 2C puppet) and some slam interest.
+P0455 3D 3 suited with a short heart, 4144, 4054, 4045 (5044 if via the 2C puppet).
+P0456 3H solid 6+S’s.
+P0457 3S “bid 3NT”.
+P0458 3NT to play.
+P0459 1C-1D-1H/NT,
+P0460 1S Range Enquiry. Opener bids 1NT with 14/15 balanced and 2C with 16-19(20) balanced.
+P0461 1NT 4 hearts in the 3-6/7 range, to play.
+P0462 2C puppet to 2D, to play, or an invite, or to show 5+ hearts and a game forcing+ hand including 6+ hearts not solid slam try.
+P0463 2D 5+H’s game forcing with 4+S’s, or balanced, or bad 6+H’s (6322).
+P0464 2H 4/4 majors game forcing.
+P0465 2S Baron (4H’s unless via the 2C puppet, then 5H’s). Responder promises a 4 or 6 card minor and some slam interest.
+P0466 2NT transfer to 3C promising exactly 5C’s and 4H’s (5+H’s if via the 2C puppet) and some slam interest.
+P0467 3C transfer to 3D promising exactly 5D’s and 4H’s (5+H’s if via the 2C puppet) and some slam interest.
+P0468 3D 3 suited with a short spade, 1444, 0454, 0445 (0544 if via the 2C puppet).
+P0469 3H solid 6+H’s.
+P0470 3S “bid 3NT”.
+P0471 3NT to play.
+P0472 1C-1D-1H/NT-2D
+P0473 This sequence is game forcing promising 5+H’s and either 4S’s or balanced, possibly with 6 poorish hearts (6322) that require 3 card support. Opener should always accept the transfer to 2H and responder will now either show 4S’s by bidding 2S or bid 2NT to show a balanced quant hand.
+P0474 Following responder showing a quant hand in this sequence opener should bid 3m with a 5-card minor and a non-minimum, or bid 3H to agree hearts (continuations are serious/non-serious), or bid 3NT with a minimum and no M fit.
+P0475 Following responder showing 4S’s opener should give preference. 2NT is no fit for a M, 3m shows no fit for a M and a 5-card suit, 3M agrees the major bid and is an optional Shortage Ask NHL. Opener can choose to bid 4M with a bad minimum.
+P0476 1C-1H-1S/NT-2D
+P0477 This sequence promises 5+S’s and 4+H’s game forcing+ values. Opener is expected to give preference over 2D with 2H, 2S or 2NT.
+P0478 Following a preference to 2M responder should either bid game in the major or with some slam interest, show shortage NHL.
+P0479 Following a 2NT preference responder should bid 3m naturally promising a 3 or 4 card suit and a shortage in the other minor, or bid 3H to show 5H’s/5S’s or bid 3S to show 6S’s. When responder shows a 3 or 4 card minor over 2NT step agrees the minor shown and is Shortage Keycard. When responder shows 5H’s over a 2NT preference, step, 3S agrees hearts and is a Shortage Ask HL.
+P0480 1C-1D-1H-2H
+P0481 This sequence shows exactly 4/4 in the majors. Opener should always give preference over 2H, 2S shows 4S’s, 3H shows (16)17(18) and 4H’s and 2NT shows no major suit fit. When Opener agrees a major suit responder should either respond to the suit agreement as a Shortage Ask NHL, or bid game in the major.
+P0482 Following opener showing no fit by responding 2NT responder can show a 4(5)-card minor with some slam interest by bidding 3m. Step by opener agrees responders minor and is Shortage Keycard.
+P0483 Range Enquiry and Inviting
+P0484 The 1C-1D-1H sequences use a 1S continuation as a range enquiry. Opener bids 1NT when minimum 14/15 balanced, and 2C when they are 16/17 balanced. Once the Range Enquiry is completed the continuations are,
+P0485 1C-1D-1H-1S-1NT,
+P0486 Pass 7-9 usually balanced and usually 4H’s.
+P0487 2C 5+C’s to play.
+P0488 2D 5+D’s to play.
+P0489 2H+ following the same schedule as 1C-1D-1H.
+P0490 1C-1D-1H-1S-2C establishing a game force,
+P0491 2D+ following the same schedule as 1C-1D-1H.
+P0492 The 1C-1D-1H and 1C-1H-1S sequences both use the 2C puppet followed by a 2H bid to show an invitational hand with 4 or 5/6 cards in the major. The sequence 1C-1D-1H-2C-2D-2H shows 5 or 6 hearts invitational as otherwise responder would have used the 1C-1D-1H-1S Range Enquiry. The sequence 1C-1H-1S-2C-2D-2H promises 4 or 5 spades.
+P0493 1C-1D-1H-2C-2D-2H,
+P0494 Pass minimum where opener will value 3 card heart support.
+P0495 3H non-minimum 3 card heart support.
+P0496 3NT non-minimum 2(3) card heart support.
+P0497 1C-1H-1S-2C-2D-2H,
+P0498 2S minimum, 3 card spade support.
+P0499 2NT minimum, 2(3) card spade support.
+P0500 3S non-minimum 3 card spade support.
+P0501 3NT non-minimum 2(3) card spade support.
+P0502 Baron
+P0503 The Baron response will always show mild+ slam interest and 4 or 6 cards in a minor as with a 5-card minor responder will use the 2NT/3C transfers. Opener’s responses to Baron are as follows,
+P0504 2NT 4+C’s
+P0505 3C 4+D’s
+P0506 3D no 4-card minor
+P0507 3NT 14/15 (322)6 shape
+P0508 4C 16-19 (322)6 shape
+P0509 Responder bids 3m of the minor shown by opener agreeing that suit and step by opener is a Shortage Ask followed by Shortage Keycard.
+P0510 Responder’s 3D bid over a 2NT response to Baron shows a 4-card diamond suit and opener should either bid step to agree diamonds and a Shortage Ask when they have 4+D’s or bid 3NT (4NT with a big maximum) without 4+D’s.
+P0511 Following one of the 3 responses to Baron responder can bid 3H/S to show a corresponding (H=C’s, S=D’s) 6-card minor. Opener should either bid step (skipping 3NT) agreeing the 6-card minor and a Shortage Ask or bid 3NT.
+P0512 In an auction where responder has shown a 5M/4m or 5M/6m shape step+1 (skipping 3NT) is a Shortage Ask agreeing responder’s major suit.
+P0513 When opener describes a (322)6 shape with either a 3NT or 4C response to Baron responder should either pass 3NT or bid 4NT over 4C as an offer to play. Otherwise, responder bids as if 3NT/4C was a shortage ask not including a club shortage so N/H/L. Responder may have 6 diamonds after a 3NT/4C response to Baron and will have to improvise accordingly.
+P0514 Balanced Quant Invite
+P0515 When responder has a (5332) with a 5-card major suit and values for a quant invite they can proceed via Baron after showing a 5-card major, rebidding 3NT. A 3NT rebid can also be a (52)(24) shape after opener denies 4 clubs with a 3C response to Baron or when opener responds 3D, no 4-card minor, to Baron.
+P0516 A quant invite can also be shown when responder initially bids 1D showing hearts via the 2D continuation,
+P0517 1C-1D-1H/1NT-2D-2H-2NT shows a quant invite probably (5332) with 5 hearts and after this sequence opener should bid 3m to show a 5-card minor and a non-minimum. Opener can also bid 3H to agree hearts with a non-minimum, 4H to agree hearts with a minimum, 3S/4m to agree hearts with a maximum and a cue-bid, 3NT to play.
+P0518 2NT and 3C 5 Card Minor Transfer
+P0519 The 5 card minor transfer bids, 2NT and 3C, promise exactly 5 cards in the minor. Responder can show 4 or 5 cards in a major before arriving at the minor transfer. When responder shows a 4-card major opener should always accept the transfer unless they have a 4-card support (16)17(18) hand for responders major which should bid 3M over the transfer. When responder shows a 5-card major opener can bid 3M over the transfer when they have a good 3-card fit for the major and no 4-card fit for the minor.
+P0520 Following opener accepting the transfer or bidding 3M in the circumstances described above Responder shows shortage HL or NHL. Step after the shortage response (not including 3NT after opener has accepted the minor transfer) is Shortage Keycard in the agreed major or shown minor.
+P0521 3D Three Suited
+P0522 Opener should agree a suit with a fit and a suitable hand or bid 3NT (4NT with a big maximum). When responder has not shown a 5-card major such that the exact shape is not known agreeing a suit is a Shortage Ask determining if responder is 4144/1444 or 40(54)/04(54).
+P0523 3H solid 6+M
+P0524 Step by opener, 3S, is a Shortage Ask. 3NT by opener is to play although responder can choose to show shortage over 3NT.
+P0525 Accepting the transfer with (16)17(18) and 4 card support
+P0526 Auctions that start 1C-1D-1H or 1C-1H-1S include a small band of hands for opener that are in the (16)17(18) range with 4 card support (otherwise simple acceptance of the transfer shows 2/3 cards in the major and 14-17 balanced). The range for this choice is better understood and decided upon by considering openers options with 4 card support.
+P0527 When opener chooses a simple raise, 1C-1D-2H or 1C-1H-2S (Split Range raise) the balanced version of that bid is defined as 14/15(16) with 4 card support.
+P0528 When opener chooses a jump raise, 1C-1D-3H or 1C-1H-3S the balanced version of that bid is defined as (17)18/19(20) with 4 card support. There is no balanced hand that should jump to game over the 1 level transfer, which caters for a sub-minimum response to 1C.
+P0529 The (16)17(18) range is intended to be a narrow band of hands catering for the sub-minimum responsive hands as well as potentially providing clarity in slam going auctions. As usual, OA is concerned to avoid playing 3M in an uncontested auction.
+P0530 To show the (16)17(18) 4 card support hand opener simply breaks out of the relay/transfer structure after responder’s next bid by bidding the major at the lowest level. When opener has shown the (16)17(18) 4 card support hand by bidding 2M or 3M responder can either pass or bid game in the major or respond to a Shortage Ask NMHL. When responder has bid 3S over the initial 1 level transfer as a transfer to 3NT and opener has the (16)17(18) 4 card support hand they should cue-bid 4m and responder should either bid 4M or respond to a Shortage Ask bypassing 4M.
+P0531 1C Unbalanced hand continuations
+P0532 The majority of 1C openings in 1st and 2nd seat will be (14)15-19(20) balanced hands with an approximate frequency 3/1 in favour of the balanced, rather than the unbalanced hand.
+P0533 Some of the (431)5, (331)6, 4414 hands in the 9-11 range will open 1NT (together with the 9-11 (322)6, 2227 hands). This will be hands holding a singleton A, K or Q.
+P0534 The 6/5 hands with 6 clubs will be opened with 1 of the 5-card suit when they are 9-12(13), and (13)14+ 6/5 club hands will open 1C planning to reverse.
+P0535 A consistent theme in the continuations after showing an unbalanced 1C opening is for opener to avoid bidding NT’s except when holding a (322)6, 2227 so that the “known” shortage will be in dummy rather than declarers hand in an eventual 3NT contract.
+P0536 Bourke Relay
+P0537 The Bourke Relay (game forcing) is step after opener has shown a minimum unbalanced 1C opening with their simple rebid. The relevant sequences are 1C-1D-2C and 1C-1H-2C. The sequence 1C-1S-2D uses a hybrid Bourke Relay being a 2H continuation.
+P0538 1C-1D-2C-2D,
+P0539 2H - 3H’s (11)12-13 unbalanced or 2326 12/13
+P0540 2S asks for shape as per the Split Range 2M relay, 2NT shows 2326.
+P0541 2S – (11)12-15 unbalanced, 0-2H’s
+P0542 2NT now asks for shape and responses as per below.
+P0543 2NT - 12/13 3226, 2236 or 2227
+P0544 3C agrees clubs and asks for cue-bids.
+P0545 3D is natural and 3NT now denies 3 card diamond support. A new suit is a cue-bid.
+P0546 3M is angling for 3NT.
+P0547 3C - 9-11(12), 0-2H’s single suited C’s
+P0548 3D agrees clubs and asks for shortage MHL. Responder may have 5+ diamonds and when opener denies a diamond shortage will have to guess whether to bid 6D.
+P0549 3D - 9-11 3145
+P0550 3H is Keycard in clubs.
+P0551 3NT to play.
+P0552 4m agrees suit and asks opener to Keycard.
+P0553 3H - 9-11 6+C’s, 4D’s
+P0554 3S agrees clubs and is a Shortage Ask HL.
+P0555 3NT to play.
+P0556 4m agrees suit and asks opener to Keycard.
+P0557 1C-1H-2C-2D,
+P0558 2H – (11)12-15 unbalanced, 0-2S’s
+P0559 2S now asks for shape and responses as per below, skipping 2NT.
+P0560 2S - 3S’s (11)12-13 unbalanced
+P0561 2NT asks for shape as per the Split Range 2M relay, 3NT shows 3226.
+P0562 2NT - 12/13 2326, 2236 or 2227
+P0563 3C agrees clubs and asks for cue bids. 4D is Kickback.
+P0564 3D is natural and 3NT now denies 3 card diamond support. A new suit is a cue-bid.
+P0565 3M is angling for 3NT.
+P0566 3C - 9-11, 0-2S’s single suited C’s
+P0567 3D agrees clubs and asks for shortage MHL. Responder may have 5+ diamonds and when opener denies a diamond shortage will have to guess whether to bid 6D.
+P0568 3NT to play.
+P0569 3D - 9-11 1345
+P0570 3H is Shortage Keycard in clubs.
+P0571 3NT to play.
+P0572 4m agrees suit and asks opener to Keycard.
+P0573 3H - 9-11 4H’s
+P0574 3S is Shortage Keycard in clubs.
+P0575 3NT to play.
+P0576 4C agrees C’s and asks opener to Keycard.
+P0577 4D agrees hearts and is a Shortage Ask H/L.
+P0578 4H is to play.
+P0579 4S is kickback.
+P0580 3S - 9-11(12) 6+C’s, 4D’s
+P0581 3NT to play.
+P0582 4m is Minorwood
+P0583 1C-1S-2D-2H,
+P0584 2S - 12/13 unbalanced
+P0585 2NT now asks and responses as per 9-11 below.
+P0586 2NT – 12/13 (322)6, 2227
+P0587 3C – 9-11 6+C’s. Step, 3D is a Shortage Ask MHL.
+P0588 3D – 9-11 middle shortage, 5C’s. Step, 3H is a Shortage Ask
+P0589 3H – 9-11 high shortage, 5C’s. Step, 3S is a Shortage Ask
+P0590 3S – 9-11 low shortage, 5C’s. Step+1 4C is a Shortage Ask
+P0591 3NT – 9-11 4414. 4C is Keycard.
+P0592 Other 1C-1D, 1C-1H Unbalanced 1C Sequences
+P0593 These sequences either do not promise a minimum unbalanced 1C opening or specifically promise a strong range.
+P0594 1C-1D-1S-2D,
+P0595 Opener’s strength range has not been defined and is still 9+. 2D in this sequence is 4th suit, game forcing, showing (13)14+. Responder’s range will include 4H’s and 5+D’s (13)14+.
+P0596 2H – (11)12+ 4315, 4306.
+P0597 2S - (13)14+ 6+C’s, 5+S’s.
+P0598 2NT – (11)12+ 0-2H’s diamond stopper or 4135.
+P0599 3C - 9+ 0-2H’s no diamond stopper, 4216, 4126, 4036.
+P0600 3D - 9+ 4045.
+P0601 3NT – 9-11 0-2H’s diamond stopper or 4135.
+P0602 Continuations are natural with responder setting suit or bidding a potential final contract with a minimum. A 3H or 4H bid when opener has denied 3H’s is natural as a hand with a good (6)7+ heart suit but not a self-supporting heart suit that could bid 3H rather than 2D.
+P0603 1C-1H-2C-2H
+P0604 This sequence is defined as invitational with 5+S’s 4+H’s. The range includes 9-12 5/5 major hands and 11-13 5S/4H hands. Commonly opener will be able to immediately judge the best contract,
+P0605 Pass – minimum, 3 or 4 H’s.
+P0606 2S – weak preference, probably a doubleton spade.
+P0607 2NT – natural, invitational 12/13 with no major fit.
+P0608 3C – minimum, 6+C’s and no major fit.
+P0609 3H – non-minimum 4H’s.
+P0610 3S – 3S’s 12/13.
+P0611 4M – to play.
+P0613 Competitive 1C auctions 1st and 2ND
+P0614 Low level interference over a 1st or 2nd seat 1C opening aims to keep “system on”.
+P0615 1C-(X) - Continue as if there had been no (X). Responders pass indicates 3+C’s and a redouble is 0-2C’s and tolerance for the other suits.
+P0616 1C-(1D) – Double shows 4+ hearts and other bids retain their meaning, system on.
+P0617 1C-(1H) – Double shows 4+ spades and other bids retain their meaning, system on.
+P0618 Following any 1 level interference including X or 1NT a jump bid of a new suit to the 2 or 3 level retains its meaning as a 6/7 card suit 0-7.
+P0619 Higher interference than 1C-(1H) adopts a mostly “system off” approach. A specific transfer structure is used for 1C-(1S) and for higher interference X by responder is takeout. A double by opener in a competitive auction shows a 14+ balanced hand.
+P0620 1C-(1S),
+P0621 X invitational opposite a 14+ balanced hand, 7-9. Opener should bid 1NT with a 14/15 balanced hand and 2NT with a 16+ balanced hand.
+P0622 1NT 5-7, natural with spade stoppers.
+P0623 2C 10+, 5+D’s, game forcing opposite 14+ balanced. Opener should bid 2NT with a 14+ balanced hand, 2D/3C with a minimum unbalanced hand and 2S with a 14+ unbalanced hand.
+P0624 2D 10+, 5+H’s, game forcing opposite 14+ balanced. Opener should bid 2NT with a 14+ balanced hand, 2H/3C with a minimum unbalanced hand and 2S with a 14+ unbalanced hand.
+P0625 2H 10+, 5+C’s, game forcing opposite 14+ balanced. Opener should bid 2NT with a 14+ balanced hand, 3C with a minimum unbalanced hand and 2S with a 14+ unbalanced hand.
+P0626 2S 10+ without a 5-card side suit, may have 4 H’s, game forcing opposite 14+ balanced. Opener should bid 2NT with a 14+ balanced hand, 3C with a minimum unbalanced hand.
+P0627 2NT does not exist.
+P0628 3C 4-7, 6+C’s.
+P0631 1D Opening and Continuations 1st and 2nd
+P0632 This opening is a limited range of shapes and has unique continuations.
+P0633 The 1D opening will always contain a shortage unless it is (6322) or 2272, 12+. The (6322) 2272 hands in the 9-11 range will open 1NT. All the (4441) hands except the 4414 shape open 1D. As described in the range of the 1NT opening some of the unbalanced 1D shapes usually in the 9-11 range with a singleton honour open 1NT.
+P0634 There are issues with right siding NT contracts after a 1D opening given the propensity for the opening to have a shortage, generally making it desirable for opener to be dummy. After a 1M response to 1D the 1NT rebid is used to show a hand with 3 card support for the major in the 11-15 range (9-10/11 3-card support and 9/10 4-card support hands use the same path as 1C-1M-2M by bidding 2M).
+P0635 The 1NT and 2C responses to a 1D opening are effectively switched from their natural meaning with one benefit of this approach being that when 3NT is a likely destination it will be declared by responder.
+P0636 A 1D opening will only be 4 cards as opposed to 5+ when opener is 4441/1444/4144 and for this reason it is common to raise to 2D with only 3 card support. A 3 card 2D response is normal when holding 5 clubs and 3 diamonds and a weak hand. When responder has a very weak response, 4/5, and a bad 4 card major it is also best to respond 2D when holding Hxx.
+P0637 Responses:
+P0638 1D-1M – 4+ natural, not a game forcing hand with only 4 cards.
+P0639 1D-1NT- 10+ enquiry, no 5+ major and game forcing (13/14+) when holding a 4-card major.
+P0640 1D-2C – 5-9, 5+C’s, rarely 3 Ds if only 5 C’s.
+P0641 1D-2D – 5-9, (3)4+D’s.
+P0642 1D-2M – natural 6+ suit, 0-6(7).
+P0643 1D-2NT- game forcing 4+D’s.
+P0644 1D-3C – 6+C’s, no 4-card major, invitational. 3M is naturalish angling for 3NT, 3D ostensibly agrees C’s and is a Shortage Ask.
+P0645 1D-3D – (4)5+D’s 9-12, invitational.
+P0646 1D-3M – natural (6)7 card suit 0-6(7).
+P0647 1D-3NT- 5+S’s, 6+H’s 8-12.
+P0648 A jump to 2M or 3M over a 1D opening shows similar hands. Jumping to 3M is more likely to be a 7-card suit than a 6-card suit and more likely to be a solid suit with good interiors.
+P0649 1D-1M:
+P0650 1D-1H-1S is natural and forcing and denies 3H’s unless 16+.
+P0651 1D-1H/S-1NT shows 3 card support for responders major in the 11-15 range. A 2C continuation asks opener to describe their hand in this range. An immediate 2M bid is the weakest option 11/12 – a 2D bid is the middle range 12/13 – with a maximum 1NT bid, 14/15, opener should respond in the same manner as the 1m-1M-2M-step enquiry starting at 2NT/3C, 2OM does not exist. Following a 2D or 2M response 2M is to play and responder can employ the 2M+1 step enquiry.
+P0652 1D-1H/S-2C is natural and ostensibly forcing showing an unbalanced hand and denying 3 card support for responders major unless 16+.
+P0653 1D-1H/S-2D is 9-14(15) denying 3 card support for responders major and denying 4 cards in either, or both, spades and clubs.
+P0654 1D-1H-2H and 1D-1S-2S show 3 or 4 card support for responders major 9-10(11). Continuations as per the 1m-1M-2M structure.
+P0655 1D-1S-2H shows 6+D (13)14+ 0-2S’s (see Reordering Openers Rebid).
+P0656 1D-1H-2S shows 6+D (13)14+ 0-2H’s (see Reordering Openers Rebid).
+P0657 1D-1H/S-2NT shows 6+D’s and 3 card support for responders major (15)16+. Continuations are the same as for 1C-1D/H-2NT – 3C agrees D’s and asks for shortage, 3D is to play. 3M is a 5 card suit 5-7 to play. 3OM agrees the major and is a Shortage Ask. A similar hand can be shown via the 1NT rebid, 1D-1M-1NT and the 1D-1M-2NT auctions will therefore be stronger than 1C-1M-2NT.
+P0658 1D-1S-3C shows a heart reverse 5+D’s 4H’s 16+ (see Reordering Openers Rebid).
+P0659 1D-1H-3C shows a spade splinter, 5+C’s 4H’s, 11-13 or 16+ (see Mini/Mega/Maxi Splinters).
+P0660 1D-1H-3D shows a club splinter, 5+C’s 4H’s, 11-13 or 16+ (see Mini/Mega/Maxi Splinters).
+P0661 1D-1S-3D shows a heart splinter, 5+C’s 4S’s, 11-13 or 16+ (see Mini/Mega/Maxi Splinters).
+P0662 1D-1S-3H shows a club splinter, 5+C’s 4S’s, 11-13 or 16+ (see Mini/Mega/Maxi Splinters).
+P0663 1D-1H/S-4C and 1D-1H-3S, 1D-1S-4H are maxi splinters in the suit bid (see Mini/Mega/Maxi Splinters).
+P0664 1D-1H-3H and 1D-1S-3S shows 4 card support for responders major 12-15 with a singleton ace or king.
+P0665 1D-1NT
+P0666 This response to 1D has been swapped from its usual meaning with 1D-2C. The range for a 1NT response is any 14+ hand with a 4-card major and any 10+ hand without a 4-card major. In other words, when responder has a 4-card major they must have a game forcing hand to choose a 1NT response.
+P0667 1D-1NT,
+P0668 2C any 12-15 hand.
+P0669 2D any 9-11 hand.
+P0670 2H/S natural 16+.
+P0671 2NT 6+D’s balanced (6322) or 2272 16+.
+P0672 3C natural 16+.
+P0673 3D 6+Ds, middle shortage, H’s (3163 type) 16+ HCPs.
+P0674 3H 6+Ds, high shortage, S’s (1363 type) 16+ HCPs.
+P0675 3S 6+Ds, low shortage, C’s (3361 type) 16+ HCPs.
+P0676 1D-1NT-2C,
+P0677 2D = to play, but opener can bid on naturally with a great 2C bid.
+P0678 2H = GF relay (see below).
+P0679 2S = GF relay with 6+ clubs (see below).
+P0680 2NT = invitational to 3NT, now 3m is an offer to play.
+P0681 3C = solid 6+C’s, minimum game force. 3M now is naturalish angling for 3NT.
+P0682 3D = 4+D’s, no 4-card major, minimum game force. 3M now is naturalish angling for 3NT.
+P0683 3NT = to play.
+P0684 1D-1NT-2D,
+P0685 Pass = to play.
+P0686 2H = GF relay (see below).
+P0687 2S = GF relay with solid 6+ clubs (see below).
+P0688 2NT = invitational to 3NT, now 3m is an offer to play.
+P0689 3C = solid 6+C’s, minimum game force. 3M now is naturalish angling for 3NT.
+P0690 3D = to play.
+P0691 When opener establishes a game force by showing a 16+ hand, or when responder chooses the 2H game forcing relay sequence after the auction starts 1D-1NT-2m, the system utilises a 1, 2 or 3 step shape relay followed by rolling Shortage Keycard.
+P0692 The first step of the shape relay is to identify hands in the order as follows,
+P0693 4+H’s
+P0694 4+S’s
+P0695 4+C’s
+P0696 6+D’s single suited identifying shortage.
+P0697 A small range of balanced hands, (6322), 2272 are also possible and are identified by bidding 2NT when opener is 16+, or 3NT when opener is 12-15 (a 9-11 balanced hand would have opened 1NT).
+P0698 When opener has a 16+ hand after 1D-1NT they immediately complete the first step of the shape relay as described above. When opener is in the 9-15 range, they first identify their range after 1D-1NT by bidding 2C, 9-11, or 2D, 12-15. Once opener has identified a 9-15 range responder can initiate the first step of the game forcing shape relay by bidding 2H.
+P0699 Following the first step of the shape relay, if opener has shown a 6+D single suited hand identifying shortage there are no more shape relays and responder can either bid the final contract or continue to enquire with Shortage Keycard. When opener has shown a second suit with the first step of the shape relay responder can clarify shape with a further shape relay. The responses to this relay identify shortage in a 2 suited hand (without a 5 card second suit), or show a 3 suited hand, or show a 6/5 shape. The order of the responses is as follows,
+P0700 5+D/4 two suited, high shortage
+P0701 5+D/4 two suited, low shortage
+P0702 3 suited high shortage
+P0703 3 suited low shortage
+P0704 6D/5M or 5+D/5C
+P0705 The number of responses to the second shape relay are dependent on the second suit shown by opener. When opener shows 4H’s all 5 responses are used as opener can have two different 3 suited type hands. When opener shows 4S’s only one 3 suited type hand is possible and when opener shows 4C’s no 3 suited hand is possible.
+P0706 Once opener has identified a 5+D/4 two suited hand or a 3 suited hand responder can either bid the final contract or continue to enquire with Shortage Keycard. When opener identifies a 6/5 or 5/5 shape there is a third shape relay to identify openers shortage, high/low/even.
+P0707 The shape relays described above incorporate rules for agreeing a suit.
+P0708 When opener shows a 16+ hand and a major suit immediately, 1D-1NT-2M responder can initiate the second relay using different steps to agree a suit. The order of these steps is,
+P0709 Step – default relay, usually with exactly 3 diamonds.
+P0710 Step+1 – 6+ solid clubs, setting clubs.
+P0711 Step+2 – 4+D’s, setting diamonds.
+P0712 Step+3 – 4+ card support for openers major suit, setting that suit.
+P0713 When opener initially shows a 9-15 hand and then shows a major suit in response to the 2H game forcing relay, 1D-1NT-2m-2H-2S/NT responder can initiate the second relay using similar steps to those above to agree a suit. The order of these steps is,
+P0714 Step – default relay, usually with exactly 3 diamonds.
+P0715 Step+1 – 4+D’s, setting diamonds
+P0716 Step+2 – 4+ card support for openers second suit, setting that suit.
+P0717 When responder has 6+ solid clubs, a game forcing hand, and the auction starts 1D-1NT-2m they can set clubs as trumps by proceeding through the 2S game force relay (see below).
+P0718 Responder can have (5)6+ clubs, not solid and wish to agree clubs after using the default, step relay when opener denies a club shortage. Responder can also have a fit for a third suit shown by opener or a fit for openers second suit when opener shows a 6/5 shape. When opener shows a 16+ hand and not a 4-card major responder can have either a 6+ solid club hand or a (5)6+ club hand when opener has denied a club shortage.
+P0719 In these cases, responder can also initiate the further relay using different steps to agree a suit,
+P0720 Step – default relay, usually with exactly 3 diamonds.
+P0721 Step+1 – agreeing the 2nd or 3rd suit shown by opener or agreeing the 5 card second suit shown.
+P0722 Step+2 – agreeing clubs, either 6+ solid clubs after 16+ response to 1D-1NT or (5)6+ clubs when opener has denied a club shortage.
+P0723 A 3NT bid is always to play unless responder has agreed a major suit earlier in the auction. A 4M bid from responder when opener has shown a 5-card major is always to play.
+P0724 1D-1NT-2H-2S,
+P0725 2NT – 5+D’s, high shortage, S’s. Step (3C) agrees diamonds Shortage Keycard, step+1 (3D) agrees clubs Shortage Keycard.
+P0726 3C – 5+D’s, low shortage, C’s. Step (3D) agrees diamonds Shortage Keycard.
+P0727 3D – boxed high shortage, 1444, 0454. Step (3H) agrees diamonds Shortage Keycard, step+1 (3S) agrees clubs Shortage Keycard.
+P0728 3H – boxed low shortage, 4441, 4450. Step (3S) agrees diamonds Shortage Keycard, step+1 (4C) agrees spades Shortage Keycard.
+P0729 3S – 6+D’s 5H’s. Step (4C) agrees diamonds Shortage Ask, step+1 (4D) agrees hearts Shortage Ask.
+P0730 1D-1NT-2H-2NT (6+ solid clubs),
+P0731 3C high shortage, S’s.
+P0732 3D low shortage, C’s.
+P0733 3H 1444 or 0454.
+P0734 3S 4441 or 4450.
+P0735 3NT 6+D’s 5H’s.
+P0736 A 3NT continuation is to play and a step continuation is Shortage Keycard/Ask in clubs. A step+1 bid (4D) after opener shows 4 spades (a 3S response) is Shortage Keycard in spades.
+P0737 1D-1NT-2H-3C (4+D’s),
+P0738 3D high shortage S’s
+P0739 3H low shortage C’s.
+P0740 3S 1444 or 0454.
+P0741 3NT 4441 or 4450.
+P0742 4C 6+D’s 5H’s. A 4H bid is to play.
+P0743 A 3NT continuation is to play and a step continuation is Shortage Keycard/Ask in diamonds.
+P0744 1D-1NT-2H-3D (4H’s),
+P0745 3H high shortage S’s.
+P0746 3S low shortage C’s.
+P0747 3NT 1444 or 0454.
+P0748 4C 4441 or 4450.
+P0749 4D 6+D’s 5H’s. A 4H bid is to play.
+P0750 A 4H continuation is to play and a step continuation (including 3NT) is Shortage Keycard/Ask in hearts.
+P0752 1D-1NT-2S-2NT,
+P0753 3C – 5+D’s, high shortage H’s. Step, (3D), is Shortage Keycard in diamonds. Step+1, (3H), is Shortage Keycard in clubs.
+P0754 3D – 5+D’s, low shortage C’s. Step, (3H), is Shortage Keycard in diamonds.
+P0755 3H – 4144 or 4054. Step, (3S), is Shortage Keycard in diamonds. Step+1, (4C), is Shortage Keycard in clubs.
+P0756 3S – 6+D’s 5S’s. 3NT is to play. Step, (4C), is Shortage Keycard in diamonds. Step+1, (4D), is Shortage Keycard in spades. 4S is to play.
+P0757 1D-1NT-2S-3C (6+ solid clubs),
+P0758 3D high shortage H’s
+P0759 3H low shortage C’s.
+P0760 3S 4144 or 4054.
+P0761 3NT 6+D’s 5S’s. Step, (4C) is Shortage Keycard in clubs. Step+1, (4D) is Shortage Keycard in spades.
+P0762 A 3NT continuation is to play and a step continuation is Shortage Keycard/Ask in clubs.
+P0763 1D-1NT-2S-3D (4+D’s),
+P0764 3H high shortage H’s.
+P0765 3S low shortage C’s.
+P0766 3NT 4144 or 4054.
+P0767 4C 6+D’s 5S’s.
+P0768 A 3NT continuation is to play and a step continuation is Shortage Keycard/Ask in diamonds.
+P0769 1D-1NT-2S-3H (4S’s),
+P0770 3S high shortage H’s.
+P0771 3NT low shortage C’s.
+P0772 4C 4144 or 4054.
+P0773 3NT 6+D’s 5S’s.
+P0774 A 4S continuation is to play and a step continuation is Shortage Keycard/Ask in spades.
+P0775 1D-1NT-3C-3D,
+P0776 3H high shortage S’s, 4 clubs.
+P0777 3S low shortage H’s, 4 clubs.
+P0778 3NT high shortage S’s, 5 clubs.
+P0779 4C low shortage H’s, 5 clubs.
+P0780 A step continuation (other than 3NT) is Shortage Keycard in diamonds. A step+1 continuation after opener shows 5C’s is Shortage Keycard in clubs.
+P0781 1D-1NT-3C-3H (agreeing clubs),
+P0782 3S high shortage S’s, 4 clubs.
+P0783 3NT low shortage H’s, 4 clubs.
+P0784 4C high shortage S’s, 5 clubs.
+P0785 4D low shortage H’s, 5 clubs.
+P0786 A step continuation (other than 3NT) is Shortage Keycard in clubs.
+P0787 When opener responds 2m after 1D-1NT showing a 9-15 strength hand and responder utilises the 2H game forcing relay the same pattern of relays is used except that having not used the alternate 2S relay, responder has denied 6+ solid clubs.
+P0788 1D-1NT-2m-2H,
+P0789 2S 4H’s. Continuations below.
+P0790 2NT 4S’s. Continuations below.
+P0791 3C 4/5C’s. Step (3D) agrees diamonds and a Shortage/Length Ask, step+1 (3H) agrees clubs and a Shortage/Length Ask.
+P0792 3D 6+D’s single suited middle shortage, H’s. Step (3H) is Shortage Keycard in diamonds, step+1 (3S) is Shortage Keycard in clubs.
+P0793 3H 6+D’s single suited high shortage, S’s. Step (3S) is Shortage Keycard in diamonds, step+1 (4C) is Shortage Keycard in clubs.
+P0794 3S 6+D’s single suited low shortage, C’s. 4C is Shortage Keycard in diamonds.
+P0795 3NT (6322), 2272 as applicable. Step, (4C) is Keycard in diamonds, step+1 (4D) is Keycard in clubs.
+P0796 1D-1NT-2m-2H-2S-2NT,
+P0797 3C high shortage, S’s. Step (3D) is Shortage Keycard in diamonds, step+1 (3H) is Shortage Keycard in clubs.
+P0798 3D low shortage, C’s. Step (3H) is Shortage Keycard in diamonds.
+P0799 3H 1444 or 0454. Step (3S) is Shortage Keycard in diamonds, step+1 (4C) is Shortage Keycard in clubs.
+P0800 3S 4441 or 4450. Step (4C) is Shortage Keycard in diamonds, step+1 (4D) is Shortage Keycard in spades.
+P0801 1D-1NT-2m-2H-2S-3C (4+D’s),
+P0802 3D high shortage, S’s.
+P0803 3H low shortage, C’s.
+P0804 3S 1444 or 0454.
+P0805 3NT 4441 or 4450.
+P0806 Step (except 3NT) is Shortage Keycard in diamonds
+P0807 1D-1NT-2m-2H-2S-3D (4H’s),
+P0808 3H high shortage, S’s.
+P0809 3S low shortage, C’s.
+P0810 3NT 1444 or 4450.
+P0811 4C 4441 or 4450.
+P0812 Step (including 3NT) is Shortage Keycard in hearts. A 4H bid from responder is to play.
+P0813 1D-1NT-2m-2H-2NT-3C,
+P0814 3D high shortage, H’s. Step is Shortage Keycard in diamonds, 4C is Shortage Keycard in clubs.
+P0815 3H low shortage, C’s. Step is Shortage Keycard in diamonds.
+P0816 3S 4144 or 4054. 4C is Shortage Keycard in diamonds, 4D is Shortage Keycard in clubs.
+P0817 1D-1NT-2m-2H-2NT-3D (4+D’s),
+P0818 3H high shortage, H’s.
+P0819 3S low shortage, C’s.
+P0820 3NT 4144 or 4054.
+P0821 Step (except 3NT) is Shortage Keycard in diamonds.
+P0822 1D-1NT-2m-2H-2NT-3H (4S’s),
+P0823 3H high shortage, S’s.
+P0824 3S low shortage, C’s.
+P0825 3NT 1444 or 4450.
+P0826 4C 4441 or 4450.
+P0827 Step (including 3NT is Shortage Keycard in spades.
+P0828 After 1D-1NT-2m responder can also utilise 2S as a relay. This relay specifies that responder is interested in clubs and usually promises 6+ clubs.
+P0829 1D-1NT-2C/D-2S,
+P0830 2NT = (43)51, 4441, 4450 (see below).
+P0831 3C = 3+ club support, step asks for shortage (see below).
+P0832 3D = 0/1 clubs, 6+D’s. Step is Shortage Keycard in clubs, step+1 is Shortage Keycard in diamonds.
+P0833 3H = 2 clubs, short spade. Step (3S) is Shortage Keycard in clubs.
+P0834 3S = 2 clubs, short heart. Step (4C) is Shortage Keycard in clubs.
+P0835 3NT (32)62, 2272 (does not exist after a 2D rebid). 4C is Keycard in clubs.
+P0836 1D-1NT-2C/D-2S-2NT,
+P0837 3C = Shortage Keycard in clubs.
+P0838 1D-1NT-2C/D-2S-3C-3D,
+P0839 3H = no shortage, 2263 (does not exist after a 2D rebid).
+P0840 3S = spade shortage. 4C is Shortage Keycard in clubs.
+P0841 3NT = heart shortage. 4C is Shortage Keycard in clubs.
+P0842 1D-1NT-2NT,
+P0843 3C Keycard in diamonds.
+P0844 3D Keycard in clubs.
+P0845 1D-1NT-3D/H/S describe single suited 6+ diamond hands specifying openers shortage M/H/L. Responder will usually agree diamonds but can also agree clubs (even when a club shortage is shown). 3NT is always to play and otherwise step is Shortage Keycard in diamonds and step+1 is Shortage Keycard in clubs.
+P0846 1D-2C
+P0847 This auction replaces a natural 1D-1NT auction. A 2C response to a 1D opening promises 5+ clubs and a weak hand, 5-9. Responder will usually choose 2D over 2C when holding 5 clubs and 3 diamonds.
+P0848 As usual opener will prefer to choose to play part-score or game immediately and invitational bids are defined as “heavy”.
+P0849 1D-2C,
+P0850 2D = preference, to play.
+P0851 2H = naturalish, game forcing (see below).
+P0852 2S = naturalish, game forcing (see below).
+P0853 2NT = invitational. Now 3m to play with extra length and a minimum.
+P0854 3C = to play.
+P0855 3D = invitational. 3M is naturalish angling for 3NT.
+P0856 3H = 4+C’s, game forcing splinter. Responder can bid 3NT to play or cue-bid.
+P0857 3S = 4+C’s, game forcing splinter. Responder can bid 3NT to play or cue-bid.
+P0858 3NT = to play.
+P0859 4C = to play.
+P0860 4D = Kickback.
+P0861 1D-2C-2M,
+P0862 2NT = maximum with values in the other major.
+P0863 3C = 6+C’s, minimum, short diamond.
+P0864 3D = minimum, 2/3 D’s.
+P0865 3H = 6+C’s, maximum, 0-2 D’s.
+P0866 3S = 5+C’s, 2/3 D’s maximum.
+P0867 3NT = minimum with values in the other major.
+P0873 1D-1H-1S-2C – 1D-1H-2C-2S – 1D-1H-2D-2S
+P0874 1D-1S-2C-2H – 1D-1S-2D-2H
+P0880 Competitive 1D 1st and 2nd
+P0881 After 1D-(1M) we play system on, with double over 1H showing exactly 4 spades and 1S 5+S’s.  1NT retains its meaning as 10+ relay and 2C as a non-forcing bid with 5+Cs.
+P0882 After 1D-(1H)-X-(P); 1NT becomes natural 9-13 and an offer to play, not showing 3Ss. Otherwise system is off.
+P0883 We play natural against higher interference.  Double is take-out, and 2NT is last train.  New suits on the 2 level are one round forces, new suits at the 3 level are a game force.
+P0885 1M Opening 1st 2nd
+P0886 A 1M opening in 1 and 2 is a 5+ suit, 9+. The exception to this range is a small range of balanced and semi balanced hands that can open 1NT instead of 1M.
+P0887 The 5+M hands that open 1NT can be defined as - 5 spades, balanced or semi balanced 9-11 without a great suit – 5 hearts, balanced or semi balanced 9-11(12) without a great suit – 6 hearts in a (6322) shape 9-11 without a great suit.
+P0888 The basic continuations after a 1M opening are as follows,
+P0889 1M-1NT - 5-9 or 10/11 with 4/5 clubs, denying 3 card support.
+P0890 1M-2C – artificial, “3 way”.
+P0891 1M-2D - natural 5+D’s 10+, denying 3-card support.
+P0892 1M-2M - simple raise, usually 3-card support, 5-9.
+P0893 1H-2S - natural 6+S’s 0-6(7).
+P0894 1S-2H – natural 5+H’s, 10+.
+P0895 1M-2NT – 4+support, game forcing.
+P0896 1M-3m – 6+m, decent suit, invitational.
+P0897 1S-3H – 6+H’s, decent suit, invitational.
+P0898 1H-3S – (6)7 S’s 0-7.
+P0899 1M-3M – 4+ support 8-12.
+P0900 1M-3NT – 5+/6+ minors 9-13.
+P0901 1M-4m – natural 7+ weak, to play.
+P0902 1H-4S – natural, to play (RKCB goes through 2NT).
+P0903 1S-4H – natural, to play.
+P0904 1H-1S
+P0905 A 1S response to 1H is limited in shape and strength by other auctions particularly 1H-2C. 1S in this auction will never be a 53xx shape as responder will either bid 2H in the 5-8/9 range or bid 2C with a stronger hand. The 1H-2C continuations will reveal a 9+ spade fit.
+P0906 42(43) shapes will respond 1S unless they are (11)12+ such that they can be described as “game force balanced” in the 1H-2C auctions.
+P0907 The 1S response will not include weak 6+ spade hands in the 0-6(7) range which can bid 2S immediately and will also not include (6)7+ spade hands which are suitable for an immediate 3S or 4S response.
+P0908 Responding hands that are 63xx and outside the range for 2S or 4S are problematic as they do not immediately show support. This shape is dealt with specifically in parts of the system below but is otherwise apparent in auctions where responder shows delayed support for hearts.
+P0909 1H-1S,
+P0910 1NT – 12-17 balanced including (6322) 12/13. Continuations below.
+P0911 2C – 4+C’s unbalanced or 18/19 balanced. Continuations below.
+P0912 2D – 4+D’s unbalanced.
+P0913 2H – 6+H’s 9-13, 0-2S’s.
+P0914 2S – 3 or 4 S’s 9-13, not 12/13 balanced and 3 spades.
+P0915 2NT – 6+H’s, 3 spades (13)14+. Continuations below.
+P0916 3C – 6+H’s (13)14+, 0-2S’s (see Reordering Opener’s Rebid).
+P0917 3D – diamond splinter, 5H’s 4S’s, 11-13 or 16+ (see Mini/Mega/Maxi Splinters).
+P0918 3H – club splinter, 5H’s 4S’s, 11-13 or 16+ (see Mini/Mega/Maxi Splinters).
+P0919 3S – 4522 or 45(31) 14-16 with a singleton A or K.
+P0920 3NT –
+P0921 4m – Maxi splinter (see Mini/Mega/Maxi Splinters)
+P0922 4H – 7+H’s too good for a 4H opening and too distributional for a 3H bid.
+P0923 4S – 4522 or 45(31) 17-19 with a singleton A or K.
+P0924 4NT – Kickback.
+P0927 1H-1S-1NT,
+P0928 2C – Range enquiry.
+P0929 2D 14/15.
+P0930 2H 12/13.
+P0931 2S 16/17.
+P0932 2D – 5+D’s 5-8, opener can bid on with a maximum.
+P0933 2H – 6S’s, 3H’s 5-7 (too good for an initial 2S response).
+P0934 2S – 5S’s 5/6, opener can bid on with a maximum and 3S’s.
+P0935 2NT – Puppet to 3C, 5+C’s 5-8, opener can bid on with a maximum.
+P0936 3m – 5+/5+ S’s and the minor bid, limited to game values, 10-14 and looking for strain.
+P0937 3H – 6S’s, 3H’s 8-11, forcing. 3S from opener shows 3S’s.
+P0938 3S – 6+S’s, 9-11 usually 6(322).
+P0939 3NT – To play.
+P0940 4m – 6+S’s, shortage in the minor bid 8-11 and a weak slam try when opener has a maximum.
+P0941 After the response to the range enquiry responder will either describe their hand, bid game to play or use a further enquiry, 2NT.
+P0942 1H-1S-1NT-2C-2D/H/S,
+P0943 Pass or 2M – to play.
+P0944 2NT – Game forcing enquiry.
+P0945 3m natural (5422) shape.
+P0946 3H natural (6322) shape 12/13.
+P0947 3S 3532 or 3523.
+P0948 3NT 2533.
+P0949 3m – 5+/5+, 14+ too strong for an immediate 3m bid over 1NT.
+P0950 3H – 6S’s, 3H’s, 12+.
+P0951 3S - 6+S’s, usually 6(322), slam interest+.
+P0952 3NT – To play.
+P0953 4m 6+S’s, shortage in the m bid, slam interest+.
+P0954 4H – 6S’s, 3H’s to play.
+P0955 4S – To play.
+P0956 The 1H-1S-2C auction is forcing on responder unless they have a sub-minimum hand with (4)5+ clubs judging that this is the best contract opposite 18/19 balanced compared to the other likely options.
+P0957 1H-1S-2C,
+P0958 2D – Artificial showing any hand not otherwise described, usually limited to less than 12(13).
+P0959 2H shows a hand that would pass after a natural 1H-1S-2C-2H auction.
+P0960 2S 3514 14/15.
+P0961 2NT 18/19 balanced.
+P0962 3C 5+/5+ 16+.
+P0963 3H 6H’s 4C’s 17+, game forcing.
+P0964 3S 3514 16+.
+P0965 2H – 5+S’s 13+ game forcing.
+P0966 2S 3514 14/15.
+P0967 2NT natural and limited to less than 18/19.
+P0968 3C 5+/5+ 14+.
+P0969 3D 0544.
+P0970 3S 3S’s 18/19 balanced or 3514 16+.
+P0971 3NT 2S’s 18/19 balanced.
+P0972 2S – 6+S’s (7)8-12, constructive.
+P0973 2NT 2/3 S’s game forcing.
+P0974 3S 2/3S’s invitational.
+P0975 3NT to play.
+P0976 4S to play.
+P0977 2NT – 12-14 natural and invitational assuming opener has a natural 2C bid.
+P0978 Continuations are natural and forcing to game.
+P0979 3C – 4+C’s invitational 9-12.
+P0980 Continuations are natural and forcing to game.
+P0981 3H – 6S’s 3H’s, game forcing 9-11.
+P0982 3S natural and slamming.
+P0983 4M to play.
+P0984 3S – 6+S’s, setting suit game forcing+. Continuations are serious/non-serious and cue-bids.
+P0985 3NT – To play, 14-16.
+P0988 1H-1S-2NT,
+P0989 3C – agrees hearts Shortage Ask.
+P0990 3D – agrees spades Shortage Ask.
+P0991 3M – to play.
+P0992 3NT – to play.
+P0993 1S-2H
+P0994 The wide 10+ strength of a 2H response to a 9+ 1S opening makes accuracy difficult when choosing part-score or game. A catch all 2NT re-bid is used to show various game forcing hands in addition to the common 14+ balanced hand expected for this re-bid.
+P0995 1S-2H,
+P0996 2S – 9-13, 0-2H’s. 3S shows 3S’s 6H’s forcing (serious/non-serious continuations).
+P0997 2NT – 14+ balanced, semi-balanced or heart support. Continuations below.
+P0998 3m – 14+ natural, probably not 52(42) unless a good 4 card suit.
+P0999 3H – 9-12 3H’s, limit (serious/non-serious continuations).
+P1000 3S – 6+S’s 14-16 unbalanced 0-2H’s. 3NT to play, 4m is a cue for spades.
+P1001 3NT – 6+S’s 17-19. 4m is a cue for spades.
+P1002 4m – 4H’s 11-13, splinter in the suit bid.
+P1003 4H – 13-15 balanced with 3H’s or unbalanced 3H’s 12-14.
+P1004 4S – 7+S’s 12-14 too good to open 4S and too much shape for 3S rebid.
+P1005 When opener re-bids 2NT responder will usually choose to enquire with a 3C bid unless they have 6+H’s.
+P1006 1S-2H-2NT,
+P1007 3C – enquiry.
+P1008 3H 3 or 4H’s too good to bid 4H immediately.
+P1009 3S 62(32) 14-16. 3NT to play, 4m is a cue for spades.
+P1010 3NT 2H’s 14-17 balanced.
+P1011 4m 4H’s 14+ splinter.
+P1012 4NT 2H’s 18/19 balanced.
+P1013 3D – 5+ natural.
+P1014 3H – 6+H’s setting suit (serious/non-serious continuations).
+P1015 3S – 6H’s 3S’s. (serious/non-serious continuations).
+P1016 4m – 6+H’s 9-12 solid suit, auto splinter.
+P1017 4H – 6+H’s 9-12 solid suit no shortage or S shortage.
+P1018 1M-2D
+P1019 A 2D response to 1M shows 5+ diamonds and 9/10+ invitational values. Balanced and some semi balanced 12+ hands with 5 diamonds will respond 2C rather than 2D intending to show a “game force” balanced hand or 3 card major support. 6+D hands with invitational values will respond 3D.
+P1020 A game forcing hand with 6+ diamonds is shown by starting with 2D and then rebidding 3D.
+P1021 Opener will rebid after 1M-2D primarily to describe either a 9-13 or 14+ hand. When opener describes a 14+ hand they will make their natural re-bid above the level of 2M with a range of balanced hands included in a 2NT rebid.
+P1022 When opener raises to 3D they show 3 or 4 diamonds and a 9-13 hand. Supporting diamonds with a 14+ hand opener should rebid 3 of the other major suit. The range of hands that will support diamonds by bidding 3OM are 4-card support (5422) 14+ or unbalanced 3+ card support 14+. Opener can also support diamonds by rebidding 2NT as 14+ balanced and subsequently showing 3 card diamond support.
+P1023 1M-2D,
+P1024 2M – 9-13 no 3-card diamond support.
+P1025 2NT – 14+ balanced.
+P1026 3C – 14+ natural.
+P1027 3D – 9-13 3 or 4 diamonds.
+P1028 3M – 14+ 6+M not 14/15 6+M (6322).
+P1029 3OM – 14+ either balanced with 4 diamonds or unbalanced with 3 diamonds.
+P1030 3NT – to play.
+P1031 1H-2D-2H,
+P1032 2S – natural and game forcing.
+P1033 2NT – natural and invitational.
+P1034 3C – natural and game forcing.
+P1035 3D - 6+D’s game forcing.
+P1036 3H – 6D’s 3H’s game forcing (serious/non-serious continuations).
+P1037 3NT – to play.
+P1038 4H – 6D’s 3H’s to play.
+P1039 1S-2D-2S,
+P1040 2NT – natural and invitational.
+P1041 3C – natural and game forcing.
+P1042 3D – 6+D’s game forcing.
+P1043 3S – 6D’s 3S’s game forcing.
+P1044 3NT – to play.
+P1045 4S – 6D’s 3S’s to play.
+P1046 When opener rebids 2NT after 1M-2D it establishes a game force and shows a range of balanced hands. The hands that opener may have for a 2NT rebid are 14+ balanced with 3 card diamond support, 14+ balanced with 2 card diamond support, (6322) 14/15, (5422) 14+ hands with clubs as a second suit. Responder can choose to bid 3C over a 2NT rebid to discover which option opener has.
+P1047 1M-2D-2NT-3C,
+P1048 3D – 3 card diamond support, 14+ balanced.
+P1049 3OM – (5422) 14+ with clubs.
+P1050 3M – (6322) 14/15.
+P1051 3NT – 2 card diamond support, 14-17 balanced.
+P1052 4NT - 2 card diamond support 18/19.
+P1053 Competitive 1M 1st and 2nd
+P1054 Responder denies 3+ support for openers major suit unless they show it immediately over interference.
+P1055 When responder can bid 3M as a jump over interference, including 1M-(X), that bid continues to be limit, 8-12 but can have only 3 card support.
+P1056 After 1H-(1S), 1H-(X) and 1S-(X) a 2C response from partner retains its meaning as artificial “3 way” with system on but a 2NT response is now natural.
+P1057 A cue bid of the opponents suit at a level forcing to 4 of openers major is a cue raise showing a hand too good to raise to 4M.
+P1060 Horton Two’s
+P1061 2D/H/S openings in 1st and 2nd seat promise 4+ spades as well as 4+ in the suit opened, or in the case of a 2S opening, clubs. The strength of a Horton Two (HT) is defined as any hand that is less than a normal 1 level opening so nearly always 0-8 high card points.
+P1062 A hand containing 6+ spades prefers to open 3S or 4S and therefore in a HT, spades will always be 4 or 5 cards in length with an exception when vulnerable and holding a poorish 6 card suit. The length of the second suit in a HT is 4+.
+P1063 The high card points in a HT can range into a 9 count with concentrated values in the 2 suits but only when vulnerable.
+P1064 A HT should be opened with any qualifying shape except in some conditions when the shape is 4(432). When holding a 4(432) and vulnerable, a HT opening is a pass unless it has good quality suits.
+P1065 (4441) and (5440) shapes can provide a choice of which HT to open. The first choice is always to show the major suits by opening 2H. Choosing between 2D and 2S it is preferred to open 2D but the decision also depends on suit quality.
+P1066 Continuations after a HT are dependent on which HT is opened but there are some consistent rules.
+P1067 Simple support of a major suit at the 3 level shows a wide range of hands including weak shapely hands and up to balanced hands of about 15 high card points. A raise of a major suit is defined as mildly invitational and the extent of the invitation is partly dependent on vulnerability. When vulnerable a simple raise of a major suit by responder can be raised to game with less than when not vulnerable but in either case a raise to game will commonly include extra trumps, shape and good high cards compared to a median HT.
+P1068 A simple bid of a new suit after a HT opening is natural, to play. Opener may raise a new suit but only if they hold support and extra shape/high card values as well.
+P1069 A jump bid in a new suit shows a great suit and is forcing, setting trumps. Bids after a jump bid in a new suit by responder are cue bids. This does not apply for a 2S opening when responder cannot jump in a new suit naturally below game.
+P1070 Kickback for hearts (4S) is not available after a 2H opening and 2H-5C is substituted as Kickback for hearts. The auction 2D-4H is Kickback and to play 4H responder must proceed through 2D-3H.
+P1071 Opener may not Kickback after a HT opening.
+P1072 2NT by responder after a HT is enquiry. A 3C response to the 2NT enquiry shows any minimum hand and 3D from responder is now a further enquiry and forcing to game. A game force is established once opener shows any hand that is not a minimum. The 3D further enquiry does not apply after a 2D opening and 3D is instead simply to play. After the auction 2D-2NT-3C, 3H is defined as a specialised further enquiry.
+P1073 2D,
+P1074 Pass - to play in 2D.
+P1075 2H - natural, to play.
+P1076 2S - to play.
+P1077 2NT - enquiry.
+P1078 3C - natural, to play.
+P1079 3D - mildly invitational to 4D.
+P1080 3H - natural, great suit, game forcing. Suit bids by opener are now cue-bids.
+P1081 3S - mildly invitational, depending on vulnerability.
+P1082 3NT - to play.
+P1083 4C - natural, great suit, game forcing. Suit bids by opener are cue-bids.
+P1084 4D - mildly invitational, depending on vulnerability.
+P1085 4H - Kickback.
+P1086 4S - to play.
+P1087 4NT - Kickback.
+P1088 5C - to play.
+P1089 5D - to play.
+P1090 2H,
+P1091 Pass - to play in 2H.
+P1092 2S - to play.
+P1093 2NT - enquiry.
+P1094 3C - natural, to play.
+P1095 3D - natural, to play.
+P1096 3H - mildly invitational, depending on vulnerability.
+P1097 3S - mildly invitational, depending on vulnerability.
+P1098 3NT - to play.
+P1099 4C - natural, great suit, game forcing. Suit bids by opener are cue-bids
+P1100 4D - natural, great suit, game forcing. Suit bids by opener are cue-bids.
+P1101 4H - to play.
+P1102 4S - to play.
+P1103 4NT - Kickback.
+P1104 5C - Kickback in hearts.
+P1105 5D - to play.
+P1106 2S,
+P1107 Pass - to play in 2S.
+P1108 2NT - enquiry.
+P1109 3C - to play.
+P1110 3D - natural, to play.
+P1111 3H - natural, to play.
+P1112 3S - mildly invitational, depending on vulnerability.
+P1113 3NT - to play.
+P1114 4C - mildly invitational, depending on vulnerability.
+P1115 4D - Kickback.
+P1116 4H - natural, to play.
+P1117 4S - to play.
+P1118 4NT - Kickback.
+P1119 5C - to play.
+P1120 5D - to play.
+P1121 2NT Enquiry
+P1122 The 3 basic hand types described after the 2NT enquiry (or further enquiry after a 3C minimum response) are 5+ second suit/4 card spades - 5(6) spades/4 card second suit - 4/4. The responses to the enquiry continue after showing a minimum or these 3 hand patterns describing 5+/5+ hands, identifying no void or a specific void (the 2NT enquiry responses being, 3NT – 5+/5+, no void, 4C – 5+/5+, higher rank void, and 4D – 5+/5+, lower rank void).
+P1123 The further enquiry after HT-2NT-3C does not identify 5/5 hands, just the 3 basic patterns described above. The specialised further enquiry after a 2D opening (2D-2NT-3C-3H) has only 2 responses showing either 4 spades (3S) or 5 spades (3NT).
+P1124 The order of the 3 step responses to the 2NT enquiry follow the sequence – 3D = longer second suit – 3H = longer spades – 3S = 4/4, as this avoids opener bidding spades with 5 spades and thereby enables a greater likelihood of responder becoming declarer.
+P1125 The further enquiry responses are structured so that when opener shows 5(6) spades it will also not be by bidding 3S.
+P1126 Once responder has used the 2NT enquiry it is no longer possible for responder to show a new suit.
+P1127 After a response to the 2NT enquiry or further enquiry (not including a response showing a 5+/5+ shape), continuations are similar but depend on which HT was opened and the space available after the response. The rules for continuations are as follows,
+P1128 1 – 3NT is to play.
+P1129 2 – 4M in one of openers suits is to play.
+P1130 3 – 4D and 4H are last train for the corresponding major suit (except 4H after a 2D or 2H opening).
+P1131 4 – Step, not being 3NT is a shortage ask (no-high-low) setting spades.
+P1132 5 – Step+1, not being 3NT is a shortage ask (no-high-low) in openers second suit (except when step+1 is 4D after a 2H opening when it is Last Train).
+P1133 6 – 4NT is Kickback for spades, 5C is Kickback for hearts, 4H is Kickback for diamonds and 4D is Kickback for clubs unless 4D is step+1 when it is a shortage ask agreeing clubs.
+P1134 2D-2NT-3D (5+ D’s, 4S’s),
+P1135 3H - shortage ask agreeing spades.
+P1136 3S – shortage ask agreeing diamonds.
+P1137 3NT – to play.
+P1138 4C
+P1139 4D
+P1140 4H – Kickback.
+P1141 4S – to play.
+P1142 4NT – Kickback.
+P1143 5C
+P1144 5D – to play.
+P1145 2D-2NT-3H (5S’s, 4D’s),
+P1146 3S – shortage ask agreeing spades.
+P1147 3NT – to play.
+P1148 4C - shortage ask agreeing diamonds.
+P1149 4D
+P1150 4H – Kickback.
+P1151 4S – to play.
+P1152 4NT - Kickback.
+P1153 5C
+P1154 5D – to play
+P1155 2D-2NT-3S (4/4 S+D’s),
+P1156 3NT – to play.
+P1157 4C – shortage ask agreeing spades.
+P1158 4D – shortage ask agreeing diamonds.
+P1159 4H – Kickback.
+P1160 4S – to play.
+P1161 4NT – Kickback.
+P1162 5C
+P1163 5D – to play
+P1164 After the further enquiry,
+P1165 2D-2NT-3C-3H-3S (4S’s minimum),
+P1166 3NT – to play.
+P1167 4C – shortage ask agreeing spades.
+P1168 4D – shortage ask agreeing diamonds.
+P1169 4H – Kickback.
+P1170 4S – to play.
+P1171 4NT – Kickback.
+P1172 5C
+P1173 5D – to play.
+P1174 2D-2NT-3C-3H-3NT (5S’s minimum),
+P1175 4C – shortage ask agreeing spades.
+P1176 4D – shortage ask agreeing diamonds
+P1177 4H – Kickback.
+P1178 4S – to play.
+P1179 4NT – Kickback.
+P1180 5C
+P1181 5D – to play.
+P1183 2H-2NT-3D (5+H’s, 4S’s),
+P1184 3H – shortage ask agreeing spades.
+P1185 3S – shortage ask agreeing hearts.
+P1186 3NT – to play.
+P1187 4C
+P1188 4D – Last Train.
+P1189 4H – to play.
+P1190 4S – to play.
+P1191 4NT – Kickback.
+P1192 5C – Kickback.
+P1193 2H-2NT-3H (5S’s, 4H’s),
+P1194 3S – shortage ask agreeing spades.
+P1195 3NT – to play.
+P1196 4C – shortage ask agreeing hearts.
+P1197 4D – Last Train.
+P1198 4H – to play.
+P1199 4S – to play.
+P1200 4NT – Kickback.
+P1201 5C – Kickback.
+P1202 2H-2NT-3S (4/4 S+H’s),
+P1203 3NT – to play.
+P1204 4C – shortage ask agreeing spades.
+P1205 4D – Last Train.
+P1206 4H – to play.
+P1207 4S – to play.
+P1208 4NT – Kickback.
+P1209 5C – Kickback.
+P1210 After the further enquiry,
+P1211 2H-2NT-3C-3D-3H (5+H’s, 4S’s minimum),
+P1212 3S – shortage ask agreeing spades.
+P1213 3NT – to play.
+P1214 4C – shortage ask agreeing hearts.
+P1215 4D – Last Train.
+P1216 4H – to play.
+P1217 4S – to play.
+P1218 4NT – Kickback.
+P1219 5C – Kickback.
+P1220 2H-2NT-3C-3D-3S (4/4 S+H’s minimum),
+P1221 3NT – to play.
+P1222 4C – shortage ask agreeing spades.
+P1223 4D – Last Train.
+P1224 4H – to play.
+P1225 4S – to play.
+P1226 4NT – Kickback.
+P1227 5C – Kickback.
+P1228 2H-2NT-3C-3D-3NT (5S’s, 4H’s minimum),
+P1229 4C – shortage ask agreeing spades.
+P1230 4D – Last Train.
+P1231 4H – to play.
+P1232 4S – to play.
+P1233 4NT – Kickback.
+P1234 5C – Kickback.
+P1236 2S-2NT-3D (5+C’s, 4S’s),
+P1237 3H – shortage ask agreeing spades.
+P1238 3S – shortage ask agreeing clubs.
+P1239 3NT – to play.
+P1240 4C
+P1241 4D – Kickback.
+P1242 4H – Last Train.
+P1243 4S – to play.
+P1244 4NT – Kickback.
+P1245 5C – to play.
+P1246 2S-2NT-3H (5S’s 4C’s),
+P1247 3S – shortage ask agreeing spades.
+P1248 3NT – to play.
+P1249 4C – shortage ask agreeing clubs.
+P1250 4D – Kickback.
+P1251 4H – Last Train.
+P1252 4S – to play.
+P1253 4NT – Kickback.
+P1254 5C – to play.
+P1255 2S-2NT-3S (4/4 S+C),
+P1256 3NT – to play.
+P1257 4C - shortage ask agreeing spades.
+P1258 4D – shortage ask agreeing clubs.
+P1259 4H – Last Train.
+P1260 4S – to play.
+P1261 4NT – Kickback.
+P1262 5C – to play.
+P1263 After the further enquiry,
+P1264 2S-2NT-3C-3D-3H (5+C’s 4S’s minimum),
+P1265 3S – shortage ask agreeing spades.
+P1266 3NT – to play.
+P1267 4C – shortage ask agreeing clubs.
+P1268 4D – Kickback.
+P1269 4H – Last Train.
+P1270 4S – to play.
+P1271 4NT – Kickback.
+P1272 5C – to play.
+P1273 2S-2NT-3C-3D-3S (4/4 S+C minimum),
+P1274 3NT – shortage ask agreeing spades.
+P1275 4C – shortage ask agreeing clubs.
+P1276 4D – Kickback.
+P1277 4H – Last Train.
+P1278 4S – to play.
+P1279 4NT – Kickback.
+P1280 5C – to play.
+P1281 2S-2NT-3C-3D-3NT (5S’s 4C’s minimum),
+P1282 4C – shortage ask agreeing spades.
+P1283 4D – shortage ask agreeing clubs.
+P1284 4H – Last Train.
+P1285 4S – to play.
+P1286 4NT – Kickback.
+P1287 5C – to play.
+P1288 Continuations after a shortage ask are step, not being game in the agreed suit, Shortage Keycard. The other continuations are Kickback or cue-bids.
+P1289 Kickback after a Horton Two has simplified responses given openers strength range. First step, 0 keycards - step+1, 1 keycard – step+2, 2 keycards. A queen ask applies after opener shows 0 or 1 keycards but not when they show 2 keycards.
+P1290 5/5 Shape
+P1291 The responses to the 2NT enquiry showing a 5+/5+ shape are 3NT 5(521), 4C 5(530) high void, and 4D 5(530) low void. Continuations are step Keycard in spades, and step+1 Keycard in the second suit unless step or step+1 are game in one of openers suits.
+P1292 A 5+/5+ shape is not shown after the further enquiry and opener should instead show 5 spades.
+P1293 Competition
+P1294 Competitive HT auctions are simplified by responder always being in control. Opener in a competitive auction will always pass unless they have exceptional shape (likewise opener may raise a non-forcing bid by responder but only with exceptional shape).
+P1295 When there is immediate interference over a HT opening, 2NT retains its meaning as an enquiry as do all other bids. Double by responder is always penalties and opener may double with more defence than the median hand after responder has doubled.
+P1296 When there is interference after responder has used the 2NT enquiry opener should answer the enquiry when the interference is 3S or less in the same step order as if there had been no interference. Pass is first step showing a minimum, followed by double as step+1, longer second suit. The other steps used will correspond to opener not showing 5 spades by bidding 3S or otherwise correspond to the same order as if there had been no interference.
+P1297 In the event of higher interference than 3S opener should pass with a minimum and otherwise find the most convenient and descriptive bid with the default choice being double.
+P1299 2C Opening
+P1300 A 2C opening is a game force showing 23+ high card points balanced or a game forcing distributional hand. The range of a 2C opening is not tightly defined. Control responses apply after a 2C opening and it can therefore be described as a hand that wants to game force and/or a hand that wants to know partners control count.
+P1301 After a 2C opening,
+P1302 2C-2D shows 0 or 1 or 4 controls.
+P1303 2C-2H shows 2 or 5 controls.
+P1304 2C-2S shows 3 controls.
+P1305 2C-2NT/3C/D/H shows a 6+ suit playable as trumps opposite Hx support and 0-2 controls. If such a hand has 2 controls it will have no other significant high cards. Opener can accept the transfer with a suitable fit, or bid 3NT to play, or bid a great suit of their own. When opener accepts the transfer responder will show controls in the order step = 0, step+1 = 1, step+2 = 2.
+P1306 2C-3NT shows 9+, 0 or 1 controls, either a (4333) or (4432) shape.
+P1307 After a 2C opening and interference of X or any bid up to and including 3NT we pass as 0 controls - X (or XX) as 1/4 controls – bid step with 2/5 controls - step+1 with 3 controls. Other bids after interference are natural showing a similar suit as required for the use of a transfer over a 2C opening.
+P1308 Double of interference by a 2C opener is takeout orientated with a balanced hand.
+P1309 Responder in a 2C auction can never Keycard.
+P1311 2NT Opening 1st and 2nd
+P1312 The range for a 1st or 2nd seat 2NT opening is 20-22 balanced including downgrades to a 1C opening and upgrades to a 2C opening.
+P1313 The response structure is,
+P1314 2NT,
+P1315 3C = Muppet Stayman.
+P1316 3D/H = Transfer, promising 5+ in the major.
+P1317 3S = Minor suit Stayman.
+P1318 3NT = to play.
+P1319 4C/D = slam try in the opposite minor suit.
+P1320 4H = Transfer to 4S, either to play or to apply Kickback.
+P1321 4S = to play.
+P1322 4NT = Quant.
+P1323 After Muppet Stayman,
+P1324 2NT-3C,
+P1325 3D = 1 or both 4-card majors.
+P1326 3H = no 4 or 5 card major.
+P1327 3S = 5 spades.
+P1328 3NT = 5 hearts.
+P1329 2NT-3C-3D,
+P1330 3H = 4 S’s, now 3S shows a decent hand for slam and 4S is a bad hand for slam (see below).
+P1331 3S = 4 H’s, now 4m shows a cue bid and a decent hand for slam and 4H is a bad hand for slam.
+P1332 3NT = to play.
+P1333 4C = 4/4 majors, slam interest (see below).
+P1334 4D = 4/4 majors, no slam interest.
+P1335 2NT-3C-3H,
+P1336 3S = Puppet to 3NT denying 54xx hands (see below).
+P1337 3NT = 5S’s 4H’s, game only values.
+P1338 4C = 5+C’s slam try, now Kickback, cues, and 4NT no fit, to play.
+P1339 4D = 5+D’s slam try, now Kickback, cues, and 4NT no fit, to play.
+P1340 4H = 5S’s 4H’s, non-forcing slam try, now 4S/NT to play.
+P1341 4S = 5S’s 4H’s slam forcing, now 4NT shows no fit and a new suit shows 3 S’s and a cue bid.
+P1342 4NT = Quant.
+P1343 2NT-3C-3H-3S-3NT,
+P1344 Pass, to play.
+P1345 4C = Minor suit Stayman (see below).
+P1346 4H = 5+/5+ M’s non-forcing slam try, now 4S to play, 4NT Kickback for S’s.
+P1347 4S = 5+/5+ M’s slam forcing, now 4NT Kickback for S’s.
+P1348 2NT-3C-3H-3S-3NT-4C,
+P1349 4D = 4/4 or better in the minors, now 4M is Kickback in the corresponding minor.
+P1350 4H = 5+C’s, now step is Kickback and 4NT is no fit.
+P1351 4S = 5+D’s, now 4NT is no fit and 5C is Kickback.
+P1352 4NT = 3343 or 3334.
+P1353 2NT-3C-3S/NT,
+P1354 4m = agrees the major shown, cue bid with slam interest.
+P1355 2NT-3C-3D-3H/S-3NT,
+P1356 4C = 5+ slamming with a 4-card M, now Kickback, cues for the m, 4NT to play.
+P1357 4D = 5+ slamming with a 4-card M, now Kickback, cues for the m, 4NT to play.
+P1358 4NT = Quant.
+P1359 5NT = “bid a 4-card minor”.
+P1360 2NT-3C-3D-4C,
+P1361 4D = spades, no slam interest, now 4H is a re-transfer.
+P1362 4H = hearts no slam interest.
+P1363 4S/NT = Kickback.
+P1364 After a transfer to a major opener should super accept when they have 4/5 card support and should bid 3NT over the transfer with 3 card support and a great hand for slam.
+P1365 Great hands with 3 card support should be limited to non (4333) shapes (which would prefer to play 3NT when offered a choice of contract) and a minority (maybe 40%) of hands, representing the best hands that would choose 4M rather than 3NT. The 3-card support super accept is always 3NT.
+P1366 Opener should always super accept with 4/5 card support valuing the hand as either,
+P1367 terrible hand for slam, usually only 2 keycards – bids 4M.
+P1368 great hand for slam (notionally top 30%) – cue bids.
+P1369 decent/good hand for slam – bids either 3S over a 3D transfer or 4C over a 3H transfer.
+P1370 Re-transfers apply at the 4 level in all these auctions.
+P1371 2NT-3D-3H,
+P1372 3S = 5H’s 4S’s any strength (see below).
+P1373 3NT = pick.
+P1374 4C = natural 4+ and slamming, now 4D/S Kickback, 4H/NT to play.
+P1375 4D = natural 4+ and slamming, now 4H/NT to play, 4S Kickback, 5C cue for D’s.
+P1376 4H = to play.
+P1377 4S = Kickback.
+P1378 4NT = Quant.
+P1379 5C = Exclusion.
+P1380 5D = Exclusion.
+P1381 2NT-3D-3H-3S,
+P1382 3NT = to play.
+P1383 4C/D = agrees corresponding M, decent hand for slam.
+P1384 4H/S = to play bad hand for slam.
+P1385 2NT-3H-3S,
+P1386 3NT = pick.
+P1387 4C = natural 4+ and slamming, now 4D/NT Kickback, 4H cue for C’s, 4S to play.
+P1388 4D = natural 4+ and slamming, now 4H/NT Kickback, 4S to play, 5C cue for D’s.
+P1389 4H = 5+/5+ M’s, game values only.
+P1390 4S = to play.
+P1391 4NT = Quant.
+P1392 5C = Exclusion.
+P1393 5D = Exclusion.
+P1394 After minor suit Stayman,
+P1395 2NT-3S,
+P1396 3NT = no 4/5 card minor or unsuitable hand (see below).
+P1397 4C = 4-card suit.
+P1398 4D = 4-card suit.
+P1399 4H/S = 5-card corresponding minor, now 4NT kickback, else cues.
+P1400 2NT-3S-3NT,
+P1401 4m = 5-card suit, now Kickback, cue-bidding, 4NT sign off.
+P1402 4M = 5+/5+ m’s shortage, now 4NT is good for slam, 5m is bad for slam.
+P1403 4NT = Quant.
+P1404 2NT-3S-4C,
+P1405 4D = Kickback.
+P1406 4H = shortage.
+P1407 4S = shortage.
+P1408 5C = to play.
+P1409 2NT-3S-4D,
+P1410 4H = Kickback.
+P1411 4S = shortage.
+P1412 4NT = H shortage.
+P1413 5D = to play.
+P1414 After a 4m, other minor slam try,
+P1415 2NT-4C,
+P1416 4D = agrees D’s, Kickback.
+P1417 4H/S = agrees D’s, cue bid, now 4NT Kickback, else cue.
+P1418 4NT = no fit, to play.
+P1419 5C = agrees D’s, cue bid.
+P1420 5D = bad hand for slam, usually 2 keycards.
+P1421 2NT-4D,
+P1422 4HHH = agrees C’s, Kickback.
+P1423 4S – agrees C’s, cue bid.
+P1424 4NT = no fit, to play.
+P1425 5C = bad hand for slam, usually 2 keycards.
+P1426 After a 4H transfer to S’s and accept,
+P1427 2NT-4H-4S,
+P1428 4NT = Kickback.
+P1429 5C/D/H = Exclusion.
+P1431 3NT Opening
+P1432 In 1st and 2nd seat a 3NT opening shows 5 spades, 6/7 hearts 9-13. A 4m continuation agrees the corresponding major suit and asks opener to cue-bid with a decent+ hand, otherwise bid 4M.
+P1433 In 3rd seat a 3NT opening is a wide range of strong 15+ hands commonly based on a long minor. The option to open 3NT in 3rd seat will consider partners pass and may include 5 spades.
+P1435 3 and 4 Level Openings 1st and 2nd
+P1436 A hand with a 6+ suit and 0-8 high cards with the opportunity to open the bidding should open 3 or 4 of the suit. The exceptions to this broad range of pre-empts can be when holding a (6322) shape vulnerable, as well as some 3361, 3316 hands given the ability to support partners major suit.
+P1437 Opening at the 3 level will never be 9+ as those hands should open at the 1 level. Opening 4M will routinely include hands up to about 12/13 points. The principle for this is simply that a 4M pre-empt is effective and a large range should be maintained. A 4M pre-empt will usually be a hand with a “promising” shape and include 6/5 shapes and 6/4 shapes. The 3M pre-empts will never be a hand with a “promising” shape unless at the very lowest end of the 0-8 strength range.
+P1438 A 4m pre-empt is defined as a hand that is very unlikely to be suitable in a 3NT contract. In practice this will normally be a 7+ suit of poor quality and/or extreme shape.
+P1439 A new suit after a 3 level pre-empt is natural and forcing. Opener should usually bid 3NT without 2+ support for partner’s suit.
+P1441 Mini Mega Maxi Splinters
+P1442 A single or double jump shift by opener is usually a mini/mega/maxi splinter promising 4 card support for responders 1x major response to a 1 level opening and 0/1 cards in the suit bid.
+P1443 The mini range is better than an absolute minimum opening hand given that OA opens every unbalanced 9 high card point hand. The absolute minimum splinter hands will be a simple raise followed by the range relay described elsewhere in these notes. The mini splinter range is about 11-13 but might include good 10 high card point hands and some poorish 14 high card point hands.
+P1444 The maxi range is the next range of strength, above a mini range, and is defined as a hand that is strong enough to force to game or at least has an expectation that if responder has a minimum hand, game will still be a sensible/appropriate chance of making. An approximate high card point range for a maxi splinter is 14-16 but can be 13 or 17 depending on the shape and quality of values.
+P1445 The mega range is the strongest range and will commonly be about 17-19 high card points.
+P1446 There are 10 sequences which show either a mini or a mega splinter in responders suit with a single jump shift - 1C-1D-2S/3D, 1C-1H-3D/3H, 1D-1H-2S/3C, 1D-1S-3C/3H and 1H-1S-3C/3D. Continuations after a mini/mega splinter are as follows,
+P1447 3M – sign off with a minimum hand that does not derive significant value from the splinter and expects that making 9 tricks will be a struggle opposite a mini splinter.
+P1448 Opener will usually bid 4M now with a mega splinter but can bid non-serious or cue-bid with a very strong mega splinter. Opener can also bid 4M with an extreme shape mini splinter.
+P1449 4M – a minimum hand that does derive some value from the splinter but does not expect to make slam when opener has a mega splinter.
+P1450 Step (not including 3M) – a hand that expects to make game opposite the mini splinter and has some interest in slam when partner has the mega splinter. In other terms this bid is akin to a non-serious slam try opposite the mega splinter. Continuations after a Step by opener are similar to responders options after the mini/mega splinter,
+P1451 4M – sign off with a mini splinter
+P1452 Step – Keycard with normal 03/14/2/2+Q responses and continuations.
+P1453 Bidding the splinter suit – exclusion Keycard with a mega splinter.
+P1454 New suit – cue-bid with a mega splinter but not committed to slam and concerned to find responders controls.
+P1455 Step+1 (not including 3M) – shortage Keycard.
+P1456 The responses are step to show a void and then usual Keycard responses, 03/, 1/4, 2, 2+Q. When opener describes a void, step (including when step is the M) is Keycard. After a Keycard response bids are the usual steps following Keycard asking for the trump queen and kings.
+P1457 New suit or 3NT – cue-bid, using 3NT to show control in the “furthest” suit. Assumed to be a hand with slam interest opposite the mini splinter.
+P1458 Jump new suit – exclusion Keycard.
+P1459 A double jump shift by opener promises a maxi splinter. The applicable auctions are – 1C-1D-3S/4D, 1C-1H-4D/4H, 1D-1H-3S/4C, 1D-1S-4C/4H and 1H-1S-4C/4D. Continuations after a maxi splinter are,
+P1460 4M – to play
+P1461 Step below 4M (not always available) – Shortage Keycard.
+P1462 The responses are step to show a void and then usual Keycard responses, 03/, 1/4, 2, 2+Q. When opener describes a void, step (including when step is the M) is Keycard. After a Keycard response bids are the usual steps following Keycard asking for the trump queen and kings.
+P1463 4M+1 – Kickback (normal responses).
+P1464 New suit – cue bid with some slam interest.
+P1465 4M+1 is now Kickback from either player. Opener cue bidding his shortage confirms a void but is not exclusion Keycard.
+P1467 1D/H/S-2NT 1st and 2nd
+P1468 The 2NT response to 1D/H/S shows a game forcing hand with 4+ support for openers suit. This response will rarely be used when responder has 4+D’s as it is preferable to proceed through the 1NT response. When responder chooses 1D-2NT it shows 5+D’s and game forcing values.
+P1469 1D/H/S-2NT,
+P1470 3C – balanced.
+P1471 3D – middle shortage.
+P1472 3H – high shortage.
+P1473 3S – low shortage.
+P1474 4H/S – 9-10 balanced with a great suit that therefore did not open 1NT.
+P1475 The 3S, low shortage response rolls into the next relay which is a range ask and a 3S response after 1D/H/S-2NT therefore shows a low shortage and a minimum, 9-11 strength hand – 3NT shows low shortage 12-14 – 4C shows low shortage 15-17 – 4D shows low shortage 18/19.
+P1476 Following 1D/H/S-2NT-3C/D/H step asks opener for range which is divided into 4 ranges as mentioned above. Following the range ask step is Shortage Keycard.
+P1477 When the auction starts 1D-2NT or when opener shows a balanced range a 3NT bid from responder is an offer to play and step becomes 4C. When step is 4M in openers major the next step in the relay is 4M+1.
+P1478 1M-2C 3 way
+P1479 1M-2C promises one of 3 basic hand types - a 3 card raise in the major with invitational plus values – a game forcing hand with a doubleton in the major, balanced – a game forcing hand with clubs. To facilitate this convention 1M-1NT may contain an invitational hand with clubs.
+P1480 To balance the ranges of other sequences there are some exceptions to the type of hand promised by 1M-2C. Responder holding a balanced hand with a doubleton in the major 1-2 points short of a game forcing hand can choose to bid 1M-2C rather than 1NT. A 4333 hand with 4 card support for openers major and invitational values can choose to bid 2C rather than 3M.
+P1481 The purpose of this convention is to effectively deal with the 9+ style openings in Outback Acol without getting to the 3 level and to limit information exchange.
+P1482 The 1M-2C system is retained after the auction starts, 1H-(1S) or 1M-(X) but is otherwise off.
+P1483 1M-2C,
+P1484 2D – artificial accepting the limit raise but a limited hand.
+P1485 2M – poor to average limit raise, non-forcing.
+P1486 2OM – 3 card raise 15+. Opener should now make a descriptive bid.
+P1487 2NT – balanced game force with a doubleton M (not 5D’s).
+P1488 3C – game forcing with C’s.
+P1489 3D – 5 diamonds, doubleton M, balanced game force.
+P1490 3M – 3 card raise 11-14 with great controls.
+P1491 3NT – to play.
+P1492 4M – to play.
+P1493 2M – rejecting the limit raise. All continuations are game forcing.
+P1494 2NT - balanced game force with a doubleton M (not 5D’s).
+P1495 3C - game forcing with C’s.
+P1496 3D - 5 diamonds, doubleton M, balanced game force.
+P1497 3M – 3 card raise 15+.
+P1498 3NT – to play.
+P1499 4M  -to play
+P1500 2OM – natural, accepting the limit raise.
+P1501 1S-2C-2H 2S is now non forcing
+P1502 2NT - balanced game force with a doubleton M.
+P1503 3C – game forcing with C’s.
+P1504 3D - 5 diamonds, doubleton M, balanced game force.
+P1505 3M – initial game forcing 3 card raise.
+P1506 3OM – agreeing suit.
+P1507 3NT – to play.
+P1508 4M – poor to average limit raise.
+P1509 2NT – either (17)18/19 balanced or a reverse strength hand with diamonds.
+P1510 3C – enquiry. 3D promises (17)18/19 balanced. 3H,3S and 3NT show shortage, N/H/L.
+P1511 3C – natural, reversing strength.
+P1512 3D – natural, may not be 4 cards, or a cue for C’s.
+P1513 3OM – natural, may not be 4 cards, or a cue for C’s.
+P1514 3M – good 3 card limit raise plus.
+P1515 3NT – to play.
+P1516 4C – 3 card M raise and 4+C’s.
+P1517 4D – Kickback
+P1518 4M – poor to average limit raise.
+P1519 3D – 1M/3M, 1M/3NT rebid hand without a solid suit.
+P1520 3M – 3 card raise or doubleton major support, game force balanced hand.
+P1521 3M – 1M/3M, 1M/3NT rebid hand with a solid suit. New suits are now cue bids.
+P1522 3NT – (14)15-17 balanced.
+P1524 1C/1D Split Range Major Suit Raise and 3(4) Card Major Support Relay
+P1525 Outback Acol uses a split range raise to 2M in the sequences 1C-1D-2H and 1C-1H-2S. Bidding 2M in these sequences promises either a 9/10(11) hand with 3, maybe 4 card support, for the major or 14/15(16) balanced with 4 card support for the major.
+P1526 All non-jump bids other than step in the 1C-1D-2H and 1C-1H-2S auctions are natural and invitational,
+P1527 1C-1D-2H,
+P1528 2NT invitational with 4H’s.
+P1529 3C invitational.
+P1530 3D invitational with 6+D’s, 4H’s.
+P1531 3H invitational with 5+H’s.
+P1532   1C-1H-2S,
+P1533 3C invitational.
+P1534 3D invitational with 6+D’s, 4S’s.
+P1535 3H invitational with 4H’s, 5+S’s.
+P1536 3S invitational with 5+S’s.
+P1537 Responder should accept an invitation holding a 14/15(16) balanced hand and otherwise reject the invitation, including correcting to 3M.
+P1538 There are sequences other than 1C-1D-2H and 1C-1H-2S where opener will show exactly 3 card major suit support with a limited and similar range of shapes. These sequences are,
+P1539 1D-1H-2H, 1D-1S-2S showing 3 or 4 card support for responders major, 9-10(11).
+P1540 1D-1H-1NT, 1D-1S-1NT showing 3 card support for responders major, (11)12-15. These sequences use a 2C enquiry for range and responder will bid 2M with a minimum, above 2M with a maximum (complying with the relay structure below) and 2D with a medium range.
+P1541 1C-1D-2C-2D-2H, 1C-1H-2C-2D-2S which utilise the Bourke Relay and show 3 card major suit support, (11) 12/13.
+P1542 Resolving the split range strength in the simple 1C auctions, other than with an invitational bid, step initiates a game forcing relay. Opener holding a 14/15(16) balanced hand should bid over the level of 3M after the game forcing relay to describe a different range of 14/15(16) balanced, 4 card support hand. The options are – bid 4M with a terrible hand for slam - bid non-serious, 1C-1D-2H-3S or 1C-1H-2S-3NT, holding a minimum/normal type hand, commonly 4 controls or 5 controls and an average hand for slam – cue-bid above the non-serious response when holding a great hand for slam with at least 5 controls.
+P1543 The 1C-1D-2H, 1C-1H-2S and 1D-1H-2H, 1D-1S-2S auctions include 4 card support hands 9-11. Opener will judge the strength of his hand for this range of hands partly based on his shape such that these hands likely include a (6430) 9(10) count or a (4441) 11(12) count. To show the 9-11 4 card support hands after the game forcing step relay responder simply bids 3M.
+P1544 Other than resolving strength or 4 card support the game forcing step relay uses the bids between the relay and 3M (not including 3M) to resolve shape for 3 card support hands in all the auctions mentioned above.
+P1545 1C-1D-2H-2S, 1C-1D-2C-2D-2H-2NT,
+P1546 2NT 4S’s 4315 or 4306.
+P1547 3C 6+C’s and no undisclosed 4 card suit. Probably 1336 or 3316.
+P1548 3D 4D’s 1345 or 0346.
+P1549 Note that the 1C-1D-2C-2D-2H auction, opener has already denied 4 spades before reaching the relay hence the relay step becomes 2NT.
+P1550 1C-1H-2S-2NT, 1C-1H-2C-2D-2S-2NT,
+P1551 3C 6+C’s and no undisclosed 4 card suit. Probably 3136 or 3316.
+P1552 3D 4D’s 3145 or 3046.
+P1553 3H 4H’s 3415 or 3406.
+P1554 1D-1H-2H-2S, 1D-1H-1NT-2C-2D/H-2NT,
+P1555 2NT 4S’s 4315 or 4306.
+P1556 3C 4C’s 1354 or 0364.
+P1557 3D 6+D’s and no undisclosed 4 card suit. Probably 3361 or 1363.
+P1558 Note that the 1D-1H-1NT-2C-2D/H auction, opener has already denied 4 spades before reaching the relay hence the relay step becomes 2NT.
+P1559 1D-1S-2S-2NT, 1D-1S-1NT-2C-2D/H-2NT,
+P1560 3C 4C’s 3154 or 3046.
+P1561 3D 6+D’s and no undisclosed 4 card suit. Probably 3163 or 3361.
+P1562 3H 4H’s 3451 or 3460.
+P1563 The responses describe shortage except when opener rebids 3m showing no undisclosed 4 card suit and 6+ in the minor opened. Step by responder in the sequences after opener has shown a 6+ minor and no undisclosed 4 card suit, asks opener to show shortage H/L. The exception is when the step shortage ask is the M in the sequences, 1D-1H-2H-2S-3D and 1D-1H-1NT-2C-2D/H-2NT-3D. The shortage ask in this sequence is step+1, 3S, and 3H after this sequence simply agrees hearts.
+P1564 Continuations after a response to the enquiry below 3M are, 3M to agree the M, cue-bid of openers known shortage to agree openers second suit, bidding openers minor at the lowest level to agree the minor and 3NT to play. Other bids are either kickback or non-existent. It is important to note that once the 2M+1 enquiry is used responder is obliged to agree a suit at the lowest level after the response to the enquiry rather than simply bidding game.
+P1565 1C-1D-2H-2S and 1C-1D-2C-2D-2H-2NT,
+P1566 2NT showing 4315 or 4306,
+P1567 3C agrees C’s.
+P1568 3D agrees S’s.
+P1569 3H agrees H’s.
+P1570 3NT to play.
+P1571 4D Kickback.
+P1572 4S Kickback.
+P1573 4NT Kickback.
+P1574 3D showing 1345 or 0346,
+P1575 3H agrees H’s.
+P1576 3S agrees D’s.
+P1577 3NT to play.
+P1578 4C agrees C’s.
+P1579 4D kickback.
+P1580 4H kickback.
+P1581 4S kickback.
+P1582 1C-1H-2S-2NT and 1C-1H-2C-2D-2S-2NT,
+P1583 3D showing 3145 or 3046,
+P1584 3H agrees D’s.
+P1585 3S agrees S’s.
+P1586 3NT to play.
+P1587 4C agrees C’s.
+P1588 4D Kickback.
+P1589 4H Kickback.
+P1590 4NT Kickback.
+P1591 3H showing 3415 or 3406,
+P1592 3S agrees S’s.
+P1593 3NT to play.
+P1594 4C agrees C’s. 4x from opener is a cue-bid and then 4NT is RKCB in C’s for responder.
+P1595 4D agrees H’s.
+P1596 4H to play.
+P1597 4S kickback.
+P1598 4NT kickback.
+P1599 1D-1H-2H-2S and 1D-1H-1NT-2C-2D/H-2NT,
+P1600 2NT showing 4351 or 4360,
+P1601 3C agrees S’s.
+P1602 3D agrees D’s.
+P1603 3H agrees H’s.
+P1604 3NT to play.
+P1605 4H Kickback.
+P1606 4S Kickback.
+P1607 4NT Kickback.
+P1608 3C showing 1354 or 0364,
+P1609 3D agrees D’s.
+P1610 3H agrees H’s.
+P1611 3S agrees C’s.
+P1612 3NT to play.
+P1613 4D Kickback.
+P1614 4H Kickback.
+P1615 4S Kickback.
+P1616 1D-1S-2S-2NT and 1D-1S-1NT-2C-2D/H-2NT,
+P1617 3C showing 3154 or 3064,
+P1618 3D agrees D’s.
+P1619 3H agrees C’s.
+P1620 3S agrees S’s.
+P1621 3NT to play.
+P1622 4D Kickback.
+P1623 4H Kickback.
+P1624 4NT Kickback.
+P1625 3H showing 3451 or 3460,
+P1626 3S agrees S’s.
+P1627 3NT to play.
+P1628 4C agrees H’s.
+P1629 4D agrees D’s.
+P1630 4H Kickback.
+P1631 4S Kickback.
+P1632 4NT Kickback.
+P1633 The same general rules apply to auctions where opener describes a single suited hand with a 6+ minor and no undisclosed 4 card suit. Responder can skip the shortage enquiry in these auctions and agree either the M or openers minor at the lowest level. Other bids that skip the shortage enquiry are either 3NT to play or Kickback in the M or openers minor. Again, it is important to note that responder must agree a suit below game after the response to the enquiry rather than simply bidding game.
+P1634 1C-1D-2H-2S and 1C-1D-2C-2D-2H-2NT,
+P1635 3C showing either a 1336 or 3316,
+P1636 3D shortage ask.
+P1637 3H agrees H’s.
+P1638 3NT to play.
+P1639 4C agrees C’s.
+P1640 4D Kickback.
+P1641 4S Kickback.
+P1642 1C-1H-2S-2NT and 1C-1H-2C-2D-2H-2NT,
+P1643 3C showing either 3316 or 3136,
+P1644 3D shortage ask.
+P1645 3S agrees S’s.
+P1646 3NT to play.
+P1647 4C agrees C’s.
+P1648 4D Kickback.
+P1649 4NT Kickback.
+P1650 1D-1H-2H-2S and 1D-1H-1NT-2C-2D/H-2NT,
+P1651 3D showing either 1363 or 3361,
+P1652 3H agrees H’s.
+P1653 3S shortage ask.
+P1654 3NT to play.
+P1655 4D agrees D’s.
+P1656 4H Kickback.
+P1657 4S Kickback.
+P1658 1D-1S-2S-2NT and 1D-1S-1NT-2C-2D/S-2NT,
+P1659 3D showing either 3361 or 3163,
+P1660 3H shortage ask.
+P1661 3S agrees S’s.
+P1662 3NT to play.
+P1663 4D agrees D’s.
+P1664 4H Kickback.
+P1665 4NT Kickback.
+P1666 After a response to the shortage enquiry 3NT by responder is to play. Other bids are either agreeing openers minor at the 4 level, in some sequences agreeing the M at the 3 level, bidding 4M to play, kickback in either openers minor when kickback is not the M, or kickback in the M.
+P1667 1C-1D-2H-2S-3C-3D and 1C-1D-2C-2D-2H-2NT-3C-3D - 3H or 3S,
+P1668 3NT to play.
+P1669 4C agrees C’s.
+P1670 4D Kickback.
+P1671 4H to play.
+P1672 4S Kickback.
+P1673 1C-1H-2S-2NT-3C-3D and 1C-1H-2C-2D-2S-2NT-3C-3D - 3H or 3S,
+P1674 3NT to play.
+P1675 4C agrees C’s.
+P1676 4D Kickback.
+P1677 4S to play.
+P1678 4NT Kickback.
+P1679 1D-1H-2H-2S-3D-3S and 1D-1H-1NT-2C-2D/S-2NT-3D-3S - 3NT or 4C,
+P1680 4D agrees D’s. 4M from opener is a cue-bid for D’s and 4NT is RKCB in D’s for responder.
+P1681 4H to play.
+P1682 4S Kickback.
+P1683 1D-1S-2S-2NT-3D-3H and 1D-1S-1NT-2C-2D/S-2NT-3D-3H - 3S or 3NT (3NT after  3S is to play),
+P1684 4D agrees D’s.
+P1685 4H Kickback.
+P1686 4S to play.
+P1687 4NT Kickback.
+P1689 Serious/Non-Serious
+P1690 Once an auction has agreed a major suit fit and is game forcing at or below 3M, Serious/Non-Serious continuations usually apply. When the agreed major is hearts 3S is defined as non-serious and 3NT is defined as serious and a spade cue-bid. When the agreed major is spades 3NT is defined as non-serious.
+P1691 The Serious/Non-Serious auctions rely on the player armed with the convention to bid 4M with a terrible hand for slam or avoid the non-serious bid with a great hand for slam that usually wants to take control of the auction by cue-bidding another suit. In general terms it is expected that the choice of non-serious will be made with a big majority of hands, say 65-70% and that of the remaining hands in each range, half will bid 4M or cue-bid.
+P1694 4C and 4D as a Raise and Raising in Competition
+P1695 One type of auction where this part of the system applies is the 1/3 rebid hands when opener denies 3 card support for responders suit.
+P1696 1C-1D-3C,
+P1697 3D setting C’s asking for shortage M/H/L.
+P1698 3H natural and forcing. Now 4C is natural, 3NT to play, 4D is a good 4H bid.
+P1699 3S natural and angling for 3NT.
+P1700 3NT to play.
+P1701 4C agreeing C’s.
+P1702 4D Kickback.
+P1703 4H to play.
+P1704 1C-1H-3C,
+P1705 3D setting C’s asking for shortage M/H/L.
+P1706 3H natural and angling for 3NT.
+P1707 3S natural and forcing. Now 4C is natural, 3NT to play, 4D is a good 4S bid.
+P1708 3NT to play.
+P1709 4C agreeing C’s.
+P1710 4D Kickback.
+P1711 4H to play.
+P1712 4S Kickback.
+P1713 1D-1H-3D,
+P1714 3H natural and forcing. Now 3S is naturalish, 3NT to play, 4C is a good 4H bid, 4D natural.
+P1715 3S natural and angling for 3NT.
+P1716 3NT to play.
+P1717 4C strong, agreeing D’s.
+P1718 4D agreeing D’s.
+P1719 4H to play.
+P1720 4S Kickback.
+P1721 1D-1S-3D,
+P1722 3H natural angling for 3NT.
+P1723 3S natural and forcing. Now 3NT to play, 4C is a good 4S bid, 4D natural.
+P1724 3NT to play.
+P1725 4C strong agreeing D’s.
+P1726 4D agreeing D’s.
+P1727 4S to play.
+P1728 4NT Kickback.
+P1729 1H-1S-3H
+P1730 3S natural and forcing. Now 3NT is to play, 4C is a good 4S bid, 4M natural.
+P1731 3NT to play.
+P1732 4C strong agreeing H’s.
+P1733 4H to play.
+P1734 4S to play.
+P1735 4NT Kickback.
+P1736 Other non-competitive sequences where we play 4C as a stronger raise than simply bidding 4M are sequences where responder shows a forcing hand with a 6+ major,
+P1737 1H-1S-2D-3S – 4C is a strong 4S bid.
+P1738 1D-1H-2D-3H – 4C is a strong 4H bid.
+P1739 Also, some 4th suit auctions,
+P1740 1S-2D-2H-3C-3H - 4C is a strong 4H bid.
+P1741 In competitive auctions when partner has overcalled a 2 or 3 level opening with a major 4C and sometimes 4D is a strong raise. Often this agreement will distinguish a cue-bid of the opponents suit below game level which is also a strong raise,
+P1742 (2H)-2S-(P) - 4C is a strong raise to 4S denying a heart shortage or control and 4H is a strong raise to 4S promising a heart shortage or control.
+P1743 (3H)-3S-(P) – 4C is a strong raise to 4S denying a heart shortage or control and 4H is a strong raise to 4S promising a heart shortage or control.
+P1744 (3C)-3H-(P) – 4D is a strong raise to 4H denying a heart shortage or control and 4C is a strong raise to 4H promising a club shortage or control.
+P1745 Cue-bidding the opponents suit at the 3 level is always firstly asking for a stopper for 3NT,
+P1746 (2S)-3H-(P) - 3S is asking for a stopper but may also be a strong hand with clubs given that 4C would be a strong raise to 4H.
+P1747 When the opponents interfere after our 1M opening we use 4C or 4D when the interference is clubs to show a strong raise to 4M,
+P1748 1S-(2/3H) - 4C shows a strong raise to 4S denying a heart shortage or control.
+P1749 1M-(2/3C) – 4D shows a strong raise to 4M denying a club shortage or control.
+P1751 1C Opening 3rd and 4th
+P1752 Given the opening ranges for OA and the definition of an opening pass the conventions and system used in 1st and 2nd chair becomes redundant in 3rd and 4th chair. The primary issue in 3rd and 4th chair is again to avoid getting too high with a balanced hand.
+P1753 A 1C opening in 3rd or 4th seat is 2+, either a lead directing bid of less than opening strength in 3rd seat, a (4)5+ club hand of opening strength, or any 9-19 balanced (in 4th seat 13-19).
+P1754 Responses to a 1C opening utilise an artificial 1D bid to show any maximum passed hand. When not vulnerable openers range for a max passed hand is around 6-8. When vulnerable openers range for a max passed hand is about 7-9.
+P1755 After 1C-1D showing a maximum passed hand, opener can bid 1NT to play or 1H artificial to show any game forcing hand.
+P1756 1C-1D-1H,
+P1757 1S = no 4-card major.
+P1758 1NT = 5/5 not including S’s.
+P1759 2C = 4S’s.
+P1760 2D = 5H’s.
+P1761 2H = 5S’s.
+P1762 2S = 4H’s.
+P1763 2NT = 0544.
+P1764 3C = 0445.
+P1765 3D = 0454.
+P1766 3H = 44(32).
+P1767 After 1C-1D-1H-1NT 2C by opener asks responder to resolve his suits,
+P1768 1C-1D-1H-1NT-2C,
+P1769 2D = 5/5 H+C.
+P1770 2H = 5/5 D+C.
+P1771 2S = 5/5 H+D.
+P1772 Holding a minimum passed hand, 0-5/6 after a 3rd or 4th seat 1C opening responder bids 1M, 1NT and 2C naturally. When holding an extreme shape and a minimum passed hand, 0-5/6 responder can show that hand immediately over 1C in the same structure as above after 1C-1D-1H-1NT-2C.
+P1773 1C-1M promises a 4/5 card suit and 0-5(6). Holding a 4333/3433 shape or a poor 4 card major responder can choose to respond 1NT rather than 1M which also includes 0-5(6) hands usually without a 4+ card major and usually not 5 C’s. 1C-2C is natural showing 5 clubs and 0-5(6).
+P1774 After 1C-1M-1NT, 2M from responder shows a good 5 card major, to play.
+P1775 After 1C-1D-1NT responder should describe the extreme shape 5/5 or 0(544) hands in the same pattern as for 1C-1D-1H-1NT-2C using the 2C continuation to show 5H’s or 5S’s, asking opener to bid a correctable 2H.
+P1776 1C-1D-1NT,
+P1777 2C = 5H’s or 5S’s, opener bids 2H correctable.
+P1778 2D = 5/5 H+C.
+P1779 2H = 5/5 D+C.
+P1780 2S = 5/5 C+D.
+P1781 2NT = 0544.
+P1782 3C = 0445.
+P1783 3D = 0454.
+P1784 Bidding After a 3rd/4th Seat 1C Opening and Overcall
+P1785 When the interference is X we play XX as 6-9, system on and 1D as natural 0-5/6.
+P1786 1C-(1D),
+P1787 Pass 0-5/6 usually no 5-card suit.
+P1788 XX 6-9 any, system on.
+P1789 1M natural (4)5-card suit 0-5/6.
+P1790 1NT natural 3-5/6, to play.
+P1791 2C natural 5-card suit 0-5/6.
+P1792 1C-(1H),
+P1793 Pass 0-5/6 usually no 5-card suit.
+P1794 X 6-9 any. Opener can now cue-bid to show a game forcing hand, other bids to play.
+P1795 1S (4)5-card suit 0-5/6.
+P1796 1NT natural 3-5/6, to play.
+P1797 2C natural 5-card suit 0-5/6.
+P1798 2D natural 5-card suit 0-5/6.
+P1799 1C-(1S),
+P1800 Pass 0-5/6 usually no 5-card suit.
+P1801 X 6-9 any. Opener can now cue-bid to show a game forcing hand, other bids to play.
+P1802 1NT natural 3-5/6, to play.
+P1803 2C natural 5-card suit 0-5/6.
+P1804 2D natural 5-card suit 0-5/6.
+P1805 2H natural 5-card suit 0-5/6.
+P1806 The 1C-(1NT) continuations will depend on whether partner is opening 1C in 3rd or 4th seat. When partner opens 1C in 3rd seat responder will nearly always pass after a 1NT overcall as opener may have a poor hand. When opener is in 4th seat responder will double to show a 6-9 hand and a 2x bid shows a 5-card suit 0-5/6.
+P1808 1D/H/S 3rd and 4th
+P1809 Given the narrow range for a passed hand bidding over 1D/H/S in 3rd and 4th seat adopts a fit showing style when responder chooses a 2/1 suit response.
+P1810 1D,
+P1811 1M natural, 5-8.
+P1812 2C natural 5+C’s, 3D’s, 5-8.
+P1813 2D natural (3)4+D’s, 5-8.
+P1814 1H,
+P1815 1S natural, 5-8.
+P1816 1NT natural.
+P1817 2C natural 5+C’s, 3H’s, 5-8.
+P1818 2D natural 5+D’s, 3H’s, 5-8.
+P1819 2H 3+H’s, 5-8
+P1820 1S,
+P1821 1NT natural.
+P1822 2C natural 5+C’s, 3S’s, 5-8.
+P1823 2D natural 5+D’s, 3S’s, 5-8.
+P1824 2H natural 5+H’s, 3S’s, 5-8.
+P1825 2S 3+S’s, 5-8.
+P1827 20+ Balanced hands 3rd and 4th
+P1828 A 1NT opening in 3rd and 4th seat is (19)20-21. We play the same responses as after a 3rd or 4th seat 1C-1D-1H auction where responder shows a 4 or 5 card major suit. A 2NT/3C/3D response shows the extreme (0544) shapes in the same manner as over a 3+4 1C opening. A 3H response shows 44(32) and a 3S response shows a decent 5/5 minor hand.
+P1829 The 2NT opening bid and 2C/2NT rebid auction in 3rd and 4th seat shows the next balanced ranges after a 2NT opening in a 2-point spread, so 22-23 and 24-25 respectively. A 3C response to a strong 2NT or 2C/2NT rebid in these auctions is Puppet Stayman so 3D shows 1 or 2 4-card M’s and 3M shows a 5-card M.
+P1830 A 3D/H response is a transfer promising a 5 card M. Unlike a 1st or 2nd seat 2NT opening or 2C/2NT rebid opener should super accept over a transfer when they have slam aspirations opposite a maximum passed hand, 6-9.
+P1832 Grand Slam Force
+P1833 A leap to 5NT when some form of Blackwood has not been used and when there is no discernible issue of “pick a slam” is the Grand Slam Force.
+P1834 In response to the Grand Slam Force partner should bid 7 of the last naturally bid suit when holding 2 of the top 3 honours in that suit. When partner holds 0 of 3 honours, they should bid 6 of the last naturally bid suit.
+P1835 When partner holds 1 of 3 honours they should either bid 6 of the last naturally bid suit or bid 6 of a lower suit with a king in that suit.
+P1836 Ghestem
+P1837 Ghestem is a specific 2 suited overcall showing 5+/5+ and any range of strength.
+P1838 An immediate cue of a (1X) opening shows 5+/5+ in the higher and lower ranking suits.
+P1839 A 2NT overcall of a (1X) opening shows 5+/5+ in the 2 lower ranking suits.
+P1840 A 3C overcall of a 1(X) opening shows 5+/5+ in the 2 higher ranking suits, except after a 1D opening when a 3D overcall shows 5+/5+ in the majors and a 3C overcall is retained as an intermediate jump.
+P1841 Ghestem over weak 2s
+P1842 (2M) 3M – other major and clubs.
+P1843 (2M) 4C – other major and diamonds.
+P1844 Playing any range Ghestem derives value from prompt fit finding and the approach is to generally bid game whenever partner has a 4+ fit for one of the suits shown.
+P1846 2nd Seat (1X) Overcalling
+P1847 Outback Acol overcalls in 2nd seat whenever there may be some value, primarily focused on 4 handed value. The range of a 2nd seat overcall is only limited at the top end of the range such that it is undesirable to make a simple overcall of a (1X) opening in 2nd seat with a 14 count and should almost never be done with a 15 count.
+P1848 No significant distinction for strength or suit quality is made for the difference between a 1 level overcall and a 2 level overcall. When overcalling with the lowest end of the strength range the relevant factors in deciding to overcall are the likelihood and desirability of directing a lead, as well as the 4 handed value of a specific overcall.
+P1849 Some simple overcalls have more 4 handed value than others. Examples of good value simple overcalls are (1C)-1S or (1D)-2C. In addition to taking high value space from opponents these overcalling positions should not have a high susceptibility to directing a lead and should be made on poor suits. The value for these overcalls commonly derives from exploiting the wide-ranging nature of an opponent’s 1m opening.
+P1850 Overcalls with low 4 handed value include (1C)-1D and (1S)-2C. In these auctions there is a greater likelihood to directing a lead and an overcall should have a decent suit or be an opening strength type hand. When overcalling in the auction (1C)-1D it can be assumed that the overcall has at least marginal lead directing value as otherwise the overcall would not have sufficient value.
+P1851 Continuations after a simple overcall in 2nd seat are based on partner’s 4 handed view. A common experience is for partner in 4th seat to have an excellent hand and hear the following auction, (1X)-O/C-(bid). In this position it will be clear that the over-caller has marginal or no significant values and 4th seat should optimise the available 4 handed value available. A simple raise of a simple overcall can therefore be made on a very wide strength range of hands with support.
+P1852 A new suit from 4th seat after a 2nd seat overcall is constructive and forcing whenever the over-caller has 3+ card support or when the over-caller has about opening hand strength. There are exceptions to 4th seat always having a constructive hand when bidding a new suit such as when it should be plain that the opponents have the balance of strength, for example, (1D)-1S-(2C)-2H. The 2H bid in this auction is likely based on a lead directing value and is a hand that can tolerate partner supporting hearts at a high level.
+P1853 When 4th hand introduces a new suit after a second seat overcall the overcaller can only pass when they have 0-2 cards in the new suit and less than a maximum overcall strength so about 0-10. Showing support for a new suit should distinguish the overcallers strength if possible, by jump supporting with a 11-14 hand and a simple raise if 0-10.
+P1854 NT bids by 4th hand after a second seat overcall show a good hand with game interest if the overcaller is in the 10-14 range. A 2NT bid by 4th hand after a 2 level second seat overcall should always contain support for the overcalled suit and will pass a correction to 3 of overcallers suit (when the overcaller has a 0-9(10) hand).
+P1855 After (1X)-O/C-(X) XX is always Hx in the overcall suit and a decent hand, 7/8+.
+P1856 After (1X)-O/C-(bid) X is always doubleton support for the overcall suit and a good hand.
+P1858 Giorgio
+P1859 This agreement only applies after our 1 level overcalls in second seat – (1C)-1D/H/S, (1D)-1H/S, and (1H)-1S. After 3rd hand chooses pass, a 2C bid is artificial and commonly shows a fit.
+P1860 After the artificial 2C,
+P1861 2D – 6/7-9(10).
+P1862 partners next bid will be natural, to play.
+P1863 2 of overcallers suit – 0-5/6.
+P1864 A response to Giorgio above 2 of overcallers suit is natural showing (10)11-14.
+P1865 After a response to Giorgio, 2NT from 4th hand is game forcing and looking for strain.
+P1866 When 3rd hand does not pass, Giorgio is off and we revert to our usual 2nd seat overcalling agreements.
+P1868 Overcalling Opposite a Passed Hand.
+P1869 The style embedded by OA is to obtain value from every opportunity to bid as created by the larger range of opening bids and the better definition of a passed hand.
+P1870 A famous example hand, bid by Ella Jacob, demonstrates the broad principle of capitalising on the better definition of a passed hand,
+P1871 983
+P1872 A107653
+P1873 Q64
+P1874 6
+P1875 At favourable vulnerability playing for MP’s and after partner passed as the dealer, Ella overcalled a 1D opening with 4H to achieve an event winning result.
+P1876 The merits of choosing 4H’s in this spot are clear enough when considering that partner will not have a 9 count, will not hold 6+ clubs or diamonds, and is unlikely to hold 4+ spades.
+P1877 KQ73
+P1878 Q10632
+P1879 J
+P1880 K53
+P1881 At unfavourable vulnerability playing for imp’s and after partner passed as the dealer, Joe Haffer overcalled a 1D opening, 1H in third seat. Considering partners range as a passed hand and balancing the possibilities I do not think overcalling with this hand has a positive expectation. Whilst there is some reasonable chance that partner raising to 2H or even 3H may win the auction the downside to overcalling in this position probably outweigh that upside.
+P1882 More particularly it is not clear that the opponents will bid or make a game and it is not clear that a heart lead is desirable. Partner may have a hand with (4)5+ hearts that can reasonably bid 4H and that contract is unlikely to make and risks being doubled on a hand where it is likely to be a part score battle.
+P1883 The style of OA opening and overcalling strongly discourages classical balancing actions when partner is a passed hand, either as the dealer or in second seat after a (1x) opening. This hand may be an exception if say the auction proceeded P-(1D)-P-(1NT/2D)-P-(P). A takeout double would be reasonable given this hand is a near perfect shape and the low level of the auction.
+P1884 Responding as a passed hand to partners 3rd seat overcall should also carefully consider the field created. The overcaller has denied an intermediate jump hand but can otherwise have a strong hand or a hand that is not strong but can tolerate partner bidding with support. When the 3rd seat overcall is 1M responder should avoid bidding 3M and only do so with 4 trumps and a shortage. Raising a 2m 3rd seat overcall to 3m can be done much more liberally (without 4 trumps and without great shape) as it has good disruptive effect given that our opponents may not yet have discovered their fit or properly expressed the strength of their fit.
+P1885 J
+P1886 KQ73
+P1887 853
+P1888 KQ1082
+P1889 Facing the same auction as the one above – a 2nd seat (1D) opening, I think a 2C bid here is normal albeit with the same values and general shape. The difference is the lead directing value of the hand and the higher value disruption caused to our opponents auction as well as the good prospect that the values in this hand will be working values. The chance that partner will blast 5C is minimal when they can strongly invite with 4C and the prospects that our opponents make a game contract (like 4S) on this hand is higher.
+P1891 Intermediate Jumps
+P1892 Playing intermediate jumps is an important part of the overcalling structure in Outback Acol. The nature of an intermediate jump differs from the classical definition of that bid and it is shaped by position, vulnerability, and the principle that Outback Acol limits the top end strength of a simple (1X) overcall in 2nd seat. The other broad principle for an intermediate jump is that it will always want partner to bid game in its suit with marginal values and a fit.
+P1893 Assuming the strength of an intermediate jump is rated from 1 as the weakest range, to 3 as the strongest range the respective range should be as follows,
+P1894 Seat                       Not vulnerable                  Vulnerable
+P1895 2st                                        1                                      2
+P1896 3rd or 4th                             3                                       3
+P1897 The range of an intermediate jump should remain constant as a strong hand, usually with a 6+ suit, but varying at the ends of the range in accordance with the above table.
+P1898 An intermediate jump should usually contain sound defensive values. Without good defensive values a hand is more likely to be an appropriate jump to game or a pre-emptive double jump. Expressed as high card points the range of an intermediate jump is variable. Assuming a common shaped hand with a 6 card suit the usual range will be about, 1 = 14-16, 2 = 15-17, 3 = 16-18.
+P1899 The suit shown by an intermediate jump will nearly always be a 6+ suit however, particularly in 2nd seat, an intermediate jump can be a great 5 card suit as an alternative to a simple overcall or doubling and bidding a suit.
+P1900 Intermediate jumps also apply over weak 2 openings by our opponents. In this instance the strength of an intermediate jump will be a “3” based on the table above.
+P1902 Opponents 2 suited overcalls
+P1903 There are several types of 2 suited overcalls including knowing both suits, knowing only one suit and leaping Michaels where both suits are known and the bid made is one of the 2 suits.
+P1904 Leaping Michaels
+P1905 Leaping Michaels does not require a detailed defence as double is retained as takeout. A takeout double in this instance will always promise defence and will often be passed. A cue-bid of one of the suits is agreeing partners suit and promising control. Bidding the remaining suit is natural and forcing.
+P1906 Specific Suits
+P1907 When the 2 suited overcall promises 2 specific suits responder has 4 choices to show a limit+ hand with either partners suit or the remaining suit. A cue-bid of the lower ranking suit shown promises a limit+ hand in the lower ranking suit and a cue-bid of the higher-ranking suit shown promises a limit+ hand in the higher-ranking suit. Simple support of partner’s suit is less than a limit+ hand and bidding the remaining suit is non forcing showing a good 6+ suit, say 5-9.
+P1908 Double of a 2 suited overcall promising 2 specific suits but not being one of those suits is penalty orientated showing 10+ and a good defensive holding in at least one of the 2 suits shown. A subsequent double is penalties.
+P1909 1D-(2D) showing majors 5+/5+ -
+P1910 X shows 10+ and a defensive holding in at least one of the major suits. Double is now penalties.
+P1911 2H shows a (10)11+ hand with 5+ clubs.
+P1912 2S shows a (10)11+ hand with 4+ diamonds.
+P1913 3C shows a 6-10 hand and a 6+ suit.
+P1914 3D shows a 6-10 hand and 4+ diamonds.
+P1915 The meaning of double becomes different when opener is acting after responder’s pass.
+P1916 1D-(2D)-P-(2H/S)-
+P1917 X is takeout and promising extra defensive strength. All subsequent doubles are penalties.
+P1918 One Suit Michaels
+P1919 When the 2 suited overcall shows only one suit but promises two suits an immediate double shows values in the suit shown and a cue-bid of the suit shown shows a limit+ raise of openers suit.
+P1920 1H-(2H) showing spades and a minor 5+/5+
+P1921 X shows 9+ and a good defensive holding in spades. Subsequent doubles are penalties.
+P1922 2S shows a (10)11+ hand with 3+ hearts.
+P1923 2NT natural limit.
+P1924 3m shows a limit+ hand and a 5+ suit.
+P1925 3H shows a 6-9(10) hand with 3+ hearts.
+P1926 3S shows a splinter raise to 4H.
+P1927 3NT to play.
+P1928 4C good raise to 4H.
+P1929 4D splinter raise.
+P1930 4H distributional raise.
+P1932 2D Multi auctions
+P1933 The basic 2D Multi opening is a weak 2 in a major. When this opening also has a strong option, 3rd and 4th seat has some liberty to “know” that the opening is likely the strong option and can take a high risk/high reward destructive overcalling position. The nature of this choice will generally become known as the 2D opener will take an action to express that they held the rare strong option.
+P1934 Overcalling a 2D Multi in second seat should be aggressive rather than entirely constructive given the merit of exploiting an ambiguous opening.
+P1935 In the usual 2D Multi auction Outback Acol will vary based on whether partner is a passed hand or not. The system when partner is not a passed hand is as follows,
+P1936 (2D),
+P1937 Pass can include 8-12 hands that have a takeout double of a major suit.
+P1938 Double is either (12)13-15 balanced or 18/19+ balanced or a single suited type hand too strong for an intermediate jump.
+P1939 The next double is takeout and the next double is penalties. 2NT is scrambling.
+P1940 2H/S natural but limited to less than an intermediate jump.
+P1941 2NT (15)16-18 balanced.
+P1942 Muppet Stayman and transfers.
+P1943 3C/D natural and wide ranging, 11-17.
+P1944 3H/S intermediate jump, 6+ suit and usually (15)16-18.
+P1945 3NT to play based on a long minor and general values.
+P1946 4C shows 5+C’s and a 5+ major suit.
+P1947 4D is Kickback.
+P1948 4H/S is correctable.
+P1949 4D shows 5+D’s and a 5+ major suit.
+P1950 4H/S is correctable.
+P1951 4H/S to play.
+P1952 When partner is a passed hand and the 2D Multi is in 2nd seat all bids have the same meaning but will commonly have a higher range of high cards as partner will nearly always be 0-8.
+P1953 P-(2D),
+P1954 Pass can include 10-14 hands that have a takeout double of a major suit.
+P1955 Double is either 15/16 balanced or 21+ balanced or a single suited type hand too strong for an intermediate jump.
+P1956 The next double is takeout and the next double is penalties. 2NT is scrambling.
+P1957 2H/S natural but limited to less than an intermediate jump.
+P1958 2NT 17-20 balanced.
+P1959 Muppet Stayman and transfers.
+P1960 3C/D natural and wide ranging, 11-17.
+P1961 3H/S intermediate jump, 6+ suit and usually 16-18.
+P1962 3NT to play based on a long minor and general values.
+P1963 4C shows 5+C’s and a 5+ major suit.
+P1964 4D is Kickback.
+P1965 4H/S is correctable.
+P1966 4D shows 5+D’s and a 5+ major suit.
+P1967 4H/S is correctable.
+P1968 4H/S to play.
+P1969 (2D)-P-(2H/S),
+P1970 Double is takeout of the suit bid.
+P1971 The next double is penalties. 2NT is scrambling.
+P1972 2S over 2H is natural, 11-15.
+P1973 2NT (15)16-18 balanced.
+P1974 Muppet Stayman and transfers.
+P1975 3C/D natural and wide ranging, 11-17.
+P1976 3H/S intermediate jump, 6+ suit and usually 14-17.
+P1977 3NT to play based on a long minor and general values.
+P1978 4C shows 5+C’s and a 5+ major suit.
+P1979 4D is Kickback.
+P1980 4H/S is correctable.
+P1981 4D shows 5+D’s and a 5+ major suit.
+P1982 4H/S is correctable.
+P1983 4H/S to play.
+P1984 Leaping to 4m to show that m and any major 5+/5+ is notionally forcing but responder can pass with a terrible hand confident of not finding a major suit fit. When holding a very strong hand we would usually choose not to leap to 4m and double instead.
+P1985 After (2D)-P-(P) double is takeout of diamonds and bids are natural.
+P1986 After (2D)-X-(P) it is normal to pass with almost any diamond holding.
+P1988 Opponents Weak 2D Opening
+P1989 A weak 2D opening is rare however when it occurs there is no longer need to play a scrambling 2NT bid in response to a takeout double. A 2NT bid after (2D)-X or (2D)-P-(P)-X-(P) is Lebensohl distinguishing strength.
+P1990 (2D)-X or (2D)-P-(P)-X-(P),
+P1991 2M – natural and minimum.
+P1992 2NT – a puppet to 3C usually showing a weak hand, 0-7/8 with clubs.
+P1994 (3X) 3NT continuations
+P1995 This competitive arrangement applies only to a 1st seat pre-empt (usually at the 3 level but also over a natural weak 2 opening) followed by a 3NT overcall from 2nd seat. The transfer continuations used are only for potential slam going hands showing a 6+ suit.
+P1996 Given the wide-ranging nature of the 3NT overcall which can be based on a strong balanced hand or long minor the transfer system allows opener to show which form of 3NT overcall is held and express a view about the suitability for slam.
+P1997 The structure follows a basic “2 under” transfer to each of the 3 unbid suits, varying depending on the suit opened. The basic rules are,
+P1998 4C shows the lower ranking major suit available.
+P1999 4D shows the highest-ranking remaining suit available.
+P2000 4H shows the remaining suit.
+P2001 4S is simple Blackwood.
+P2002 4NT is quant.
+P2003 The continuations are as follows,
+P2004 (3C)-3NT,
+P2005 4C = 6+H’s slamming,
+P2006 4D shows 2+H’s and a good hand for slam in H’s – 4NT is now RKCB.
+P2007 4H shows 2+H’s – 4NT is now RKCB.
+P2008 4NT is to play, usually with a heart shortage.
+P2009 4D = 6+S’s slamming,
+P2010 4H shows 2+S’s and a good hand for slam in S’s – 4NT is now RKCB.
+P2011 4S shows 2+S’s – 4NT is now RKCB.
+P2012 4NT is to play, usually with a spade shortage.
+P2013 4H = 6+D’s slamming,
+P2014 4S shows 2+D’s and a good hand for slam in D’s – 4NT is now RKCB.
+P2015 4NT is to play, usually with a diamond shortage.
+P2016 5D shows 2+D’s.
+P2017 4S = Blackwood,
+P2018 4NT shows 0 or 3 aces.
+P2019 5C shows 1 or 4 aces.
+P2020 5D shows 2 aces.
+P2021 4NT = quant.
+P2022 (3D)-3NT,
+P2023 4C = 6+H’s slamming,
+P2024 4D shows 2+H’s and a good hand for slam in H’s – 4NT is now RKCB.
+P2025 4H shows 2+H’s – 4NT is now RKCB.
+P2026 4NT is to play, usually with a heart shortage.
+P2027 4D = 6+S’s slamming,
+P2028 4H shows 2+S’s and a good hand for slam in S’s – 4NT is now RKCB.
+P2029 4S shows 2+S’s – 4NT is now RKCB.
+P2030 4NT is to play, usually with a spade shortage.
+P2031 4H = 6+C’s slamming,
+P2032 4S shows 2+C’s and a good hand for slam in C’s – 4NT is now RKCB.
+P2033 4NT is to play, usually with a diamond shortage.
+P2034 5C shows 2+C.
+P2035 4S = Blackwood,
+P2036 4NT shows 0 or 3 aces.
+P2037 5C shows 1 or 4 aces.
+P2038 5D shows 2 aces.
+P2039 4NT = quant.
+P2040 (3H)-3NT,
+P2041 4C = 6+S’s slamming,
+P2042 4D shows 3+S’s and a great hand for slam in S’s – 4H is a cue and 4NT is now RKCB.
+P2043 4H shows 2+S’s and a good hand for slam – 4NT is now RKCB.
+P2044 4S shows 2+S’s and a bad hand for slam – 4NT is now RKCB.
+P2045 4NT is to play, usually with a spade shortage.
+P2046 4D = 6+D’s slamming,
+P2047 4H shows 3+D’s and a great hand for slam in D’s – 4S is a cue and 4NT is now RKCB.
+P2048 4S shows 2+D’s – 4NT is now RKCB.
+P2049 4NT is to play, usually with a diamond shortage.
+P2050 5D shows 2+D’s and a bad hand for slam.
+P2051 4H = 6+C’s slamming,
+P2052 4S shows 2+C’s and a good hand for slam in C’s – 4NT is now RKCB.
+P2053 4NT is to play, usually with a diamond shortage.
+P2054 5C shows 2+C and a bad hand for slam.
+P2055 4S = Blackwood,
+P2056 4NT shows 0 or 3 aces.
+P2057 5C shows 1 or 4 aces.
+P2058 5D shows 2 aces.
+P2059 4NT = quant.
+P2060 (3S)-3NT,
+P2061 4C = 6+H’s slamming,
+P2062 4D shows 2+H’s and a good hand for slam in H’s – 4NT is now RKCB.
+P2063 4H shows 2+H’s – 4NT is now RKCB.
+P2064 4NT is to play, usually with a heart shortage.
+P2066 4D = 6+D’s slamming,
+P2067 4H shows 2+D’s and a good hand for slam in D’s – 4S is a cue and 4NT is now RKCB.
+P2068 4S shows 2+D’s – 4NT is now RKCB.
+P2069 4NT is to play, usually with a diamond shortage.
+P2070 5D shows 2+D’s and a bad hand for slam.
+P2071 4H = 6+C’s slamming,
+P2072 4S shows 2+C’s and a good hand for slam in C’s – 4NT is now RKCB.
+P2073 4NT is to play, usually with a diamond shortage.
+P2074 5C shows 2+C.
+P2075 4S = Blackwood,
+P2076 4NT shows 0 or 3 aces.
+P2077 5C shows 1 or 4 aces.
+P2078 5D shows 2 aces.
+P2079 4NT = quant.
+P2080 The continuations vary and for a given auction the 3NT over-caller will need to contemplate whether there are 2 or 3 ways to show support for partners suit. The consistent element to choosing will be that the 3NT over-caller will only sign off in game in partners suit with a bad hand for slam. In other auctions the 3NT over-caller will have a choice between 2 bids to show interest in slam, without a bad hand for slam.
+P2081 When the pre-empt is in 2nd seat, bids over a (3X)-3NT overcall by partner revert to natural although it is almost impossible for such bids to exist given the opening standards of Outback Acol.
+P2082 After any interference over (3X)-3NT-? these continuations are off. Once the auction has proceeded (3X)-3NT-(P)-4X we play PODI/PORI at a suitable level.
+P2085 Carding
+P2086 The carding agreements for Outback Acol are simply what I am used to and have never significantly deviated from.
+P2087 Leads are 2nds and 4ths, low from an honour and top of a doubleton. Inherent in that description is 2nd from 4 small. Over-lead honour sequences and interior honour sequences except for an AK holding where it is ace for attitude and king for count. The first discard is designated as reverse attitude.
+P2088 All signals are reverse (UDCA). Subsequent count signals are original count, not present count.
+P2089 Suit preference signals are the default whenever it is utterly clear to the defence that it cannot be confused with the priorities mentioned above.
+P2090 I am addicted to count even though there is evidence that this is not optimal. Similarly playing “2nds and 4ths” is preferred as easy for any good player and most familiar for me. My attitude towards carding agreements is to avoid dispute about the nature of a signal and therefore maintaining a simple agreement with a slavish approach.

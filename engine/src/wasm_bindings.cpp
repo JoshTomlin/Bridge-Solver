@@ -1,4 +1,5 @@
 #include "bridge/analysis_session.h"
+#include "bridge/dds_solver.h"
 
 #include <emscripten/bind.h>
 
@@ -715,6 +716,52 @@ std::string error_json(const std::exception& error) {
 
 class BrowserBridgeEngine {
 public:
+    // Full-deal analysis is independent of the interactive play session.
+    std::string dd_table(
+        const std::string& north,
+        const std::string& east,
+        const std::string& south,
+        const std::string& west) const {
+        try {
+            Deal deal;
+            const std::array<std::string, 4> records {north, east, south, west};
+            Hand seen = kEmptyHand;
+            for (const Seat seat : {Seat::North, Seat::East, Seat::South, Seat::West}) {
+                const std::optional<Hand> hand = parse_hand_record(records[seat_index(seat)]);
+                if (!hand.has_value()) {
+                    throw std::invalid_argument(
+                        to_string(seat) + " hand must contain four SHDC holdings with no repeated cards");
+                }
+                if (card_count(*hand) != kRanksPerSuit) {
+                    throw std::invalid_argument(to_string(seat) + " hand must contain exactly 13 cards");
+                }
+                if ((seen & *hand) != 0) {
+                    throw std::invalid_argument("a card appears in more than one hand");
+                }
+                seen |= *hand;
+                hand_of(deal, seat) = *hand;
+            }
+            const DoubleDummyTable table = solve_double_dummy_table(deal);
+            const std::array<const char*, 5> strains {"S", "H", "D", "C", "NT"};
+            std::ostringstream output;
+            output << "{\"ok\":true,\"tricks\":{";
+            for (std::size_t strain = 0; strain < strains.size(); ++strain) {
+                if (strain != 0) output << ',';
+                output << json_quote(strains[strain]) << ":{";
+                for (const Seat seat : {Seat::North, Seat::East, Seat::South, Seat::West}) {
+                    if (seat != Seat::North) output << ',';
+                    output << json_quote(to_string(seat)) << ':'
+                           << table.tricks[strain][seat_index(seat)];
+                }
+                output << '}';
+            }
+            output << "}}";
+            return output.str();
+        } catch (const std::exception& error) {
+            return error_json(error);
+        }
+    }
+
     std::string create_session(
         const std::string& north,
         const std::string& east,
@@ -932,6 +979,7 @@ private:
 EMSCRIPTEN_BINDINGS(bridge_solver_browser) {
     emscripten::class_<bridge::BrowserBridgeEngine>("BridgeEngine")
         .constructor<>()
+        .function("ddTable", &bridge::BrowserBridgeEngine::dd_table)
         .function("createSession", &bridge::BrowserBridgeEngine::create_session)
         .function("setRestrictions", &bridge::BrowserBridgeEngine::set_restrictions)
         .function("state", &bridge::BrowserBridgeEngine::state)

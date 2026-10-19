@@ -101,6 +101,10 @@ if (EMSCRIPTEN)
         "-sEXPORT_NAME=createBridgeEngine"
         "-sENVIRONMENT=web,worker,node"
         "-sINITIAL_MEMORY=67108864"
+        # Full DDS table searches exceed Emscripten's default 64 KiB stack.
+        # Keep overflow checks enabled so a future limit fails explicitly.
+        "-sSTACK_SIZE=5242880"
+        "-sSTACK_OVERFLOW_CHECK=2"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sNO_EXIT_RUNTIME=1"
     )

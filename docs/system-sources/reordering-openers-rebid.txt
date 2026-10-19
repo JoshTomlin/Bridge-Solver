@@ -1,0 +1,190 @@
+R0001 Re-ordering Openers Rebid for Reversing, Mini-Mega Splinters, and 1/3 (not 3 card support) Rebid.
+R0002 The purpose of this part of the system is to reorder bids to accommodate their frequency and utility efficiently. The applicable auctions are any auction with a 1 level response promising a natural suit, 1C-1D/1H, 1D-1H/S, and 1H-1S followed by a reverse, Mini-Mega Splinter, or 1/3 (not 3 card support rebid.
+R0003 Mini-Mega splinters have little use for the bidding space between the splinter and 3M and are therefore re-ordered to the 2 bids prior to 3M following the high shortage/low shortage pattern. Continuations after a Mini-Mega splinter are dealt with in a separate chapter of the notes however responder will always bid either 3M, 4M, non-serious in the M, or serious (cue-bid) for the M.
+R0004 The relatively frequent of the three types of rebid is to show (13)14+ and a 6+ suit (not 3 card support for responder’s major) and that has been re-ordered to the most economical position allowing responder more options to find the optimal final contract.
+R0005 Reversing bids now have less space than with a “normal” ordering however responder will always have the option to sign off with a poor or sub-minimum initial response.
+R0006 Mini-Mega Splinters
+R0007 1C-1D,
+R0008 3C – mini-mega splinter in spades.
+R0009 3D – mini-mega splinter in diamonds.
+R0010 1C-1H,
+R0011 3D – mini-mega splinter in hearts.
+R0012 3H – mini-mega splinter in diamonds.
+R0013 1D -1H,
+R0014 3C - mini-mega splinter in spades.
+R0015 3D – mini-mega splinter in clubs.
+R0016 1D-1S,
+R0017 3D – mini-mega splinter in hearts.
+R0018 3H – mini-mega splinter in clubs.
+R0019 1H-1S,
+R0020 3D – mini-mega splinter in diamonds.
+R0021 3H – mini-mega splinter in clubs.
+R0022 1/3 (not 3 card support for responder’s major) Rebid
+R0023 The applicable auctions are,
+R0024 1C-1D-2D, 1C-1H-2D, 1D-1H-2S, 1D-1S-2H, and 1H-1S-3C. These auctions all show a 6+ opening suit 14+ denying a second 4 card suit and 3 card support for responder’s major.
+R0025 Responding to a 1C opening responder can have a sub minimum 0-4 hand unlike when responding to a 1D/1H opening when responder usually promises 5+ when bidding at the 1 level. The auctions starting with 1C always have an extra step available before reaching the 3 level in openers suit compared to the 1D/H auctions and this is used to show a sub minimum hand (1D-1S-2H also has an extra step available).
+R0026 Continuations after the 1/3 (not 3 card support for responder’s major) rebid always start with step being a shortage ask, ostensibly agreeing openers suit. Step+1 shows a minimum hand, 5-6. Step+2 only applies after a 1C opening (plus 1D-1S-2H) and shows a sub minimum, 0-4. Returning to 3 of openers suit is always invitational, 7-9.
+R0027 A continuation above 3 of openers suit includes 3S as a transfer for opener to play 3NT and 3NT to play (except for 1H-1S-3C when 3S shows 6+ spades). The remaining bids below 3NT show responders strong 6+ major. The 1C auctions have 2 steps available for responder to show his major whilst the 1D and 1S auctions only have 1 step available. The first or only step shows a 6+ major suit that will play as trumps opposite a singleton honour including a singleton 10. The remaining step in a 1C auction shows a solid 6+ major suit playable opposite a void.
+R0028 A better way to describe this is the bids before 3 of openers suit and the bids after openers suit. The bids before 3 of openers suit are ordered from lowest to highest as 1 – shortage ask – minimums starting with 5/6 minimum then sub-minimum. The bids after 3 of openers suit are showing a 6 card major and 3S to bid 3NT and 3NT always to play – the priority is always to show a 6 card major and when there is room to show a decent 6 card major and then a solid 6 card major.
+R0029 1C-1D/H-2D,
+R0030 2H – shortage ask NMHL.
+R0031 Continuations are step, shortage Keycard in clubs and other bids are natural except 3S which is a transfer for opener to play 3NT.
+R0032 2S – minimum, 5/6.
+R0033 Continuations are natural except 3S.
+R0034 2NT – sub-minimum 0-4/5, opener is expected to correct to 3C.
+R0035 3C – invitational, 7-9. Opener is expected to either pass or bid 3S/NT. A 3D/H continuation from opener is a cue-bid with slam interest.
+R0036 3D – 6+ major playable in game opposite a singleton 10 or better.
+R0037 3H – solid 6+ major setting trumps.
+R0038 3S – “bid 3NT”.
+R0039 3NT – to play.
+R0040 1D-1H-2S,
+R0041 2NT – shortage ask NMHL.
+R0042 Continuations are step, shortage Keycard in diamonds and other bids are natural except 3S which is a transfer for opener to play 3NT.
+R0043 3C – minimum, 5/6.
+R0044 Continuations are natural except 3S.
+R0045 3D – invitational, 7-9. Opener is expected to either pass or bid 3S/NT. A 3H continuation from opener is a cue-bid with slam interest.
+R0046 3H – 6+ hearts either solid or playable in game opposite a singleton 10 or better.
+R0047 3S – “bid 3NT”
+R0048 3NT – to play.
+R0049 1D-1S-2H,
+R0050 2S – shortage ask NMHL.
+R0051 Continuations are step, shortage Keycard in diamonds and other bids are natural except 3S which is a transfer for opener to play 3NT.
+R0052 2NT – minimum 5/6.
+R0053 3C – sub-minimum 0-4, opener is expected to correct to 3D.
+R0054 3D – invitational, 7-9. Opener is expected to pass or bid 3S/NT. A 3H continuation from opener is a cue-bid with slam interest.
+R0055 3H – 6+ spades either solid or playable in game opposite a singleton 10 or better.
+R0056 3S – “bid 3NT”
+R0057 3NT – to play.
+R0058 1H-1S-3C,
+R0059 3D – shortage ask NMHL.
+R0060 Continuations are step, shortage Keycard in diamonds and other bids are natural.
+R0061 3H – minimum 5-7.
+R0062 3S - 6+ spades either solid or playable in game opposite a singleton 10 or better.
+R0063 3NT – to play.
+R0064 When responder has a 6+ major after opener shows a 1/3 rebid hand without 3 card-support they can proceed via the shortage ask and then bid their major naturally when opener denies a shortage. Responder can simply bid 4M over the 1/3 rebid when they have a suit playable opposite a void and a minimum hand otherwise.
+R0065 When responder shows a solid 6+ major continuations are serious/non-serious. When responder shows a 6+ major playable opposite singleton 10 or better opener should either bid 3NT without a fit for the major or, when they have a fit for the major, bid 4M with a minimum and 4m with a maximum and a cue-bid.
+R0066 Responder may have an unbid (5)6+ minor in these sequences and therefore bidding that minor after a response to the Shortage Ask (and opener denying a shortage in that minor) is Shortage Keycard in the presumed 6 card minor unless bidding the minor is step in which case that bid is retained as Shortage Keycard in openers minor.
+R0067 Reverse’s
+R0068 The applicable auctions are 1C-1D-2S, 1C-1H-2H showing a reverse into diamonds, 1C-1H-3C, 1D-1S-3C showing a reverse into hearts.
+R0069 Step after a reverse into diamonds is always a shortage ask ostensibly agreeing clubs but can be based on a solid 6+ major suit. A 3D bid is also a shortage ask, agreeing diamonds. The bids in between step and 3D describe a minimum hand and when possible, a minimum 5/6, is step+1 and a sub-minimum 0-4 is step+2. A 3H bid is always a 6+ major looking for minimal support, a 3S bid is a request for opener to bid 3NT and 3NT is to play.
+R0070 A reverse in hearts has significantly less room. The priorities are enabling responder to stop in 3 of openers minor by either passing or bidding 3m. The first available bid after denying a minimum is a shortage ask and 3H is a shortage ask agreeing hearts if available. A 3S bid is always a 6+ major looking for minimal support and 3NT is to play.
+R0071 A reverse after a 1C opening can be 14/15 with 3 card support for responders major but otherwise a reverse after a 1m opening is 16+.
+R0072 1C-1D-2S reverse in diamonds,
+R0073 2NT – shortage ask H/L ostensibly agreeing clubs.
+R0074 3C – minimum, 0-6/7.
+R0075 3D – shortage ask H/L agreeing diamonds.
+R0076 3H – 6+ hearts either solid or playable in game opposite a singleton 10 or better.
+R0077 3S – “bid 3NT”.
+R0078 3NT – to play.
+R0079 1C-1H-2H reverse in diamonds,
+R0080 2S - shortage ask H/L ostensibly agreeing clubs.
+R0081 2NT – minimum, 5-7.
+R0082 3C – sub-minimum, 0-4.
+R0083 3D – shortage ask H/L agreeing diamonds.
+R0084 3H – 6+ spades either solid or playable in game opposite a singleton 10 or better.
+R0085 3S – “bid 3NT”.
+R0086 3NT – to play.
+R0087 1C-1H-3C reverse in hearts,
+R0088 3D – shortage ask H/L ostensibly agreeing clubs.
+R0089 3H – shortage ask H/L agreeing hearts.
+R0090 3S – 6+ spades either solid or playable in game opposite a singleton 10 or better.
+R0091 3NT – to play.
+R0092 1D-1S-3C reverse in hearts,
+R0093 3D – minimum, 5/6.
+R0094 3H – shortage ask H/L ostensibly agreeing diamonds.
+R0095 3S – 6+ spades either solid or playable in game opposite a singleton 10 or better.
+R0096 3NT – to play.
+R0097 The high card strength for a reverse is usually 16+ however when opener holds a 14/15 count and 3 card support for responders major in a (431)5 shape they will reverse given the upgrade in potential for such hands. These rare hands will bid the 4th step after the shortage ask (after H/L the third step of the Shortage Ask responses is “equal” and the 4th step is not otherwise utilised).
+R0098 1C-1D-2S-2NT-3S and 1C-1D-2S-3D-4C shows a 1345 shape 14/15. Step (or 4C when step is 3NT) is now Keycard in the agreed minor and Kickback, 4S is Keycard in the major.
+R0099 1C-1H-2H-2S-3H and 1C-1H-2H-3D-4C shows a 3145 shape 14/15. Step is now Keycard in the agreed minor and Kickback, 4NT is Keycard in the major.
+R0100 1C-1H-3C-3D-4C shows a 3415 shape 14/15. Step is now Keycard in the agreed minor and Kickback 4NT is Keycard in the major.
+R0101 1C-1H-3C-3H-4D shows a 3415 shape 14/15. Step, 4H is to play. Step+1, 4S is Kickback for hearts and 4NT is Kickback for spades.
+R0102 When opener has a (431)5 pattern as described above and is 16+ they should follow the usual system rather than break out to describe these shapes.
+R0103 Responder may have an unbid (5)6+ minor in these sequences and therefore bidding that minor after a response to the Shortage Ask (and opener denying a shortage in that minor) is Shortage Keycard in the presumed 6 card minor unless bidding the minor is step in which case that bid is retained as Shortage Keycard in openers minor.
+R0104 1/3 Rebid 14-16/17-19 Relay Distinction
+R0105 When openers rebid shows a single suiter 1/3 rebid hand either with 3 card support for responder’s major (2NT rebid) or without 3 card support (as described above) the strength range is a broad 14-19. In auctions where responder chooses to relay the big strength range for opener creates a problem when openers response to a relay question lands on a playable game contract. The relevant contracts are 3NT when a minor has been agreed and 4M when a major has been agreed.
+R0106 To resolve this issue opener should only respond to a relay landing on a playable game contract when they are in the 14-16 range. Otherwise, when opener is 17-19, they should utilise the first “impossible” response to the relay question to show a response that would have landed on a playable game contract but they are in the higher strength range.
+R0107 In auctions where opener has the last response to the Shortage Ask, a low shortage, they should immediately describe their strength range by either choosing the ordinary low shortage step with 14-16 or bidding step with 17-19 (no “equal”, extra step to a Shortage Ask, applies in these auctions).
+R0108 The distinction in range applies to the 8 initial auctions when the opening 2 bids are 1m-1M followed by opener describing a single suiter with or without 3 card support for responder’s major suit.
+R0109 1C-1D-2NT opener shows 6+C’s 3H’s 14-19.
+R0110 A 3D continuation initiates a relay ostensibly agreeing clubs and a 3S continuation initiates the same relay agreeing hearts.
+R0111 1C-1D-2NT-3D,
+R0112 3H – no shortage, a 3S continuation is Shortage Keycard in clubs.
+R0113 1C-1D-2NT-3D-3H-3S-3NT shows a 2326 shape 14-16 and 3 Keycards. 1C-1D-2NT-3D-3H-3S-4S shows a 2326 shape 17-19 and 3 Keycards.
+R0114 3S – high shortage (spades), a 3NT continuation is an offer to play and 4C is Shortage Keycard.
+R0115 3NT – low shortage (diamonds) 14-16. 4C is Shortage Keycard.
+R0116 4C – low shortage (diamonds) 17-19. 4D is Shortage Keycard.
+R0117 1C-1D-2NT-3S,
+R0118 3NT – no shortage, 2326 14-16. 4C is Keycard.
+R0119 4C – high shortage (spades). 4D is Shortage Keycard.
+R0120 4D – low shortage (diamonds). 4H is Shortage Keycard.
+R0121 4H – no shortage, 2326 17-19. 4S is Keycard.
+R0122 1C-1H-2NT opener shows 6+C’s 3S’s 14-19.
+R0123 A 3D continuation initiates a relay ostensibly agreeing clubs and a 3H continuation initiates the same relay agreeing hearts. The continuations when responder chooses the 3D relay point are the same as for 1C-1D-2NT-3D as above.
+R0124 1C-1H-2NT-3H,
+R0125 3S – 3226 14-19. 3NT is Keycard.
+R0126 1C-1H-2NT-3H-3S-3NT-4S shows 3226 14-16 2 Keycards +Q. 1C-1H-2NT-3H-3S-3NT-4NT shows a 3226 17-19 2 Keycards +Q.
+R0127 3NT – high shortage (hearts) 14-19. 4C is Shortage Keycard.
+R0128 1C-1H-2NT-3H-3NT-4C-4S shows 31x6+ 14-16 3 Keycards. 1C-1H-2NT-3H-3NT-4C-5D shows 31x6+ 17-19 4 Keycards.
+R0129 4C – low shortage (diamonds) 14-16. 4D is Shortage Keycard.
+R0130 4D – low shortage (diamonds) 17-19. 4H is Shortage Keycard.
+R0131 1C-1D-2D opener shows 6+C’s 0-2H’s 14-19.
+R0132 A 2H continuation is the only relay being a Shortage Ask ostensibly agreeing clubs.
+R0133 1C-1D-2D-2H,
+R0134 2S – no shortage (3226/2263/2227) 14-19. 2NT is Keycard.
+R0135 1C-1D-2D-2H-2S-2NT-3S shows no shortage 14-16 2 Keycards +Q. 1C-1D-2D-2H-2S-2NT-3NT shows no shortage 17-19 2 Keycards +Q.
+R0136 2NT – middle shortage (hearts) 14-19. 3C is Shortage Keycard.
+R0137 1C-1D-2D-2H-2NT-3C-3NT shows 14-16 singleton heart 2 Keycards no Q. 1C-1D-2D-2H-2NT-3C-4D shows 17-19 singleton heart 2 Keycards no Q.
+R0138 3C – high shortage (spades) 14-19. 3D is Shortage Keycard.
+R0139 1C-1D-2D-2H-3C-3D-3NT shows 14-16 singleton spade 1 or 4 Keycards. 1C-1D-2D-2H-3C-3D-4H shows 17-19 singleton spade 4 Keycards.
+R0140 3D – low shortage (diamonds) 14-16. 3H is Shortage Keycard.
+R0141 3H – low shortage (diamonds) 17-19. 3S is Shortage Keycard.
+R0142 1C-1H-2D opener shows 6+C’s 0-2S’s 14-19.
+R0143 The continuations when responder chooses the 2H relay point are the same as for 1C-1D-2D-2H as above.
+R0144 1D-1H-2NT opener shows 6+D’s 3H’s 16+.
+R0145 The 1D-1M-1NT auctions include 14/15 6D 3M hands and follow a different relay path. The 2NT rebid is therefore a smaller range, 16-19. Opener should still distinguish between a maximum and minimum 2NT rebid as per the rules established in this section of the notes.
+R0146 A 3C continuation initiates a relay ostensibly agreeing diamonds and a 3S continuation initiates the same relay agreeing hearts.
+R0147 1D-1H-2NT-3C,
+R0148 3D – no shortage 2362 16-19. 3H is Keycard.
+R0149 1D-1H-2NT-3C-3D-3H-3NT shows 2362 16/17 1 or 4 Keycards no Q. 1D-1H-2NT-3C-3D-3H-4H shows 2362 18/19 1 or 4 Keycards no Q.
+R0150 3H – high shortage (spades) 16-19. 3S is Shortage Keycard.
+R0151 1D-1H-2NT-3C-3H-3S-3NT shows 16/17 and a spade void. 1D-1H-2NT-3C-3H-3S-4NT shows 18/19 and a spade void.
+R0152 3S – low shortage (clubs) 16/17. 3NT is to play and 4C is Shortage Keycard.
+R0153 3NT – low shortage (clubs) 18/19. 4C is Shortage Keycard.
+R0154 1D-1H-2NT-3S,
+R0155 3NT – no shortage 2362 16-19. 4C is Keycard
+R0156 4C – high shortage (spades) 16-19. 4D is Shortage Keycard.
+R0157 1D-1H-2NT-3S-4C-4D-4H shows a 036+x 16/17. 1D-1H-2NT-3S-4C-4D-5H shows a 036+x 18/19.
+R0158 4D – low shortage (clubs) 16/17. 4H is an offer to play and 4S is Shortage Keycard.
+R0159 4H – low shortage (clubs) 18/19. 4S is Shortage Keycard.
+R0162 1D-1S-2NT opener shows 6+D’s 3S’s 16-19.
+R0163 A 3C continuation initiates a relay ostensibly agreeing diamonds and a 3H continuation initiates the same relay agreeing spades. The continuations when responder chooses the 3C relay point are the same as for 1D-1H-2NT-3C as above.
+R0164 1D-1S-2NT-3H,
+R0165 3S - no shortage 2362 16-19. 3NT is Keycard.
+R0166 3NT – high shortage (hearts) 16-19. 4C is Shortage Keycard.
+R0167 1D-1S-2NT-3H-3NT-4C-4S shows a singleton heart 16/17 1 or 4 Keycards. 1D-1S-2NT-3H-3NT-4C-5D shows a singleton heart 18/19 1 or 4 Keycards.
+R0168 4C – low shortage (clubs) 16/17. 4D is Shortage Keycard.
+R0169 4D – low shortage (clubs) 18/19. 4H is an offer to play and 4S is Shortage Keycard.
+R0170 1D-1H-2S opener shows 6+D’s 0-2H’s 14-19.
+R0171 A 2NT continuation is the only relay point being a Shortage Ask ostensibly agreeing diamonds.
+R0172 1D-1H-2S-2NT,
+R0173 3C – no shortage 3262/2263/2272 14-19. 3D is Keycard.
+R0174 1D-1H-2S-2NT-3C-3D-3NT shows 14-16 2 Keycards no Q. 1D-1H-2S-2NT-3C-3D-4D shows 17-19 2 Keycards no Q.
+R0175 3D – middle shortage (hearts) 14-19. 3H is Shortage Keycard.
+R0176 1D-1H-2S-2NT-3D-3H-3NT shows a singleton heart 14-16 3 Keycards. 1D-1H-2S-2NT-3D-3H-4S shows a singleton heart 17-19 3 Keycards.
+R0177 3H – high shortage (spades) 14-19. 3S is Shortage Keycard.
+R0178 1D-1H-2S-2NT-3H-3S-3NT shows a spade void 14-16. 1D-1H-2S-2NT-3H-3S-4NT shows a spade void 17-19.
+R0179 3S – low shortage (clubs) 14-16. 3NT is an offer to play and 4C is Shortage Keycard.
+R0180 3NT – low shortage (clubs) 17-19. 4C is Shortage Keycard.
+R0181 1D-1S-2H opener shows 6+D’s 0-2S’s 14-19.
+R0182 A 2S continuation is the only relay point being a Shortage Ask ostensibly agreeing diamonds.
+R0183 1D-1S-2H-2S,
+R0184 2NT – no shortage 2362/2263/2272 14-19. 3C is Keycard.
+R0185 1D-1S-2H-2S-2NT-3C-3NT shows no shortage 14-16 2 Keycards +Q. 1D-1S-2H-2S-2NT-3C-4C shows no shortage 17-19 2 Keycards +Q.
+R0186 3C – middle shortage (hearts) 14-19. 3D is Shortage Keycard.
+R0187 1D-1S-2H-2S-3C-3D-3NT shows a singleton heart 14-16 1 or 4 Keycards. 1D-1S-2H-2S-3D-4H shows a singleton heart 17-19 4 Keycards.
+R0188 3D – high shortage (spades) 14-19. 3H is Shortage Keycard.
+R0189 1D-1S-2H-2S-3D-3H-3NT shows a singleton spade 14-16 3 Keycards. 1D-1S-2H-2S-3D-3H-4S shows a singleton spade 17-19 3 Keycards.
+R0190 3H – low shortage (clubs) 14-16. 3S is Shortage Keycard.
+R0191 3S – low shortage (clubs) 17-19. 3NT is an offer to play. 4C is Shortage Keycard.
+R0192 In these auctions when opener has not had an opportunity to describe a 17-19 hand and responder signs off in 3NT or 4M opener can choose to bid on by answering the next step in the relay structure rather than passing.

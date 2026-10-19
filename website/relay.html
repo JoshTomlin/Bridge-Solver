@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#123d34">
+    <title>Relay practice · Bridge Lab</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./relay/relay.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html"><span class="brand-mark">♠</span><span>Bridge Lab</span></a>
+      <nav aria-label="Lab"><a href="./index.html">Play lab</a><a href="./relay.html" aria-current="page">Relay practice</a></nav>
+    </header>
+    <main class="relay-main">
+      <section class="relay-heading">
+        <div><p class="eyebrow">Bidding systems / Practice lab</p><h1>A conversation in bids.</h1><p>Practise a relay auction with a partner whose hand is fixed from the start.</p></div>
+        <span class="draft-badge" id="practice-badge">Relay practice</span>
+      </section>
+      <details class="system-note">
+        <summary>System notes and practice-hand restrictions</summary>
+        <p>The exercises follow your Word notes, the July minor-relay email revisions and your later clarifications. Each starts from the auction shown below. The selected exercise’s hand restrictions and remaining gaps are listed here.</p>
+        <ul id="system-assumptions"></ul>
+      </details>
+      <form id="deal-form" class="practice-toolbar">
+        <label class="profile-field">Practice auction<select id="profile"></select></label>
+        <label class="seed-field">Deal seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false" value="relay-1" required></label>
+        <button class="button primary" type="submit" id="new-deal">Deal hand</button>
+        <button class="button secondary" type="button" id="random-deal">Random hand</button>
+        <label class="hint-toggle"><input id="show-hints" type="checkbox"> Show meanings</label>
+      </form>
+      <p id="status" class="relay-status" role="status" aria-live="polite">Dealing a practice hand…</p>
+      <div class="practice-grid">
+        <section class="practice-table" aria-label="Practice auction">
+          <div class="practice-topline"><span id="partner-seat">North · Your partner</span><span id="session-seed"></span></div>
+          <div id="partner-hand" class="partner-hand"><div class="card-backs" aria-label="Partner’s hand is hidden"><i></i><i></i><i></i><i></i><i></i></div><p>13 cards. One fixed hand.</p></div>
+          <div class="auction-area">
+            <p class="auction-caption">Uncontested auction · East and West always pass</p>
+            <table class="auction-table"><thead><tr><th id="north-heading">North · Partner</th><th id="south-heading">South · You</th></tr></thead><tbody id="auction"></tbody></table>
+          </div>
+          <div class="your-hand-block"><div class="practice-topline"><span id="player-seat">South · Your hand</span><span id="player-hcp"></span></div><div id="player-hand" class="hand-lines"></div></div>
+        </section>
+        <aside class="relay-side">
+          <section class="relay-panel action-panel">
+            <p class="eyebrow" id="phase-label">Your turn</p><h2 id="action-title">Begin the relay</h2><p id="action-help"></p>
+            <div id="relay-actions" class="bid-actions"></div>
+            <details id="response-steps" class="response-steps" hidden><summary>Response steps for these asks</summary><div id="response-ladders"></div></details>
+            <form id="bid-form" class="bid-entry"><label for="bid-input">Enter a bid</label><div><input id="bid-input" placeholder="e.g. 4D or 5NT" autocomplete="off" spellcheck="false" maxlength="12"><button class="button secondary" id="submit-bid" type="submit">Bid</button></div><small id="bid-feedback" role="status" aria-live="polite"></small></form>
+            <details id="signoff-section"><summary>Choose a final contract</summary><div id="signoff-actions" class="bid-actions signoffs"></div></details>
+            <div class="session-actions"><button type="button" id="undo-bid" class="text-button" disabled>Undo bid</button><button type="button" id="reveal-hand" class="text-button" disabled>Reveal partner</button></div>
+          </section>
+          <section class="relay-panel knowledge-panel"><div class="panel-title"><h2>Auction knowledge</h2><span id="constraint-count"></span></div><div id="knowledge"></div></section>
+        </aside>
+      </div>
+      <section class="relay-panel sampling-panel">
+        <div class="sampling-heading"><div><p class="eyebrow">Explore the remaining hands</p><h2>What could partner hold?</h2><p>Sample hands consistent with the auction and your cards.</p></div><span id="dds-status" class="runtime-label">DDS: checking…</span></div>
+        <div class="sampling-controls"><label>Partner samples<select id="sample-count"><option value="100" selected>100 · Quick check</option><option value="500">500</option><option value="1000">1,000</option></select></label><button type="button" id="sample-hands" class="button secondary" disabled>Sample hands</button><button type="button" id="evaluate" class="button primary" disabled>Compare contracts with DDS</button><button type="button" id="stop-analysis" class="button secondary" hidden>Stop</button></div>
+        <p id="sample-status" role="status" aria-live="polite">Each sample gets one random East/West split. All contracts use the same deals.</p>
+        <div id="sample-results"></div><div id="evaluation-results"></div>
+        <p class="method-note">DD make rates assume perfect play with all four hands visible. They are conditional on the practice-hand restrictions, and do not estimate human success rates. The intervals show sampling uncertainty only. Comparisons include hypothetical contracts that may be below the current auction.</p>
+      </section>
+      <footer class="relay-footer">Bridge Lab · Relay practice <span>Shape · Strength · Keycards · Specific suits</span></footer>
+    </main>
+    <script type="module" src="./relay/app.js"></script>
+  </body>
+</html>

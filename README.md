@@ -161,6 +161,24 @@ npm run test:ui
 
 ## Documentation
 
+The [relay-practice subproject](docs/relay-practice.md) adds a trainer at
+`website/relay.html`, using the partnership notes, July minor-relay revisions
+and subsequent clarifications. Its 63 scenarios cover 1M–2NT, revised diamond
+and club relays, Baron, Dappleton, reordered opener rebids, split-range and Horton continuations, then keycards, queen and
+specific-suit asks within disclosed practice restrictions. Practice and hand
+sampling run without the compiled engine; DD contract comparison uses the
+rebuilt WebAssembly engine.
+
+The [partnership system sources](docs/system-sources/README.md) retain both
+Word originals, searchable paragraph extracts and the July email content in
+the repository, with source precedence and reproducible file hashes.
+
+Use the [relay system tables](docs/relay-system/README.md) for bidding lookup,
+the [exercise catalogue](docs/relay-system/scenario-catalog.md) for all 63
+selectable entries, [coverage and remaining work](docs/relay-system/coverage.md)
+for status, and the [maintenance guide](docs/relay-maintenance.md) when extending
+the trainer.
+
 Start with the [documentation guide](docs/README.md). It gives a short reading
 order and separates current implementation notes from point-in-time experiment
 reports.

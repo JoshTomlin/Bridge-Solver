@@ -1,0 +1,4 @@
+*.docx binary
+docs/system-sources/*.txt text eol=lf
+docs/system-sources/*.md text eol=lf
+docs/system-sources/*.json text eol=lf

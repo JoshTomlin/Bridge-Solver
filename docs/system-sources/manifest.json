@@ -1,0 +1,29 @@
+{
+  "files": [
+    {
+      "file": "july-relay-email.md",
+      "bytes": 13709,
+      "sha256": "956d609b426e2eac7c8a643aa030eee0455ff10ed050425e2aa4865cdfcd60ba"
+    },
+    {
+      "file": "main-notes.docx",
+      "bytes": 121372,
+      "sha256": "b114d3fba9f4280082a338c87ea1aa93b9b7ef83200786ccb7449a253a69f59c"
+    },
+    {
+      "file": "main-notes.txt",
+      "bytes": 158275,
+      "sha256": "a994646ae734be30c88b72d38e7879dfbfd88bc3298331044054d6ad6a70f59d"
+    },
+    {
+      "file": "reordering-openers-rebid.docx",
+      "bytes": 32080,
+      "sha256": "93bbc53bef5a5d91ca6eb4d876e2391a238a5f30490e7ff21eea4593ca025fe8"
+    },
+    {
+      "file": "reordering-openers-rebid.txt",
+      "bytes": 18822,
+      "sha256": "d4060c93bb89f43e615b825454fc8b60dc5e096af9b3a6edf9b89191591c8ff5"
+    }
+  ]
+}
