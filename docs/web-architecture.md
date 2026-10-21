@@ -122,11 +122,21 @@ local data, the save belongs to the current browser and origin, including port.
 `build-wasm.ps1` configures Emscripten, builds the C++ target, copies the static
 site into `website/dist`, and runs the WASM smoke test.
 
-- `npm test` checks deal utilities.
+- `npm test` checks deal utilities, relay logic/persistence and asset versioning.
 - `npm run test:ui` checks the static DOM contract and key UI/report hooks.
 - `npm run test:wasm` loads the built module under Node and exercises the engine
   response.
+- `npm run test:browser` exercises families and study branches in both roles
+  across Chromium, Firefox, WebKit and mobile emulations.
+- `npm run test:relay:browser` checks complete bidding, browser restart and
+  actual DDS assessment in Chromium.
+
+The static build gives the complete runtime graph a content hash under
+`assets/<hash>/`. HTML points there; relative imports and worker/engine URLs
+stay inside the same version. This prevents a fresh page from loading cached
+modules written for an earlier page. Original paths are also copied for Node
+engine smoke tests.
 
 On `main`, `.github/workflows/deploy-pages.yml` checks out DDS, installs the
-pinned Emscripten version, rebuilds and smoke-tests the application, and deploys
+pinned Emscripten version, runs JavaScript and real browser checks, and deploys
 `website/dist` with the official GitHub Pages actions.

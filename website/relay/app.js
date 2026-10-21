@@ -14,6 +14,7 @@ let samples = null;
 let busy = false;
 let ddsReady = false;
 let job = 0;
+let committedStudyProfileId = '';
 
 class WorkerClient {
   constructor(file) {
@@ -210,7 +211,11 @@ function invalidateAnalysis() {
 function populateStudyProfiles(selectedProfileId = '') {
   const family = getAuctionFamily(byId('auction-family').value);
   const profiles = family.profileIds.map(getPracticeProfile);
-  const groups = Map.groupBy(profiles, profile => profile.family);
+  const groups = new Map();
+  for (const profile of profiles) {
+    if (!groups.has(profile.family)) groups.set(profile.family, []);
+    groups.get(profile.family).push(profile);
+  }
   byId('profile').innerHTML = '<option value="">Random branch · Whole family</option>'
     + [...groups].map(([group, profiles]) => `<optgroup label="${escapeHtml(group)}">${profiles.map(profile => `<option value="${escapeHtml(profile.id)}">${escapeHtml(bidLabel(profile.name))}</option>`).join('')}</optgroup>`).join('');
   if (family.profileIds.includes(selectedProfileId)) byId('profile').value = selectedProfileId;
@@ -218,6 +223,14 @@ function populateStudyProfiles(selectedProfileId = '') {
 
 function randomSeed() {
   return `relay-${crypto.randomUUID?.() ?? [...crypto.getRandomValues(new Uint32Array(4))].map(value => value.toString(36)).join('-')}`;
+}
+
+function restoreDealControls() {
+  if (!session) return;
+  byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
+  byId('practice-role').value = session.practiceRole;
+  populateStudyProfiles(committedStudyProfileId);
+  byId('seed').value = session.seed;
 }
 
 async function dealHand({ replay = false } = {}) {
@@ -233,6 +246,7 @@ async function dealHand({ replay = false } = {}) {
     const next = await sampler.request({ command: 'deal', payload: { role: byId('practice-role').value, profileId: profile.id, seed } });
     if (currentJob !== job) return;
     session = next;
+    committedStudyProfileId = byId('profile').value;
     history = [];
     byId('seed').value = session.seed;
     byId('bid-input').value = '';
@@ -240,7 +254,12 @@ async function dealHand({ replay = false } = {}) {
     invalidateAnalysis();
     status(session.practiceRole === 'teller' ? 'Partner has asked a question. Choose the response that describes your hand.'
       : 'Practice auction ready. Your partner’s hand will stay fixed throughout the auction.');
-  } catch (error) { if (currentJob === job) status(error.message, true); }
+  } catch (error) {
+    if (currentJob === job) {
+      restoreDealControls();
+      status(error.message, true);
+    }
+  }
   finally { if (currentJob === job) { setBusy(false); persistProgress(); } }
 }
 
@@ -402,6 +421,7 @@ byId('stop-analysis').addEventListener('click', () => {
   sampler = new WorkerClient('./sampling-worker.js');
   evaluator = new WorkerClient('./evaluation-worker.js');
   ddsReady = false;
+  restoreDealControls();
   setBusy(false);
   status('Stopped. Your practice hand is unchanged.');
   sampleStatus('Analysis stopped. Completed samples, if any, are retained.');
@@ -413,6 +433,7 @@ async function startPractice() {
   if (saved.progress) {
     ({ session, history } = saved.progress);
     const preferences = saved.progress.preferences;
+    committedStudyProfileId = preferences.studyProfileId;
     byId('practice-role').value = session.practiceRole;
     byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
     populateStudyProfiles(preferences.studyProfileId);

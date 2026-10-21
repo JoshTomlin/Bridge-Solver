@@ -174,21 +174,28 @@ git diff --check
 Run app checks from `website`:
 
 ```powershell
-node --test relay/*.test.mjs
-node deal-utils.test.mjs
-node ui-smoke.mjs
-node build.js
-node wasm-smoke.mjs
+npm ci
+npm test
+npm run test:ui
+npm run build
+npm run test:wasm
+npx playwright install --with-deps chromium firefox webkit
+npm run test:browser
+npm run test:relay:browser
 ```
 
-Optional end-to-end regression: install Playwright/Chromium as described in the
-[practice guide](relay-practice.md#verification), then run
-`npm run test:relay:browser`. It starts its own server and checks shipped assets
-with actual DDS, including both roles, retry, hints, typed bids, undo, final
-signoff, contract-assessment modes, Stop, mobile overflow and absent DDS.
+The Playwright matrix checks shipped pages in Chromium, Firefox and WebKit,
+plus Android Chrome and iPhone Safari emulation. It covers every study entry
+in both roles, every family through bid/undo/reload, keyboard and touch controls,
+seed replay, legacy saves, deal failure/cancellation, missing `Map.groupBy`
+and cached legacy scripts.
+`npm run test:relay:browser` adds actual DDS, retry, hints, typed bids, final
+signoff, contract-assessment modes, full browser restart, Stop and absent DDS.
+Both commands start their own preview server. Pages deployment requires these
+checks to pass; browser traces and screenshots are retained on CI failure.
 
-The runtime must support ES modules and `Map.groupBy` (for example Node 22+);
-the extraction script uses Python 3.10+ for explicit LF output. The repository's
+Use Node 22+ for development; browser code does not require `Map.groupBy`.
+The extraction script uses Python 3.10+ for explicit LF output. The repository's
 bundled runtimes can be used when `node`/`python` are not on PATH.
 
 | Check | What it establishes | What it does not establish |
@@ -196,9 +203,10 @@ bundled runtimes can be used when `node`/`python` are not on PATH.
 | Relay suite, currently 121 tests | Source partitions/examples, transitions, sampler uniformity/replay, both roles, complete family grouping/random selection, family/study restoration, storage errors, public prompts, retry, paired outcomes and source hashes | Entire untranscribed partnership system or all human judgements |
 | `deal-utils.test.mjs` | Play-lab deal utilities | New relay browser interactions |
 | `ui-smoke.mjs` | Existing play-lab DOM/control smoke | A visual test of the relay page |
-| `build.js` | Static assets copied into `dist` | Successful DDS availability by itself |
+| `build.test.mjs` | HTML points to content-versioned scripts/styles; changes to transitive modules, workers or WASM invalidate the whole graph | Successful DDS availability by itself |
 | `wasm-smoke.mjs` | Actual DDS, preserved play state and shipped minor/Dappleton/rebid sampling-to-evaluation paths | Human make probability or visual UI layout |
 | `relay-browser-smoke.mjs` | Broad family picker, random branches/seeds, hidden study/replay menu, both roles, DDS assessment, reload/full browser restart, restored undo/preferences, corrupt save, Stop and mobile | Every family branch or optimal bidding judgement |
+| `relay/browser/families.spec.mjs` | Eight families and all 63 study entries in both roles across five browser configurations; visible hands/auctions/actions match saved state; cache and compatibility regressions | Physical phones or every later bidding continuation |
 | Catalogue regeneration | Exact current profile count, prefixes, roles and first source calls | Every dynamic later response |
 | Markdown link/heading/table review | Navigable, readable documentation | Bidding correctness without source/code comparison |
 
@@ -209,8 +217,13 @@ with a message; it must never cause placeholder probabilities.
 
 For the preview, run `node server.js dist` from `website` (default port 3000).
 The active development session may use port 3011. Refresh after rebuilding.
+Built HTML loads the entire runtime from `assets/<content hash>/`, including
+relative module imports, workers and WASM. Keep relative runtime URLs within
+that directory. Versioning only the entry script would leave imported modules
+vulnerable to mixed builds in browser caches. Original asset paths remain for
+Node smoke tests; the published pages use the versioned copies.
 Use browser checks when available and report honestly when only HTTP/assets
-and solver checks were possible. The optional browser smoke now covers both
+and solver checks were possible. The browser smoke covers both
 practice roles and contract-assessment controls; historical checks remain
 recorded separately in the practice guide.
 

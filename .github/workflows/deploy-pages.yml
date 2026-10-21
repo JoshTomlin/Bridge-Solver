@@ -17,11 +17,31 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out source and DDS
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install test dependencies
+        run: npm ci --prefix website
+
+      - name: Install test browsers
+        working-directory: website
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Test JavaScript and UI contracts
+        run: |
+          npm test --prefix website
+          npm run test:ui --prefix website
 
       - name: Set up Emscripten
         uses: mymindstorm/setup-emsdk@v14
@@ -43,6 +63,22 @@ jobs:
 
       - name: Smoke-test browser engine
         run: npm run test:wasm --prefix website
+
+      - name: Test auction families across desktop and mobile browsers
+        run: npm run test:browser --prefix website
+
+      - name: Test bidding, saved progress and real DDS in Chromium
+        run: npm run test:relay:browser --prefix website
+
+      - name: Save browser failure reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failures
+          path: |
+            website/playwright-report/
+            website/test-results/
+          if-no-files-found: ignore
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

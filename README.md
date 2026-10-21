@@ -155,8 +155,12 @@ JavaScript-only checks can be run separately:
 
 ```powershell
 cd website
+npm ci
 npm test
 npm run test:ui
+npx playwright install --with-deps chromium firefox webkit
+npm run test:browser
+npm run test:relay:browser
 ```
 
 ## Documentation

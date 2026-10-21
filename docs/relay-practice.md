@@ -257,7 +257,8 @@ An undefined branch stops with an explanation rather than inventing an answer.
 | `website/relay/evaluation.js` | Opponent completion, declarers, DD aggregation and Wilson intervals |
 | `website/relay/evaluation-worker.js` | Loads DDS and solves complete deals off the UI thread |
 | `website/relay/app.js` | Practice, hints, undo, reveal, cancellation and reports |
-| `website/relay-browser-smoke.mjs` | Optional Playwright regression using shipped modules and real DDS |
+| `website/relay/browser/families.spec.mjs` | Cross-browser family/study, cache, compatibility, cancellation and restoration regression |
+| `website/relay-browser-smoke.mjs` | Playwright regression using shipped modules and real DDS |
 | `engine/src/wasm_bindings.cpp` | Stateless validated `ddTable(north,east,south,west)` binding |
 
 The engine interprets source nodes containing actions, response predicates and
@@ -318,27 +319,34 @@ decision-by-decision system analysis remain future work.
 Run from `website`:
 
 ```powershell
-node deal-utils.test.mjs
-node ui-smoke.mjs
-node --test relay/*.test.mjs
-node wasm-smoke.mjs
+npm ci
+npm test
+npm run test:ui
+npm run build
+npm run test:wasm
 ```
 
-The optional browser regression requires Playwright and Chromium. From
-`website`, install the test dependency and browser, build, then run:
+The browser regressions use the pinned Playwright development dependency.
+After building with the compiled engine, run from `website`:
 
 ```sh
-npm install --no-save --package-lock=false playwright
-npx playwright install chromium
-npm run build
+npx playwright install --with-deps chromium firefox webkit
+npm run test:browser
 npm run test:relay:browser
 ```
 
-On hosts missing Chromium's shared libraries, Playwright's
-`npx playwright install-deps chromium` installs the required system packages.
-The test starts its own preview on port 3012; override with
+The matrix starts a preview on port 3013 and checks Chromium, Firefox, WebKit,
+Android Chrome emulation and iPhone Safari emulation. It exercises every family
+and study entry in both roles, visible hands/auctions/actions, bidding/undo,
+restoration, deal failure/cancellation, hidden controls, replay, keyboard/touch interaction, cached legacy
+scripts and startup without `Map.groupBy`. Set `BRIDGE_RELAY_BASE_URL` to a
+site URL ending in `/` to check an existing deployment instead.
+The real-DDS smoke starts a preview on port 3012; override with
 `BRIDGE_RELAY_TEST_PORT` if necessary. `BRIDGE_PLAYWRIGHT_MODULE` can point at
 an existing Playwright ES module when using a shared test-tools installation.
+The Pages workflow runs both browser suites before publishing and retains
+failure screenshots and traces. Built pages use content-versioned URLs for
+the complete module/worker/engine graph so cached scripts cannot mix builds.
 
 The WASM smoke requires the compiled build. It checks known DDS trick counts,
 malformed-hand rejection and that table solving does not mutate a play session.
@@ -423,3 +431,16 @@ random-family restoration, study mode, both roles and the existing DDS flows.
 An additional desktop/mobile check verifies exact seed replay in random-family
 mode, fresh cards in a pinned branch, restored study selection, family changes
 clearing the branch selection and no horizontal overflow with replay open.
+
+The empty-picker regression was reproduced by loading the pre-family script
+with the new HTML: the menu had zero options. Missing `Map.groupBy` separately
+stopped startup after populating it. The fixes version the complete runtime
+graph and use ordinary Map iteration. Failed/cancelled deals also restore
+the committed family, role, branch and seed. Verification passes **122 Node
+unit/build tests** (121 relay tests plus asset versioning), utility/UI and
+compiled DDS checks, and **45 browser tests** across Chromium, Firefox,
+WebKit and Android/iPhone emulations. Each browser selects all 63 study entries
+as both asker and teller (630 selections total). Real-DDS assessment and full
+browser-restart persistence checks also pass. The tests emulate missing APIs
+and stale module URLs; they do not claim physical-device coverage. Both browser
+suites now run before Pages publication.

@@ -93,7 +93,7 @@ guess during practice.
 | Extremely rare late constraints | Shape-conditioned sampling is exact but rejection can hit the displayed attempt limit; honour-conditioned generation is future work |
 | Several opponent layouts per compatible hand | Auction-information evaluation uses one layout per independently sampled hand; revealed-partnership mode now tests many layouts for the two actual hands |
 | Full declarative editor | Profiles are declarative JavaScript data/functions; no standalone bidding language or partner-facing editor yet |
-| Broader browser regression coverage | Optional Playwright smoke covers both roles and DDS assessment on representative families; every source branch is not exercised in a browser |
+| Physical-device and later-continuation browser coverage | Automated Chromium/Firefox/WebKit and mobile emulations check all 63 initial branches in both roles; complete later continuations and real DDS are checked on representative branches |
 
 ## Delivery and verification record
 
@@ -140,3 +140,11 @@ The family picker groups all 63 study branches into eight broad choices.
 explicit study selection and backward-compatible family/study restoration.
 Browser checks cover the family menu, fresh hidden seeds, random-mode replay,
 pinned-branch next hands, both roles, saved progress, DDS and mobile layout.
+
+The empty-menu fix removes the browser's `Map.groupBy` dependency and versions
+the full module/worker/engine graph to avoid cached scripts from older pages.
+Deal cancellation/failure restores the selected controls to the retained hand.
+**122 Node unit/build tests** and **45 browser tests** pass, including all 63
+initial branches in both roles in five desktop/mobile browser configurations,
+stale-script and missing-API regressions. Real DDS and browser-restart checks
+also pass. The Pages workflow requires these suites before publishing.

@@ -1,5 +1,4 @@
-// Optional browser regression: npm install --no-save --package-lock=false playwright
-// and npx playwright install chromium. Build the static site before running.
+// Real DDS and full-browser restart regression. Build the static site first.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -31,7 +30,11 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const url = `http://127.0.0.1:${port}/relay.html`;
-  const ready = () => page.waitForFunction(() => !document.getElementById('new-deal').disabled);
+  const ready = () => page.waitForFunction(() => !document.getElementById('new-deal').disabled
+    && document.querySelectorAll('#auction-family option').length === 8
+    && document.querySelectorAll('#player-hand .suit-holding').length === 4
+    && document.querySelector('#auction tr')
+    && localStorage.getItem('bridge-lab.relay-progress.v1'));
   const auction = () => page.locator('#auction').innerHTML();
   const hand = () => page.locator('#player-hand').innerHTML();
   const clickBid = bid => page.locator(`#relay-actions [data-bid="${bid}"]`).click();
