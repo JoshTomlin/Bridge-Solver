@@ -246,19 +246,22 @@ test('alternative trump agreements use public steps and recalculate keycards and
   assert.equal(JSON.stringify(initial), original);
 });
 
-test('minor queen asks skip 3NT, trump bids and the grand try while counting all replies', () => {
+test('minor queen asks use trump below game and reserve games, slams and the grand try', () => {
   for (const trump of ['C', 'D']) {
     const initial = minorPractice({
       trump, major: trump, phase: 'post-keycard',
       partnerHand: minorHand.map(card => card === 'CK' ? 'CQ' : card),
+      auction: [call('South', trump === 'C' ? '3S' : '4C')],
       constraints: [{ type: 'shapes', values: ['1354'] }, { type: 'keycardOptions', trump, values: [1, 4] }],
     });
     const queenAsk = postRangeActions(initial)[0];
     assert.equal(queenAsk.askType, 'queen');
-    assert.equal(queenAsk.bid, trump === 'C' ? '4D' : '4C');
+    assert.equal(queenAsk.bid, `4${trump}`);
     const shown = applyPostRangeBid(initial, queenAsk.bid);
-    assert.equal(shown.auction.at(-1).bid, trump === 'C' ? '4S' : '4H');
+    assert.equal(shown.auction.at(-1).bid, trump === 'C' ? '4H' : '4S');
     assert.deepEqual(shown.constraints.at(-1), { type: 'trumpQueen', trump, value: true, label: 'Has the trump queen' });
+    const beforeGame = { ...shown, auction: [call('South', trump === 'C' ? '4NT' : '5C')] };
+    assert.equal(postRangeActions(beforeGame)[0].bid, trump === 'C' ? '5D' : '5H');
     const beforeGrand = { ...shown, auction: [call('South', trump === 'C' ? '5S' : '5NT')] };
     assert.equal(postRangeActions(beforeGrand)[0].bid, trump === 'C' ? '6D' : '6H');
     const otherQueen = { ...initial, constraints: [{ type: 'trumpQueen', trump: trump === 'C' ? 'D' : 'C', value: true }] };

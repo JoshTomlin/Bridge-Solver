@@ -78,6 +78,52 @@ test('all eight revised entries plus the two confirmed base range prefixes are p
   }
 });
 
+test('expanded minor entries admit every HCP from 9 to the entry maximum, including 11', () => {
+  for (const [id, shape, maxHcp, answer] of [
+    ['minor-d-h-c', '1255', 22, '3H'], ['minor-d-s-c', '1255', 22, '3H'],
+    ['minor-d-h-d', '3163', 14, '3C'], ['minor-d-s-d', '1363', 14, '3D'],
+    ['minor-d-h-s', '4153', 22, '2H'], ['minor-c-h-s', '4135', 22, '2S'],
+    ['minor-c-h-c', '3136', 13, '2NT'], ['minor-c-s-c', '1336', 13, '3D'],
+  ]) {
+    const item = profile(id);
+    for (let points = 8; points <= maxHcp + 1; points++) {
+      assert.equal(abstractMatch(shape, points, item.partnerConstraints), points >= 9 && points <= maxHcp,
+        `${id}: ${shape}, ${points} HCP`);
+    }
+    const answers = item.nodes.entry.actions[0].responses.filter(row => abstractMatch(shape, 11, row.constraints));
+    assert.equal(answers.length, 1, `${id}: an 11-count must have exactly one answer`);
+    assert.equal(answers[0].bid, answer, `${id}: an ordinary 11-count describes shape`);
+  }
+});
+
+test('an 11-count after 1D–1S–2C follows the shape relay and remains available to sampling', () => {
+  const initial = {
+    ...createPractice({ profileId: 'minor-d-s-c', seed: 'eleven-count-regression' }),
+    partnerHand: 'S2 HA H2 DK DT D9 D7 D6 CA CT C9 C8 C7'.split(' '),
+    playerHand: 'SA SQ SJ S9 S6 HQ HT H9 D8 D5 D3 CK CJ'.split(' '),
+  };
+  assert.equal(new Set([...initial.partnerHand, ...initial.playerHand]).size, 26);
+  assert.equal(handFeatures(initial.partnerHand, 'D').hcp, 11);
+  assert.equal(matchesConstraints(initial.partnerHand, initial.constraints, 'D'), true);
+  assert.equal(matchesConstraints(initial.playerHand, profile(initial.familyId).playerConstraints, 'D'), true);
+  assert.match(initial.constraints[0].label, /9–22 HCP/);
+  const shape = applyBid(initial, '2H');
+  assert.equal(shape.auction.at(-1).bid, '3H');
+  assert.equal(shape.weakExitAllowed, false);
+  assert.ok(shape.constraints.some(constraint => constraint.type === 'hcp' && constraint.min === 11 && constraint.max === 22));
+  const keycards = applyBid(shape, '3S');
+  assert.equal(keycards.auction.at(-1).bid, '4C');
+  assert.equal(availableActions(keycards).find(action => action.askType === 'queen').bid, '4D');
+  assert.equal(keycards.partnerHand, initial.partnerHand);
+  const samples = sampleCompatible({ ...shape, constraints: [...shape.constraints, { type: 'hcp', equals: 11 }] },
+    { count: 5, seed: 'eleven-count-samples', maxAttempts: 30000 });
+  assert.equal(samples.complete, true);
+  for (const partnerHand of samples.hands) {
+    assert.equal(handFeatures(partnerHand, 'D').hcp, 11);
+    assert.deepEqual(applyBid({ ...initial, partnerHand }, '2H').auction, shape.auction);
+  }
+});
+
 test('the two literal E5 stacks retain every printed bid and rare support exception', () => {
   const hearts = profile('minor-d-h-c').nodes.entry.actions[0];
   const spades = profile('minor-d-s-c').nodes.entry.actions[0];
@@ -244,6 +290,32 @@ test('compatible samples use accumulated public facts and can reproduce the same
       assert.deepEqual(replay.auction, session.auction);
       assert.equal(replay.shortageSuit, session.shortageSuit);
     }
+  }
+});
+
+test('diamond game force retains 4D for the queen after the 3S SKC ask and 4C reply', () => {
+  const initial = createPractice({ profileId: 'minor-d-s-c', seed: 'relay-1' });
+  const keycards = applyBid(applyBid(initial, '2H'), '3S');
+  assert.deepEqual(keycards.auction.map(call => call.bid), ['1D', '1S', '2C', '2H', '3H', '3S', '4C']);
+  assert.equal(keycards.trump, 'D');
+  const asks = availableActions(keycards).filter(action => action.kind === 'relay');
+  assert.deepEqual(asks.map(({ bid, askType, askSuit }) => [bid, askType, askSuit]), [
+    ['4D', 'queen', undefined], ['4H', 'suit', 'H'], ['4S', 'suit', 'C'],
+  ]);
+  assert.deepEqual(asks[0].responseLadder.map(({ bid, queen }) => [bid, queen]), [
+    ['4H', false], ['4S', true],
+  ]);
+  const queen = applyBid(keycards, '4D');
+  assert.equal(queen.partnerHand, initial.partnerHand);
+  assert.equal(queen.playerHand, initial.playerHand);
+  assert.equal(matchesConstraints(queen.partnerHand, queen.constraints, 'D'), true);
+  assert.equal(availableActions(queen).some(action => action.askType === 'queen'), false);
+  const samples = sampleCompatible(queen, { count: 5, seed: 'diamond-queen-replay', maxAttempts: 30000 });
+  assert.equal(samples.complete, true);
+  for (const partnerHand of samples.hands) {
+    let replay = { ...initial, partnerHand };
+    for (const bid of ['2H', '3S', '4D']) replay = applyBid(replay, bid);
+    assert.deepEqual(replay.auction, queen.auction);
   }
 });
 

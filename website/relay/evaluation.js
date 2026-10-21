@@ -142,12 +142,14 @@ export function normalizeContract(contract, contextOrMajor) {
   return { level, strain, declarer, key: `${level}${strain}-${declarer}` };
 }
 
-export function defaultContracts(contextOrMajor, selectedContract) {
+export function defaultContracts(contextOrMajor, selectedContract, otherContracts = []) {
+  if (!Array.isArray(otherContracts)) throw new Error('Additional contracts must be an array.');
   const trump = typeof contextOrMajor === "string" ? contextOrMajor : evaluationContext(contextOrMajor).trump;
   const gameLevel = trump === "C" || trump === "D" ? 5 : 4;
   const contracts = [gameLevel, 6, 7].map((level) => normalizeContract(`${level}${trump}`, contextOrMajor));
   contracts.push(...[3, 6, 7].map((level) => normalizeContract(`${level}NT`, contextOrMajor)));
   if (selectedContract != null) contracts.push(normalizeContract(selectedContract, contextOrMajor));
+  contracts.push(...otherContracts.map(contract => normalizeContract(contract, contextOrMajor)));
   return [...new Map(contracts.map((contract) => [contract.key, contract])).values()];
 }
 
@@ -179,12 +181,25 @@ export function evaluateTable(table, contracts) {
   });
 }
 
-export function aggregateTables(tables, contextOrMajor, selectedContract) {
+export function aggregateTables(tables, contextOrMajor, selectedContract, otherContracts = []) {
   if (!Array.isArray(tables) || tables.length === 0) throw new Error("At least one double-dummy table is required.");
-  const contracts = defaultContracts(contextOrMajor, selectedContract);
+  const contracts = defaultContracts(contextOrMajor, selectedContract, otherContracts);
   const counts = contracts.map(() => 0);
+  const totals = contracts.map(() => 0);
+  const selected = selectedContract == null ? null : normalizeContract(selectedContract, contextOrMajor);
+  const pairs = contracts.map(() => ({ bothMake: 0, assessedOnly: 0, alternativeOnly: 0, neitherMakes: 0 }));
   for (const table of tables) {
-    evaluateTable(table, contracts).forEach((result, index) => { counts[index] += Number(result.makes); });
+    const results = evaluateTable(table, contracts);
+    const assessed = selected && results.find(result => result.key === selected.key);
+    results.forEach((result, index) => {
+      counts[index] += Number(result.makes);
+      totals[index] += result.tricks;
+      if (assessed) {
+        const category = assessed.makes ? (result.makes ? 'bothMake' : 'assessedOnly')
+          : (result.makes ? 'alternativeOnly' : 'neitherMakes');
+        pairs[index][category] += 1;
+      }
+    });
   }
   return {
     sampleCount: tables.length,
@@ -197,7 +212,13 @@ export function aggregateTables(tables, contextOrMajor, selectedContract) {
       makes: counts[index],
       total: tables.length,
       makeFraction: counts[index] / tables.length,
+      averageTricks: totals[index] / tables.length,
       interval: wilsonInterval(counts[index], tables.length),
     })),
+    ...(selected ? { assessment: {
+      contract: selected,
+      comparisons: contracts.map((contract, index) => ({ ...contract, ...pairs[index], total: tables.length }))
+        .filter(contract => contract.key !== selected.key),
+    } } : {}),
   };
 }

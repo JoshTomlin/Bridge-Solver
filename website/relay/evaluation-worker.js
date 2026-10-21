@@ -53,10 +53,10 @@ export function createEvaluationHandler(getEngine, postMessage) {
         postMessage({ id, type: "ready" });
         return;
       }
-      const { deals, major, context, contract, actualDeal } = data ?? {};
+      const { deals, major, context, contract, otherContracts, actualDeal } = data ?? {};
       const evaluationContext = context ?? major;
       if (!Array.isArray(deals) || deals.length === 0) throw new Error("Provide at least one complete sampled deal.");
-      const contracts = defaultContracts(evaluationContext, contract);
+      const contracts = defaultContracts(evaluationContext, contract, otherContracts);
       deals.forEach(validateDeal);
       if (actualDeal != null) validateDeal(actualDeal);
       const engine = await getEngine();
@@ -67,7 +67,7 @@ export function createEvaluationHandler(getEngine, postMessage) {
         tables.push(table);
         postMessage({ id, type: "progress", completed: tables.length, total: deals.length });
       }
-      const result = aggregateTables(tables, evaluationContext, contract);
+      const result = aggregateTables(tables, evaluationContext, contract, otherContracts);
       if (actualDeal != null) {
         result.actual = {
           label: "Actual deal (double-dummy)",

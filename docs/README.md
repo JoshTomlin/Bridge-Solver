@@ -22,7 +22,7 @@ algorithms; use the result reports when you want a concrete measured example.
 
 | Document | Subject |
 |---|---|
-| [Relay practice](relay-practice.md) | Major, revised minor, club and Dappleton exercises, auction constraints, hand sampling and DDS comparisons |
+| [Relay practice](relay-practice.md) | Asker/teller exercises, auction constraints, compatible-hand DDS assessment and revealed-partnership review |
 | [Relay system tables](relay-system/README.md) | Readable family-by-family bidding tables, response ladders and practice qualifications |
 | [Relay exercise catalogue](relay-system/scenario-catalog.md) | Generated inventory of all 63 entries, prefixes, initial calls and asking roles |
 | [Relay coverage and remaining work](relay-system/coverage.md) | Delivered behaviour, unresolved partnership decisions, source boundaries and backlog |

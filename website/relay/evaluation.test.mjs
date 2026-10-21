@@ -206,6 +206,46 @@ test("aggregation compares every contract on the same tables", () => {
   }
 });
 
+test("assessed contracts compare paired outcomes and mean tricks on the same deals", () => {
+  const result = aggregateTables([
+    fixtureTable(12, 9), // Both 6S and 3NT make.
+    fixtureTable(12, 8), // Only assessed 6S makes.
+    fixtureTable(11, 9), // Only alternative 3NT makes.
+    fixtureTable(10, 8), // Neither makes.
+  ], "S", "6S");
+  const spades = result.contracts.find(row => row.key === '6S-North');
+  assert.equal(spades.makeFraction, 0.5);
+  assert.equal(spades.averageTricks, 11.25);
+  assert.equal(result.assessment.contract.key, '6S-North');
+  const nt = result.assessment.comparisons.find(row => row.key === '3NT-South');
+  assert.deepEqual([nt.bothMake, nt.assessedOnly, nt.alternativeOnly, nt.neitherMakes], [1, 1, 1, 1]);
+  assert.equal(nt.total, 4);
+  for (const row of result.assessment.comparisons) {
+    assert.equal(row.bothMake + row.assessedOnly + row.alternativeOnly + row.neitherMakes, row.total);
+    assert.notEqual(row.key, result.assessment.contract.key);
+  }
+  const game = result.assessment.comparisons.find(row => row.key === '4S-North');
+  assert.equal(game.assessedOnly, 0, 'A same-strain slam cannot make while game fails');
+  assert.equal(game.alternativeOnly, 2);
+  assert.equal(aggregateTables([fixtureTable(12, 9)], 'S').assessment, undefined);
+});
+
+test('a chosen contract outside the default set remains in alternative assessments', async () => {
+  const result = aggregateTables([fixtureTable(10, 9), fixtureTable(11, 8)], 'S', '3NT', ['5S']);
+  assert.equal(result.assessment.contract.key, '3NT-South');
+  assert.equal(result.contracts.find(row => row.key === '5S-North').makes, 1);
+  assert.equal(result.assessment.comparisons.find(row => row.key === '5S-North').alternativeOnly, 1);
+  assert.equal(defaultContracts('S', '5S', ['5S']).filter(row => row.key === '5S-North').length, 1);
+  assert.throws(() => defaultContracts('S', '6S', {}), /must be an array/);
+  const outputs = [];
+  const handler = createEvaluationHandler(async () => ({
+    ddTable: () => JSON.stringify(fixtureTable(11, 9)),
+  }), message => outputs.push(message));
+  await handler({ data: { id: 'keep-chosen', deals: [fillOpponentHands(south, north, 1)], major: 'S', contract: '3NT', otherContracts: ['5S'] } });
+  assert.equal(outputs.at(-1).type, 'result');
+  assert.equal(outputs.at(-1).result.contracts.find(row => row.key === '5S-North').makes, 1);
+});
+
 test("Wilson 95% interval matches reference values and handles boundary counts", () => {
   const interval = wilsonInterval(50, 100);
   assert.ok(Math.abs(interval.low - 0.4038315303659957) < 1e-12);

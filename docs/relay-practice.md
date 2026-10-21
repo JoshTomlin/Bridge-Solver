@@ -4,6 +4,37 @@ Relay practice is a separate Bridge Lab page at `website/relay.html`. It combine
 a fixed hidden partner hand, deterministic relay answers, public constraints,
 compatible-hand sampling and double-dummy contract comparison.
 
+Choose **Asker · Ask and interpret** or **Teller · Answer the questions** in
+the toolbar. The asker chooses relay questions, interprets the replies and
+selects the final contract. The teller sees the describing hand and answers
+the practice partner's questions. All 63 exercises support both roles,
+including Dappleton's reversed North/South seats. Changing role restarts the
+exercise. Replaying the same branch and seed preserves the same two hands.
+
+The main choice is **Which auction family?** Select **Jacoby · 1M–2NT**,
+**1D–1NT**, **Minor 3-bid**, **Horton · 2NT**, **Dappleton · 1NT**,
+**Split range**, **Reordered rebid**, or **Club · 1C–1S**. **New hand** draws
+a fresh seed and a random entry branch within that family. Reordered rebid
+includes single-suiters, support entries, reverses and mini–mega splinters;
+the separate club family retains the existing 1C–1S continuations.
+
+Open **Study a particular branch** to choose a specific entry. **Next study
+hand** then deals fresh cards within that entry. Choose **Random branch · Whole
+family** to mix entries again; changing the main family also clears the branch
+selection. The seed is hidden inside **Hand seed and replay** in the study
+menu. **Replay this branch** reuses the entered seed for the current branch
+without pinning future random-family hands to that branch.
+
+In teller practice, partner follows supported questions in source order,
+checking any action prerequisites against the asker's own hand. It never
+chooses a question by inspecting the teller's undisclosed cards. At the source
+boundary it takes the lowest available final-contract action. This is a
+deterministic recall coach, not an optimal bidding policy. A wrong response
+leaves the question, deal and constraints unchanged so you can try again.
+Show meanings displays every response meaning without selecting the answer.
+Undo restores the previous question and the same cards. Contract-assessment
+tools belong to asker practice and are hidden in teller mode.
+
 Choose a first/second-seat, uncontested practice family: **1M–2NT**, the revised
 **minor-opening relays**, selected **1C–1S** continuations, or **Dappleton** after
 a balanced club rebid, plus **reordered opener rebids**, **split-range** and
@@ -30,9 +61,28 @@ Emscripten toolchain and run `build-wasm.ps1` from the repository root. Then run
 and the compiled engine. A missing engine or an older build without `ddTable`
 disables comparison and displays an explanation; no results are invented.
 
+## Returning to an auction
+
+Relay practice automatically saves the current hand, auction, role, pending
+teller question, chosen contract and undo history after every successful action.
+It also remembers meanings, sample count, assessment settings and an unfinished
+typed bid. Reopening the page restores the saved auction instead of dealing
+again. **New hand**, **Next study hand**, or changing family/branch/role starts
+another exercise. Restoration keeps the current hand and branch; subsequent
+hands still draw across the family unless you explicitly chose a study branch.
+Older saves resume their exact auction in random-family mode.
+
+The save is local to the same browser and site address, including its port.
+Clearing site data or using a different browser/address does not carry it over.
+The page shows whether progress was saved; blocked storage or a full quota
+produces a visible notice. Invalid/incompatible saves fall back to a new hand
+with an explanation. Samples and DDS results are recomputed when requested;
+running analysis does not resume after reopening. Auctions lost before autosave
+was added were not stored and cannot be restored from browser storage.
+
 ## Covered auction families
 
-| Family | Practice entry and scope | Your role |
+| Family | Practice entry and scope | Asker seat |
 |---|---|---|
 | Major raises | 1H/1S–2NT, shape, range, keycards and specific-suit asks | South, responder |
 | Base diamond relay | 1D–1NT–2D (9–11) or 2C (12–15), then 2H shape enquiry | South, responder |
@@ -47,6 +97,9 @@ disables comparison and displays an explanation; no results are invented.
 | Reordered single-suiters | Five zero–two-major-support rebids and four 2NT three-card-support entries; shortage, natural escapes and strength distinctions | South, responder |
 | Reordered reverses | Four entries, high/low/equal shortage and the 14/15 three-card-support fourth answer | South, responder |
 | Reordered mini–mega splinters | Ten high/low shortage positions, partscore escape, non-serious and control cues | South, responder |
+
+In teller practice you occupy the other North/South seat and describe that
+hand. The source asking/describing roles remain fixed throughout each exercise.
 
 These are bounded entry scenarios, not every possible continuation of a club or
 diamond opening. The detailed source maps distinguish literal tables, inferred
@@ -96,8 +149,10 @@ keycard choice closes those alternative agreements.
   bounds. For example, a publicly
   established four-card suit cannot produce the Kx answer.
 - After a suit ask, later eligible suits can be asked; skipped suits cannot be
-  recovered. Queen/suit asks reserve trumps and the bid immediately below a
-  small slam in the agreed suit, including when that suit is a minor.
+  recovered. Queen/suit asks reserve game and slam bids in trumps and the bid
+  immediately below a small slam in the agreed suit. Trump bids below game
+  remain relay steps: with diamonds agreed and a game force established, 4D
+  can ask for the queen after a 4C keycard reply.
   Grand-try responses remain undefined, so that reserved call is not offered.
 
 Asking omissions are branch-specific. Revised minor relays reserve responder's
@@ -111,6 +166,31 @@ expand “Response steps for these asks” to inspect the compressed answer ladd
 Enter a bid using text or suit symbols, or use the bid buttons. Undo restores
 the prior auction with the same partner hand. Choosing a final contract reveals
 partner and allows the selected contract to be highlighted in comparison.
+
+### Judging the final contract as asker
+
+Choose a **Contract to assess** before signing off or when reviewing the
+finished auction, then use **Compare contracts with DDS**. The report shows
+the required tricks, DD make rate, 95% sampling interval and mean DD tricks.
+Game, small slam and grand slam in the agreed suit and notrumps share exactly
+the same complete deals. Your chosen contract remains marked when you assess
+an alternative. The paired-outcome table counts both contracts making, only
+the assessed contract making, only the alternative making, and neither making.
+These are make/fail comparisons; a higher make rate is not a duplicate-score
+ranking or a grade for the bidding decision.
+
+**Auction information** uses only the asker's cards, public practice
+restrictions and the teller's disclosed responses. It samples compatible
+teller hands, each with a random opponent split. Revealing partner does not
+change what this sampler knows. Use this view to assess the information you
+had when choosing your contract.
+
+**Revealed partnership** becomes available after reveal or final signoff.
+It fixes both original North/South hands and samples 100, 500 or 1,000 random
+East/West layouts. This provides a separate hindsight check across many
+opponent layouts rather than relying on the single practice-deal split.
+Switching views clears cached samples and results. Undoing reveal or signoff
+disables revealed-partnership analysis again.
 
 ## Practice restrictions and exclusions
 
@@ -128,8 +208,11 @@ hands and long side suits remain excluded.
 
 The revised minor profiles use explicit shape sets and retain the email's
 named three-suited and exceptional support cases where implemented. Expanded
-entries narrow the very-poor opening to 9–10 and omit the judgmental 11-count
-boundary; the base 9–11 diamond prefix retains its separately known range.
+entries use 9–10 for the very-poor response and include ordinary 11-counts in
+the shape stack. In particular, 1D–1S–2C admits 9–22 before responder asks;
+after a non-poor ordinary shape answer its practice range is 11–22. Named
+support and balanced exceptions retain their source limits, and the base
+9–11 diamond prefix retains its separately known range.
 Unspecified 6/5 continuation tables and the base 2S solid-club enquiry remain
 outside these profiles. The reordered strong reverses have separate entries.
 
@@ -157,6 +240,7 @@ An undefined branch stops with an explanation rather than inventing an answer.
 |---|---|
 | `website/relay/system.js` | Shape/range meanings and disclosed practice restrictions |
 | `website/relay/profiles.js` | Registry of available entry scenarios and player roles |
+| `website/relay/families.js` | Broad family choices, complete entry grouping and seeded random-branch selection |
 | `website/relay/minor-profiles.js` | Revised July-email shape/range nodes and public alternative agreements |
 | `website/relay/club-profiles.js` | Bounded 1C–1S and Dappleton nodes, including fixed lead-ins |
 | `website/relay/strong-club-profiles.js` | Strong 2C–2D resolution and conditional diamond SKC |
@@ -166,11 +250,14 @@ An undefined branch stops with an explanation rather than inventing an answer.
 | `website/relay/source-utils.js` | Shared declarative shape, shortage, control-cue and answer helpers |
 | `website/relay/profile-utils.js` | Shared source-definition notation, step arithmetic and declarer lookup |
 | `website/relay/core.js` | Hand features, constraints, auction transitions and seeded generation/sampling |
+| `website/relay/practice.js` | Asker/teller controller, public question prompts, response validation and human seat/hand view |
+| `website/relay/progress.js` | Versioned browser saves, validated restoration, undo history and preferences |
 | `website/relay/continuations.js` | Keycards, queen and specific-suit asks; public response compression |
 | `website/relay/sampling-worker.js` | Deal generation and bounded sampling off the UI thread |
 | `website/relay/evaluation.js` | Opponent completion, declarers, DD aggregation and Wilson intervals |
 | `website/relay/evaluation-worker.js` | Loads DDS and solves complete deals off the UI thread |
 | `website/relay/app.js` | Practice, hints, undo, reveal, cancellation and reports |
+| `website/relay-browser-smoke.mjs` | Optional Playwright regression using shipped modules and real DDS |
 | `engine/src/wasm_bindings.cpp` | Stateless validated `ddTable(north,east,south,west)` binding |
 
 The engine interprets source nodes containing actions, response predicates and
@@ -219,6 +306,8 @@ not constitute a test of the difference between two paired contracts.
 
 After reveal, a separate column solves the original partner hand with one
 reproducible opponent split. It is not an average over opponent layouts.
+The revealed-partnership analysis view instead repeats opponent completion
+with both original hands fixed and reports its own make rates and intervals.
 Stop terminates the worker; the practice hand remains unchanged.
 
 IMP/MP scoring, honour-conditioned generation for extremely rare hands, and
@@ -234,6 +323,22 @@ node ui-smoke.mjs
 node --test relay/*.test.mjs
 node wasm-smoke.mjs
 ```
+
+The optional browser regression requires Playwright and Chromium. From
+`website`, install the test dependency and browser, build, then run:
+
+```sh
+npm install --no-save --package-lock=false playwright
+npx playwright install chromium
+npm run build
+npm run test:relay:browser
+```
+
+On hosts missing Chromium's shared libraries, Playwright's
+`npx playwright install-deps chromium` installs the required system packages.
+The test starts its own preview on port 3012; override with
+`BRIDGE_RELAY_TEST_PORT` if necessary. `BRIDGE_PLAYWRIGHT_MODULE` can point at
+an existing Playwright ES module when using a shared test-tools installation.
 
 The WASM smoke requires the compiled build. It checks known DDS trick counts,
 malformed-hand rejection and that table solving does not mutate a play session.
@@ -286,3 +391,35 @@ agreement tables with the implementation exposed a duplicate 4D action after
 generic club Kickback; club interest proceeds through 4C agreement and its
 subsequent cue/keycard route. A regression check covers every listed support
 shape's agreements, bringing the relay suite to 100 tests.
+
+The 21 October 2026 role/assessment update passes **107 relay tests**, including
+full teller sessions across all 63 profiles, wrong-answer retry, fixed-hand
+undo states, public question selection, paired outcomes and retention of a
+chosen contract when assessing alternatives. Static build, deal utility tests,
+play-lab UI smoke and compiled DDS smoke also pass. The optional Chromium
+regression checks shipped major/minor/Dappleton teller sessions and asker
+assessment with real DDS, final signoff, revealed-partnership layouts,
+alternative assessment, undo, Stop, mobile overflow and absent DDS.
+
+The subsequent 21 October clarification permits trump bids below game in
+queen/specific-suit relays. All **108 relay tests**, the static build and compiled
+DDS smoke pass. A focused mobile Chromium check reproduces
+1D–1S–2C–2H–3H–3S–4C, confirms 4D as the queen ask and 4H/4S as the side-suit
+asks, then verifies the answer, fixed hand, undo and typed 4D entry.
+
+The autosave fix brings the suite to **114 passing relay tests**, including
+save/restore for both roles across all 63 profiles, pending questions, completed
+contracts, undo history, corrupt data and storage failures. Browser regression
+checks reloads in both roles, restored preferences/completed auctions, undo
+after restore, full Chromium close/reopen with a persistent profile, and
+recovery from a corrupt save. Static build and utility/UI/compiled DDS smoke
+checks also pass.
+
+The family-first picker passes **121 relay tests**, including complete and
+non-overlapping coverage of all 63 entries, reproducible random branch draws,
+explicit branch selection and restoration of old saves without pinning the
+next deal. Browser checks cover all eight broad choices, fresh hidden seeds,
+random-family restoration, study mode, both roles and the existing DDS flows.
+An additional desktop/mobile check verifies exact seed replay in random-family
+mode, fresh cards in a pinned branch, restored study selection, family changes
+clearing the branch selection and no horizontal overflow with replay open.

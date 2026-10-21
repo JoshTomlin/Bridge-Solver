@@ -4,7 +4,8 @@
 
 The July email supersedes the corresponding Bourke/fourth-suit sections of
 the main notes. South asks; North describes opener. `Poor` below is the
-email's 9–10(11) judgement, narrowed to 9–10 in the expanded practice entries.
+email's 9–10(11) judgement. Expanded practice entries use 9–10 for that answer
+and admit ordinary 11-counts in the shape stack, without a gap in the entry range.
 Response maps labelled **derived** count consecutive bids in the email's
 stack order; they are not additional literal bid tables supplied by its author.
 
@@ -49,22 +50,27 @@ restricted to 12–13. Responder has 14–22, no five-card major and two-plus di
 
 | Prefix | Relay | Poor-opening answer | Ordinary non-poor practice range |
 |---|---|---|---|
-| 1C–1D–2C | 2D | 2H | 12–13 |
-| 1C–1H–2C | 2D | 2H | 12–13 |
-| 1D–1H–2D | 2S | 2NT | 12–14 |
-| 1D–1S–2D | 2H | 2S | 12–14 |
-| 1C–1D–1S | 2D | 2H | 12–22; named support case 12+ |
-| 1D–1H–1S | 2C | 2D | 12–22; named support case 16+ |
-| 1D–1H–2C | 2S | 2NT | 12–22; named support case 16+ |
-| 1D–1S–2C | 2H | 2S | 12–22; named support case 16+ |
+| 1C–1D–2C | 2D | 2H | 11–13; rare balanced case 12–13 |
+| 1C–1H–2C | 2D | 2H | 11–13 |
+| 1D–1H–2D | 2S | 2NT | 11–14 |
+| 1D–1S–2D | 2H | 2S | 11–14 |
+| 1C–1D–1S | 2D | 2H | 11–22; named support case 12+ |
+| 1D–1H–1S | 2C | 2D | 11–22; named support case 16+ |
+| 1D–1H–2C | 2S | 2NT | 11–22; named support case 16+ |
+| 1D–1S–2C | 2H | 2S | 11–22; named support case 16+ |
 
 After a poor answer, the next permitted step continues shape; all other
 unassigned bids are to play. That re-relay uses the entry's ordinary category
 order, omitting categories impossible in the disclosed weak range. Its bids
 must be recounted from the new ask. Do not reuse the non-poor literal bids.
 
-Practice excludes the judgemental expanded-entry 11-count boundary. These
-entries give responder 12–22 and four–six cards in the initially shown major.
+The user confirmed on 21 October 2026 that 1D–1S–2C admits 9–22 HCP, including
+11-counts. The common expanded-entry practice filter therefore has no HCP gap:
+9–10 uses the poor answer and ordinary 11-counts use the shape stack. This
+numeric practice cutoff does not settle which exceptionally poor 11-counts
+the partnership would judge as weak. Named support and rare balanced cases
+retain their source limits. These entries give responder 12–22 and four–six
+cards in the initially shown major.
 
 ## Non-poor first-response stacks
 

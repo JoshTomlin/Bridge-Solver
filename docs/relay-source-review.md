@@ -100,10 +100,14 @@ uses high/low for two suits, as stated in the clarification question, and
 middle/high/low for three suits.
 
 After a suit answer, the next eligible step asks another suit provided the
-first ask did not skip it. The agreed-suit bid and the bid immediately below
-small slam in that suit are reserved; the latter is a general grand try.
-The implementation reserves these calls for queen/suit asks. Opener's response
-ladders remain consecutive; they do not inherit the asking-bid reservations.
+first ask did not skip it. Game and slam bids in the agreed suit and the bid
+immediately below small slam in that suit are reserved; the latter is a general
+grand try. On 21 October 2026 the user clarified that a trump bid below game
+remains a relay step once committed to game: after
+1D–1S–2C–2H–3H–3S–4C, 4D asks for the diamond queen rather than being skipped
+in favour of 4H. This corrects the earlier blanket reservation of agreed-suit
+bids. Opener's response ladders remain consecutive; they do not inherit the
+asking-bid reservations.
 
 The later fourth-round-control idea was explicitly tentative and has no
 agreed response table. Keep it out of the implemented partnership profile.
@@ -154,6 +158,14 @@ to SKC. The base 1D–1NT prefix has already disclosed its strength, so it must 
 receive another very-poor-opening screen. The eight expanded entry patterns
 retain the email's separate initial screen. Known HCP does not remove the
 standard 0/3 keycard response rung.
+
+On 21 October 2026 the user confirmed that 1D–1S–2C admits 9–22 HCP and must
+not exclude 11-counts. The expanded practice entries now admit ordinary
+11-counts in their shape stacks, with 9–10 retained as the deterministic
+poor-opening practice band. This removes the former gap from generation,
+public constraints and compatible sampling; it does not define which
+exceptionally poor 11-counts the source's 9–10(11) judgement would classify as
+weak. Explicit named-support and rare-balanced limits remain in force.
 
 For revised minor relays, responder's 3NT remains to play. The major-raise 4M
 omission is not imported into those auctions. Dappleton's minor-transfer

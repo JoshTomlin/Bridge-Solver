@@ -42,12 +42,16 @@ function nextAsk(after, session, specific = false, legacySkip3NT = false) {
   const trump = agreedTrump(session);
   const skip3NT = session.relayPolicy ? Boolean(session.relayPolicy.skip3NT) : legacySkip3NT;
   const skipGame = session.relayPolicy ? Boolean(session.relayPolicy.skipMajorGame) : true;
+  const game = indexOfBid(`${['C', 'D'].includes(trump) ? 5 : 4}${trump}`);
   const grandTry = indexOfBid(`6${trump}`) - 1;
   for (let index = indexOfBid(after) + 1; index < 35; index += 1) {
     const bid = bidAt(index);
     if (skip3NT && bid === '3NT') continue;
     if (session.relayPolicy?.skipBids?.includes(bid)) continue;
-    if (specific ? STRAINS[index % 5] === trump || index === grandTry : skipGame && bid === `4${trump}`) continue;
+    if (specific) {
+      // Trump bids below game remain asking steps in a game-forcing relay.
+      if ((STRAINS[index % 5] === trump && index >= game) || index === grandTry) continue;
+    } else if (skipGame && bid === `4${trump}`) continue;
     return bid;
   }
   return null;

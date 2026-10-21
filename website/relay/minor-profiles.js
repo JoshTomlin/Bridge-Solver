@@ -77,7 +77,9 @@ function shapeNode(config, rows, second = null) {
 }
 
 function expandedProfile(config) {
-  const normalMin = 12;
+  // Ordinary 11-counts describe shape; the practice cutoff for the subjective
+  // poor-opening screen must not exclude them from the initial bidding range.
+  const normalMin = 11;
   const maxHcp = config.maxHcp;
   const rows = config.rows;
   const normalOptions = rows.map(row => [shapeFact(row.values), hcp(row.minHcp || normalMin, row.maxHcp || maxHcp)]);
@@ -114,15 +116,16 @@ function expandedProfile(config) {
     initialAuction: config.prefix.map((bid, index) => ({ seat: index % 2 ? 'South' : 'North', bid,
       meaning: index === 1 ? `Response showing ${SUIT_NAMES[config.responderSuit].toLowerCase()}` : 'Source entry to the revised minor relay' })),
     partnerConstraints: [{ ...anyOf([shapeFact(weakShapes), hcp(9, 10)], ...normalOptions),
-      label: `Opener: 9–10 or 12–${maxHcp} HCP in the listed shape families; named support shapes retain their source strength limits`,
+      label: `Opener: 9–${maxHcp} HCP in the listed shape families; named support shapes retain their source strength limits`,
     }],
     playerConstraints: [hcp(12, 22), length(config.responderSuit, 4, 6)],
     startNode: 'entry', nodes,
     assumptions: [
       'The July email replaces the older Bourke and fourth-suit relay descriptions. Unopposed first/second-seat practice.',
-      `Opener is restricted to the disclosed shape set and 9–10 or 12–${maxHcp} HCP. The judgmental 11-count boundary is excluded. Responder has 12–22 HCP and four to six cards in the shown major.`,
+      `Opener is restricted to the disclosed shape set and 9–${maxHcp} HCP, retaining the stated limits on named support and balanced shapes. Responder has 12–22 HCP and four to six cards in the shown major.`,
       'Ordinary practice shapes have either six or more cards in the opening minor with no four-card side suit, or five or more minor cards and exactly four in the second suit. The other suits have at most three cards and exactly one shortage; separately named 5/5, three-suited and support shapes are added explicitly.',
       'The initial poor-hand screen applies to these expanded entries. After its first-step answer, the next relay asks shape and other bids are to play.',
+      'The practice screen treats 9–10 HCP as very poor and lets ordinary 11-counts describe shape. The source’s exceptionally poor 11-count is a judgment call, not an exclusion from the opening range.',
       'Responder 3NT is always to play. Opener response steps count 3NT. Once shape is complete, the next relay is Shortage Keycard, as confirmed by the partnership.',
       'Where the email gives a stack rather than printed bids, response bids are assigned consecutively in that order. After the poor-hand screen, categories impossible in that known range are omitted.',
     ],

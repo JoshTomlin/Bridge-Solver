@@ -24,16 +24,24 @@
         <ul id="system-assumptions"></ul>
       </details>
       <form id="deal-form" class="practice-toolbar">
-        <label class="profile-field">Practice auction<select id="profile"></select></label>
-        <label class="seed-field">Deal seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false" value="relay-1" required></label>
-        <button class="button primary" type="submit" id="new-deal">Deal hand</button>
-        <button class="button secondary" type="button" id="random-deal">Random hand</button>
+        <label class="family-field">Which auction family?<select id="auction-family"></select></label>
+        <label class="role-field">Your role<select id="practice-role"><option value="asker">Asker · Ask and interpret</option><option value="teller">Teller · Answer the questions</option></select></label>
+        <button class="button primary" type="submit" id="new-deal">New hand</button>
         <label class="hint-toggle"><input id="show-hints" type="checkbox"> Show meanings</label>
       </form>
+      <p id="role-help" class="role-help">As asker, choose the relay questions, interpret partner’s answers and judge the final contract.</p>
+      <details id="study-menu" class="study-menu">
+        <summary>Study a particular branch</summary>
+        <p>Practise one branch repeatedly, or leave “Random branch” selected to explore the whole family.</p>
+        <div class="study-controls"><label class="profile-field">Branch to practise<select id="profile"></select></label></div>
+        <p id="active-branch" class="active-branch"></p>
+        <details class="replay-options"><summary>Hand seed and replay</summary><p>Every new hand uses a random seed. Reuse a seed here to repeat a hand in the current branch.</p><div class="study-controls"><label class="seed-field">Hand seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false"></label><button type="button" id="replay-deal" class="button secondary">Replay this branch</button></div></details>
+      </details>
       <p id="status" class="relay-status" role="status" aria-live="polite">Dealing a practice hand…</p>
+      <p id="save-status" class="save-status" role="status" aria-live="polite"></p>
       <div class="practice-grid">
         <section class="practice-table" aria-label="Practice auction">
-          <div class="practice-topline"><span id="partner-seat">North · Your partner</span><span id="session-seed"></span></div>
+          <div class="practice-topline"><span id="partner-seat">North · Your partner</span><span id="practice-scope">Random branch</span></div>
           <div id="partner-hand" class="partner-hand"><div class="card-backs" aria-label="Partner’s hand is hidden"><i></i><i></i><i></i><i></i><i></i></div><p>13 cards. One fixed hand.</p></div>
           <div class="auction-area">
             <p class="auction-caption">Uncontested auction · East and West always pass</p>
@@ -50,12 +58,12 @@
             <details id="signoff-section"><summary>Choose a final contract</summary><div id="signoff-actions" class="bid-actions signoffs"></div></details>
             <div class="session-actions"><button type="button" id="undo-bid" class="text-button" disabled>Undo bid</button><button type="button" id="reveal-hand" class="text-button" disabled>Reveal partner</button></div>
           </section>
-          <section class="relay-panel knowledge-panel"><div class="panel-title"><h2>Auction knowledge</h2><span id="constraint-count"></span></div><div id="knowledge"></div></section>
+          <section class="relay-panel knowledge-panel"><div class="panel-title"><h2 id="knowledge-title">Auction knowledge</h2><span id="constraint-count"></span></div><div id="knowledge"></div></section>
         </aside>
       </div>
-      <section class="relay-panel sampling-panel">
-        <div class="sampling-heading"><div><p class="eyebrow">Explore the remaining hands</p><h2>What could partner hold?</h2><p>Sample hands consistent with the auction and your cards.</p></div><span id="dds-status" class="runtime-label">DDS: checking…</span></div>
-        <div class="sampling-controls"><label>Partner samples<select id="sample-count"><option value="100" selected>100 · Quick check</option><option value="500">500</option><option value="1000">1,000</option></select></label><button type="button" id="sample-hands" class="button secondary" disabled>Sample hands</button><button type="button" id="evaluate" class="button primary" disabled>Compare contracts with DDS</button><button type="button" id="stop-analysis" class="button secondary" hidden>Stop</button></div>
+      <section id="contract-tools" class="relay-panel sampling-panel">
+        <div class="sampling-heading"><div><p class="eyebrow">Asker’s contract assessment</p><h2>Judge your final contract</h2><p id="analysis-help">Compare a contract using hands consistent with the auction and your cards. Partner’s actual hand is excluded from this estimate.</p></div><span id="dds-status" class="runtime-label">DDS: checking…</span></div>
+        <div class="sampling-controls"><label>Information to use<select id="analysis-basis"><option value="auction">Auction information</option><option id="revealed-basis" value="revealed" disabled>Revealed partnership</option></select></label><label>Contract to assess<select id="assessed-contract"></select></label><label>Sample deals<select id="sample-count"><option value="100" selected>100 · Quick check</option><option value="500">500</option><option value="1000">1,000</option></select></label><button type="button" id="sample-hands" class="button secondary" disabled>Sample hands</button><button type="button" id="evaluate" class="button primary" disabled>Compare contracts with DDS</button><button type="button" id="stop-analysis" class="button secondary" hidden>Stop</button></div>
         <p id="sample-status" role="status" aria-live="polite">Each sample gets one random East/West split. All contracts use the same deals.</p>
         <div id="sample-results"></div><div id="evaluation-results"></div>
         <p class="method-note">DD make rates assume perfect play with all four hands visible. They are conditional on the practice-hand restrictions, and do not estimate human success rates. The intervals show sampling uncertainty only. Comparisons include hypothetical contracts that may be below the current auction.</p>

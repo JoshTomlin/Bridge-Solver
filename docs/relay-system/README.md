@@ -1,7 +1,10 @@
 # Relay system tables
 
 Readable reference tables for the Bridge Lab relay trainer. Start with the
-family you are practising; use the catalogue to find its dropdown entry.
+family you are practising; use the catalogue to find its entry in the study menu.
+The main picker offers broad families and draws a random branch for each new
+hand. **Study a particular branch** exposes the individual entries and replay
+controls. The catalogue maps all 63 branches to the eight main choices.
 
 | Reference | What it contains |
 |---|---|
@@ -42,7 +45,8 @@ rule out an honour category, specific-suit replies compress before counting.
 4432 or 5332. Each exercise can impose a narrower public shape set.
 
 Most exercises have South asking about opener North. In Dappleton exercises,
-you are opener North and hidden responder South describes their hand. The
+opener North asks and responder South describes their hand. Choose either the
+asker or teller role in the toolbar; the source tables retain those seats. The
 full fixed prefix remains visible and determines declarer, including artificial
 bids. Opponents pass throughout.
 

@@ -39,8 +39,11 @@ Paths below are relative to `website/relay/`, unless specified otherwise.
 | Layer | Modules | Contract |
 |---|---|---|
 | Registry | `profiles.js` | Unique stable profile IDs, group/name, seat roles and source references |
+| Practice families | `families.js` | Broad main-menu choices; each registered profile belongs to exactly one; seeded branch draw or explicit study entry |
 | Source definitions | `system.js`, `*-profiles.js`, `profile-utils.js`, `source-utils.js` | Public entry constraints; source actions, response predicates and next states; branch-specific reservations |
 | Session interpreter | `core.js` | Seeded fixed hands, immutable transitions, exactly one compatible partner answer |
+| Practice roles | `practice.js` | Asker/teller views, public automatic asks, retry without mutation and final Pass |
+| Saved practice | `progress.js` | Versioned localStorage snapshot, validation, fixed-deal undo history and UI preferences |
 | Shared continuations | `continuations.js` | Ordinary/Horton KC, SKC, queen, specific suits, public length bounds and range escapes |
 | Sampling | `core.js`, `sampling-worker.js` | Uniform proposals weighted by remaining card combinations; bounded rejection against all public facts |
 | DD analysis | `evaluation.js`, `evaluation-worker.js` | Complete opponents, preserve seats, find declarer, compare shared deals and report uncertainty |
@@ -81,6 +84,17 @@ the action; they must not silently change its bidding meaning.
 
 ### Invariants to preserve
 
+Source definitions retain their original terminology: `playerHand` and
+`playerSeat` are the **asker**, while `partnerHand` and `partnerSeat` are the
+**teller**. `practiceRole` selects the human's role; `practiceView` provides
+the corresponding visible hand, hidden hand, seats and displayed auction.
+Do not swap the source fields to implement teller mode. `pendingAsk` records
+only a public question and its entire response ladder, with no chosen answer.
+The core auction and constraints advance only when the human's answer is
+correct. The automatic asker chooses from public actions in source order,
+using its own cards only for explicit action prerequisites. Its eventual
+lowest-available signoff is a recall policy, not optimal bidding judgement.
+
 1. Generate both 13-card hands before bidding. Never construct partner's hand
    as the auction develops. Undo restores a prior state with the same cards.
 2. Every admitted partner hand has exactly one answer to every applicable
@@ -105,6 +119,23 @@ the action; they must not silently change its bidding meaning.
    reversal must flow through generation, sampling and DDS completion.
 10. DD tables are real solver output. Use the same completed sample deals across
     contracts; keep the original-hand result separate from the sample estimate.
+11. In asker analysis, distinguish compatible-hand sampling from revealed-hand
+    hindsight. The latter is enabled only after reveal and fixes both original
+    hands across many independent opponent splits. Changing basis invalidates
+    cached samples; undo restores the public-information boundary. Teller
+    practice does not expose the asker's hidden cards through sampling tools.
+12. Persist the committed session and undo states after bids, reveal and undo;
+    restore them before considering a fresh deal on startup. Restore the actual
+    cards and pending teller prompt, not just the seed. Validate saved state
+    against registered profiles and fixed hands. Keep sampler/solver jobs and
+    generated reports transient; display read/write failures without blocking
+    practice. Saves use `bridge-lab.relay-progress.v1` in the current origin.
+13. Keep the broad family choice separate from `session.familyId`, which still
+    names the exact source profile. New hands generate fresh seeds and draw
+    within the chosen family. Only an explicit `studyProfileId` preference pins
+    a branch. Restoring older saves infers the broad family without rerolling
+    the current deal or pinning future deals. Replay preserves the current
+    branch and cards for its seed; it does not change the selected study mode.
 
 ## Adding or correcting a family
 
@@ -117,7 +148,8 @@ the action; they must not silently change its bidding meaning.
 3. Add later nodes and shared-continuation transitions. Keep source reservations
    local. Add new facts to the constraint predicates and public length logic
    only when the source actually needs them.
-4. Register the profile and include any new runtime file in `website/build.js`.
+4. Register the profile, assign it to exactly one broad choice in `families.js`,
+   and include any new runtime file in `website/build.js`.
    The UI and sampler worker use the common registry; do not maintain another
    independent list of dropdown entries.
 5. Verify meaningful bidding changes: every admitted shape/HCP partition,
@@ -149,17 +181,24 @@ node build.js
 node wasm-smoke.mjs
 ```
 
+Optional end-to-end regression: install Playwright/Chromium as described in the
+[practice guide](relay-practice.md#verification), then run
+`npm run test:relay:browser`. It starts its own server and checks shipped assets
+with actual DDS, including both roles, retry, hints, typed bids, undo, final
+signoff, contract-assessment modes, Stop, mobile overflow and absent DDS.
+
 The runtime must support ES modules and `Map.groupBy` (for example Node 22+);
 the extraction script uses Python 3.10+ for explicit LF output. The repository's
 bundled runtimes can be used when `node`/`python` are not on PATH.
 
 | Check | What it establishes | What it does not establish |
 |---|---|---|
-| Relay suite, currently 100 tests | Source partitions/examples, transitions, sampler uniformity/replay, shared asks, worker aggregation/errors and source hashes | Entire untranscribed partnership system or all human judgements |
+| Relay suite, currently 121 tests | Source partitions/examples, transitions, sampler uniformity/replay, both roles, complete family grouping/random selection, family/study restoration, storage errors, public prompts, retry, paired outcomes and source hashes | Entire untranscribed partnership system or all human judgements |
 | `deal-utils.test.mjs` | Play-lab deal utilities | New relay browser interactions |
 | `ui-smoke.mjs` | Existing play-lab DOM/control smoke | A visual test of the relay page |
 | `build.js` | Static assets copied into `dist` | Successful DDS availability by itself |
 | `wasm-smoke.mjs` | Actual DDS, preserved play state and shipped minor/Dappleton/rebid sampling-to-evaluation paths | Human make probability or visual UI layout |
+| `relay-browser-smoke.mjs` | Broad family picker, random branches/seeds, hidden study/replay menu, both roles, DDS assessment, reload/full browser restart, restored undo/preferences, corrupt save, Stop and mobile | Every family branch or optimal bidding judgement |
 | Catalogue regeneration | Exact current profile count, prefixes, roles and first source calls | Every dynamic later response |
 | Markdown link/heading/table review | Navigable, readable documentation | Bidding correctness without source/code comparison |
 
@@ -171,9 +210,9 @@ with a message; it must never cause placeholder probabilities.
 For the preview, run `node server.js dist` from `website` (default port 3000).
 The active development session may use port 3011. Refresh after rebuilding.
 Use browser checks when available and report honestly when only HTTP/assets
-and solver checks were possible. Browser automation was unavailable during
-the latest extension; earlier end-to-end browser results are recorded separately
-in the practice guide.
+and solver checks were possible. The optional browser smoke now covers both
+practice roles and contract-assessment controls; historical checks remain
+recorded separately in the practice guide.
 
 For a documentation-only edit, regenerate affected derived files, check links,
 tables and whitespace, and compare the changed meanings with source/code.
@@ -185,7 +224,9 @@ The sampler proposes compatible partner hands and gives each one random
 East/West layout. Contract make percentages are double-dummy. Wilson 95%
 intervals describe sampling uncertainty only; they are not human-play odds or
 uncertainty about partnership agreements. The original-hand column is one
-separately seeded opponent split. Contracts share the same sampled layouts;
+separately seeded opponent split. Revealed-partnership mode instead fixes
+both original hands across many opponent layouts and reports separate hindsight
+estimates. Contracts share the same sampled layouts;
 separate intervals are not a formal paired-contract comparison test. Partial
 samples are explicitly labelled when the proposal limit is reached.
 

@@ -169,6 +169,15 @@ specific-suit asks within disclosed practice restrictions. Practice and hand
 sampling run without the compiled engine; DD contract comparison uses the
 rebuilt WebAssembly engine.
 
+Choose **asker** to ask and interpret relay bids or **teller** to answer
+partner's questions. All 63 exercises support both roles. Asker contract
+assessment compares DD make rates and paired outcomes using auction-compatible
+hands, with a separate post-reveal review over many opponent layouts.
+The current relay hand, auction and undo history autosave in the browser and
+restore when you return to the same site address.
+The main picker offers eight broad families and deals a random branch and hand.
+Use the collapsed study menu for a specific branch or seed replay.
+
 The [partnership system sources](docs/system-sources/README.md) retain both
 Word originals, searchable paragraph extracts and the July email content in
 the repository, with source precedence and reproducible file hashes.

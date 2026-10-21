@@ -378,11 +378,24 @@ export function availableActions(session) {
   const finalContracts = [`4${session.major}`, `5${session.major}`, `6${session.major}`, `7${session.major}`, '6NT', '7NT'];
   if (session.balanced === true) finalContracts.push('3NT');
   if (session.phase === 'raise') {
-    actions.push({ bid: SYSTEM.raise, label: 'Start the major-suit relay', kind: 'relay' });
+    actions.push({ bid: SYSTEM.raise, label: 'Start the major-suit relay', kind: 'relay',
+      responseLadder: SYSTEM.shapeResponses.flatMap(response => {
+        const label = response.shortage
+          ? `${response.label}: ${SUIT_NAMES[SYSTEM.shortageSuits[session.major][response.shortage]].toLowerCase()} singleton or void`
+          : response.label;
+        return response.rollsRange
+          ? SYSTEM.ranges.map((range, index) => ({ bid: index ? nextBid(response.bid, index) : response.bid, label: `${label}; ${range.label}` }))
+          : [{ bid: response.bid, label }];
+      }),
+    });
   } else if (session.phase === 'range') {
+    const bid = stepBid(lastBid(session), 1, { ...SYSTEM.rangeAsk, major: session.major, skip3NT: session.balanced && SYSTEM.rangeAsk.skip3NTWhenBalanced });
     actions.push({
-      bid: stepBid(lastBid(session), 1, { ...SYSTEM.rangeAsk, major: session.major, skip3NT: session.balanced && SYSTEM.rangeAsk.skip3NTWhenBalanced }),
+      bid,
       label: 'Ask opener’s HCP range', kind: 'relay', source: 'P1476–P1477',
+      responseLadder: SYSTEM.ranges.map((range, index) => ({
+        bid: stepBid(bid, index + 1, { ...SYSTEM.rangeResponses, major: session.major }), label: range.label,
+      })),
     });
   } else {
     actions.push(...postRangeActions(session));

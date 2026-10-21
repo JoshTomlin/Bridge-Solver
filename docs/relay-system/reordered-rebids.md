@@ -5,7 +5,8 @@
 Authority: the separate [Reordering Opener's Rebid](../system-sources/reordering-openers-rebid.txt)
 document, R0001–R0192. These are natural suit-response auctions, including
 the club transfers that show a natural major. They do not include artificial
-1C–1S. You are responder South; North is opener. There are 23 exercises.
+1C–1S. Responder South asks; opener North tells. Choose either role in the
+trainer. There are 23 exercises.
 
 ## Single-suit rebids without three-card support
 

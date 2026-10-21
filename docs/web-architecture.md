@@ -109,6 +109,14 @@ Saved deals and the 24 most recent runs are stored in `localStorage`. Data stays
 in the browser and is never sent to a service. If the storage quota is reached,
 old runs are dropped until the new record fits.
 
+Relay practice separately saves its active session, fixed cards, undo states
+and UI preferences under `bridge-lab.relay-progress.v1`. Bids, reveal, undo and
+preference changes save immediately; startup validates/restores the snapshot
+before dealing a new hand. Pending teller questions and completed contracts
+survive reopening. Invalid saves fall back visibly, and failed writes display a
+notice. Samples, DDS reports and running workers are transient. As with other
+local data, the save belongs to the current browser and origin, including port.
+
 ## Build, tests, and deployment
 
 `build-wasm.ps1` configures Emscripten, builds the C++ target, copies the static

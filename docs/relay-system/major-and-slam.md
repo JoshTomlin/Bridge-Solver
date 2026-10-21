@@ -112,9 +112,14 @@ never change this public ladder.
 
 Exclude agreed trumps and the identified shortage from the side-suit list.
 Skipping an earlier suit does not recover it after a later suit answer.
-Queen/suit asking calls skip the agreed-suit bids and the call immediately
-below six of that suit, which is reserved for the unimplemented general grand
-try. Answers still count consecutive bids. Stop when no complete ladder fits
+Queen/suit asking calls skip game and slam bids in the agreed suit and the
+call immediately below six of that suit, which is reserved for the unimplemented
+general grand try. Trump bids below game remain available as relay steps in
+these game-forcing auctions. In particular, after
+`1D–1S–2C–2H–3H–3S–4C`, **4D asks for the diamond queen**, with 4H denying
+and 4S showing it; skipping the queen ask uses 4H for hearts or 4S for clubs.
+This follows the user's 21 October 2026 clarification. Answers still count
+consecutive bids. Stop when no complete ladder fits
 below 7NT; the program never truncates a ladder to force another enquiry.
 
 Fourth-round-control asks, general-grand-try answers and IMP/MP scoring are

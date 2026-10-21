@@ -4,8 +4,8 @@
 
 ## Current coverage
 
-This is the state after the source archive/rebid extension and the subsequent
-documentation audit. “Implemented” means deterministic behaviour within the
+This is the state after the source archive/rebid extension, documentation
+audit and asker/teller practice addition. “Implemented” means deterministic behaviour within the
 publicly disclosed practice subset, not every source-note continuation.
 
 | Family | Exercises | Implemented scope | Main boundary |
@@ -25,12 +25,16 @@ publicly disclosed practice subset, not every source-note continuation.
 | Component | Behaviour | Principal files |
 |---|---|---|
 | Fixed practice deals | Both hands exist before the first question; original partner hand never changes; seeded repeats | `core.js`, `sampling-worker.js` |
+| Both auction roles | All 63 entries offer asker or teller; teller answers public automatic questions with retry and fixed-hand undo | `practice.js`, `app.js` |
+| Family-first practice | Eight broad choices draw a random branch and fresh seed; a collapsed study menu retains all 63 exact entries and seed replay | `families.js`, `app.js`, `relay.html` |
+| Saved bidding progress | Autosave and restore cards, auction, role, pending question, chosen contract, undo and preferences across reopening in the same browser/site | `progress.js`, `app.js` |
 | Bidding interpreter | Source actions, exactly one truthful answer, immutable state, public dynamic nodes, terminal partner Pass | `core.js`, family profile modules |
 | Constraint tracker | HCP, controls, lengths, exact SHDC shape sets, unions of conjunctions, keycards/queen/honours | `core.js`, `continuations.js` |
 | Shared slam enquiries | Void-first SKC, ordinary KC, queen/specific suits, public compression and branch-specific omissions | `continuations.js` |
 | Compatible-hand sampler | Public constraints plus known user cards; shape weighted by actual hand counts; bounded rejection | `core.js`, `sampling-worker.js` |
 | Contract evaluator | Random opponents, common complete deals for compared contracts, real DDS, correct seats/first-strain declarer | `evaluation.js`, `evaluation-worker.js`, WASM binding |
-| Reports | DD make rates, Wilson 95% intervals, selected contract, original deal separately | `evaluation.js`, `app.js` |
+| Reports | Prospective/chosen contract assessment, DD make rates, mean tricks, Wilson 95% intervals and paired make/fail outcomes | `evaluation.js`, `app.js` |
+| Hindsight review | Revealed partnership fixed over many opponent layouts; separate from auction-compatible sampling and the single original-deal column | `evaluation.js`, `app.js` |
 | Practice UI | Family selector, hidden hand, recall mode, optional meanings/response ladders, typed/symbol bids, undo/reveal/stop | `relay.html`, `app.js`, `relay.css` |
 | Source preservation | Unchanged Word originals, indexed extracts, email transcription, precedence, reproducible hashes | `docs/system-sources/`, extraction script |
 | Human reference | Family tables, generated 63-exercise catalogue, source reviews, coverage and maintainer guide | `docs/relay-system/`, `docs/relay-*.md` |
@@ -87,9 +91,9 @@ guess during practice.
 | Human make probability | No single-dummy declarer/defence model; DD is explicitly labelled |
 | Auction-decision/system analysis | No expected-value comparison of asking again versus signing off at each relay |
 | Extremely rare late constraints | Shape-conditioned sampling is exact but rejection can hit the displayed attempt limit; honour-conditioned generation is future work |
-| Several opponent layouts per partner hand | Current evaluation uses one layout per independently sampled hand; original-hand column is one separate reproducible split |
+| Several opponent layouts per compatible hand | Auction-information evaluation uses one layout per independently sampled hand; revealed-partnership mode now tests many layouts for the two actual hands |
 | Full declarative editor | Profiles are declarative JavaScript data/functions; no standalone bidding language or partner-facing editor yet |
-| Browser regression automation | Earlier manual browser flow was checked; current host's browser automation was unavailable during the extension |
+| Broader browser regression coverage | Optional Playwright smoke covers both roles and DDS assessment on representative families; every source branch is not exercised in a browser |
 
 ## Delivery and verification record
 
@@ -104,3 +108,35 @@ tests, existing play-UI smoke, compiled DDS smoke including a reordered entry,
 documentation-link checks and catalogue regeneration. It does not establish
 complete coverage of the partnership's full system or constitute a fresh
 visual browser check. See the maintainer guide for exact commands and test scope.
+
+The asker/teller and contract-assessment extension passes **107 relay tests**,
+including all 63 teller exercises, plus the static build and existing utility,
+UI and compiled DDS smoke checks. The optional Playwright regression exercises
+both browser roles on representative families, real DDS assessment before
+signoff, revealed-partnership review, retention of chosen contracts, undo,
+Stop, mobile layout and absent DDS. It does not evaluate optimal bidding.
+
+The subsequent game-force clarification keeps trump bids below game available
+as queen/specific-suit asks. The exact 1D–1S–2C–2H–3H–3S–4C auction now offers
+4D for the diamond queen, then 4H/4S for hearts/clubs. All **108 relay tests**,
+the static build and compiled DDS smoke pass. A focused mobile Chromium check
+also verifies the corrected buttons, queen answer, undo and typed 4D entry.
+
+The progress-persistence fix brings the relay suite to **114 passing tests**.
+Browser checks include reload in both roles, full browser restart, restored
+undo/preferences/completed auctions and corrupt-save recovery. Saved state is
+local to one browser/origin; DDS jobs/results are not persisted.
+
+The 11-count correction removes the expanded minor entries' former gap between
+9–10 and 12+. In particular, 1D–1S–2C now admits 9–22; ordinary 11-counts
+describe shape and remain available to compatible sampling. All **116 relay
+tests**, the static build and DDS smoke pass. A mobile browser check deals a
+real 11-count, verifies the 9–22 entry and 11–22 ordinary-response labels,
+samples 100 compatible hands and reveals the 11 HCP. Previously saved sessions
+retain their recorded constraints; deal a new hand to use the corrected range.
+
+The family picker groups all 63 study branches into eight broad choices.
+**121 relay tests** pass, including complete grouping, random branch reach,
+explicit study selection and backward-compatible family/study restoration.
+Browser checks cover the family menu, fresh hidden seeds, random-mode replay,
+pinned-branch next hands, both roles, saved progress, DDS and mobile layout.
