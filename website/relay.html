@@ -33,6 +33,7 @@
         <div class="table-bottomline"><span id="practice-scope">Random branch</span><span class="turn-indicator" id="table-state">Dealing…</span></div>
       </section>
       <section class="bidding-panel" aria-label="Bidding box">
+        <div id="bid-preview" class="bid-preview" role="tooltip" hidden><div class="preview-heading"><strong id="preview-bid"></strong><span id="preview-tag"></span></div><p id="preview-meaning"></p></div>
         <div class="bidding-caption"><span id="action-title">Your call</span><button type="button" class="stop-button" id="stop-deal" hidden>Stop</button></div>
         <div id="bidding-controls">
           <div id="bid-levels" class="bid-levels" role="group" aria-label="Bid level"></div>
@@ -65,7 +66,7 @@
     </dialog>
     <dialog id="meanings-dialog" class="sheet" aria-labelledby="meanings-title">
       <header class="sheet-heading"><h2 id="meanings-title">Bid meanings</h2><button type="button" class="icon-button" data-close aria-label="Close meanings"><svg><use href="#icon-close"/></svg></button></header>
-      <div class="sheet-body"><p id="action-help" class="muted"></p><dl id="bid-meanings" class="meaning-list"></dl><label class="hint-toggle"><input type="checkbox" id="show-hints"> Show response steps</label><details id="response-steps" open hidden><summary>Response steps</summary><div id="response-ladders"></div></details><details class="menu-section"><summary>About your role</summary><p id="role-help" class="muted"></p></details></div>
+      <div class="sheet-body"><p class="muted">Hover or hold a bid to preview its meaning. A hollow dot marks an undiscussed call.</p><p id="action-help" class="muted"></p><dl id="bid-meanings" class="meaning-list"></dl><label class="hint-toggle"><input type="checkbox" id="show-hints"> Show response steps</label><details id="response-steps" open hidden><summary>Response steps</summary><div id="response-ladders"></div></details><details class="menu-section"><summary>About your role</summary><p id="role-help" class="muted"></p></details></div>
     </dialog>
     <dialog id="bid-meaning-dialog" class="sheet small-sheet" aria-labelledby="bid-meaning-title"><header class="sheet-heading"><h2 id="bid-meaning-title">Bid meaning</h2><button type="button" class="icon-button" data-close aria-label="Close bid meaning"><svg><use href="#icon-close"/></svg></button></header><div class="sheet-body"><p id="bid-meaning-text"></p></div></dialog>
     <dialog id="partner-dialog" class="sheet" aria-labelledby="partner-info-title"><header class="sheet-heading"><h2 id="partner-info-title">Partner</h2><button type="button" class="icon-button" data-close aria-label="Close partner information"><svg><use href="#icon-close"/></svg></button></header><div class="sheet-body"><div id="partner-hand"></div><div class="panel-title"><h3 id="knowledge-title">Auction knowledge</h3><span id="constraint-count"></span></div><div id="knowledge"></div><button type="button" id="reveal-hand" class="button secondary" disabled>Reveal partner</button></div></dialog>

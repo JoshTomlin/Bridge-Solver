@@ -1,7 +1,8 @@
 // The source interpreter keeps its original seats: player = asker, partner =
 // teller. This controller changes the human's view without rewriting source
 // definitions or letting the hidden teller hand influence the next question.
-import { createPractice, availableActions, applyBid, matchesConstraints } from './core.js';
+import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex } from './core.js';
+import { declarerFor } from './profile-utils.js';
 
 export function practiceView(session) {
   const teller = session.practiceRole === 'teller';
@@ -60,7 +61,35 @@ export function availablePracticeActions(session) {
   return Object.freeze([...calls.values()]);
 }
 
+/** Public agreement metadata for every legal call, independent of either hand. */
+export function practiceCalls(session) {
+  if (session.finished || session.revealed) return [];
+  const discussed = new Map(availablePracticeActions(session).map(action => [action.bid, action]));
+  const last = practiceView(session).auction.findLast(call => call.bid !== 'Pass');
+  const minimum = last ? bidIndex(last.bid) : -1;
+  const bids = Array.from({ length: 35 }, (_, index) => `${Math.floor(index / 5) + 1}${['C', 'D', 'H', 'S', 'NT'][index % 5]}`)
+    .filter(bid => bidIndex(bid) > minimum);
+  bids.push('Pass');
+  return Object.freeze(bids.map(bid => Object.freeze(discussed.has(bid)
+    ? { ...discussed.get(bid), discussed: true }
+    : { bid, discussed: false, kind: 'undiscussed', label: 'Undiscussed in this exercise. Bidding this call pauses the auction for review.' })));
+}
+
 export function applyPracticeBid(session, bid) {
+  const call = practiceCalls(session).find(call => call.bid === bid);
+  if (!call) throw new Error(`${bid} is not an available response or legal call at this point in the auction.`);
+  if (!call.discussed) {
+    const view = practiceView(session);
+    const auction = Object.freeze([...view.auction, Object.freeze({ seat: view.playerSeat, bid, meaning: call.label })]);
+    const last = view.auction.findLast(call => call.bid !== 'Pass');
+    const contract = bid === 'Pass' && last ? Object.freeze({ bid: last.bid, level: Number(last.bid[0]),
+      strain: last.bid.slice(1), declarer: declarerFor(auction, last.bid.slice(1), last.seat) }) : null;
+    return Object.freeze({ ...session, pendingAsk: null, phase: 'undiscussed', finished: true,
+      contract, undiscussedBid: bid,
+      unsupportedReason: 'This call is undiscussed in this exercise. Undo to continue from the previous question.',
+      auction,
+    });
+  }
   if (session.practiceRole !== 'teller') return applyBid(session, bid);
   if (!availablePracticeActions(session).some(action => action.bid === bid)) {
     throw new Error(`${bid} is not an available response to partner’s question.`);

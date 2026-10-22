@@ -9,6 +9,7 @@ export const staticFiles = [
   "relay.html",
   "relay/app.js",
   "relay/table-ui.js",
+  "relay/bid-preview.js",
   "relay/core.js",
   "relay/practice.js",
   "relay/progress.js",

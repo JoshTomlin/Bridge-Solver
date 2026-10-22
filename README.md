@@ -183,6 +183,8 @@ The phone layout keeps the auction, bidding box and all 13 cards on one screen.
 Tap a call for its meaning, use the “i” buttons for hand knowledge, and open
 **Assess** for contract comparisons. Family, role, branch and replay settings
 live behind the menu. The next-hand arrow deals a fresh random branch and hand.
+All legal bids are selectable; a hollow dot marks undiscussed calls. Hover or
+press and hold a bid to preview its meaning before a normal click/tap bids it.
 
 The [partnership system sources](docs/system-sources/README.md) retain both
 Word originals, searchable paragraph extracts and the July email content in

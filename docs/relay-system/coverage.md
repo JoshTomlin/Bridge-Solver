@@ -35,7 +35,7 @@ publicly disclosed practice subset, not every source-note continuation.
 | Contract evaluator | Random opponents, common complete deals for compared contracts, real DDS, correct seats/first-strain declarer | `evaluation.js`, `evaluation-worker.js`, WASM binding |
 | Reports | Prospective/chosen contract assessment, DD make rates, mean tricks, Wilson 95% intervals and paired make/fail outcomes | `evaluation.js`, `app.js` |
 | Hindsight review | Revealed partnership fixed over many opponent layouts; separate from auction-compatible sampling and the single original-deal column | `evaluation.js`, `app.js` |
-| Phone practice UI | Fixed 13-card hand, four-seat auction, level/suit bidding box, settings menu, on-demand meanings/hand knowledge, typed bids, undo/reveal/stop and assessment sheets; recent rounds plus full history | `relay.html`, `app.js`, `table-ui.js`, `relay.css` |
+| Phone practice UI | Fixed 13-card hand, four-seat auction, all legal calls with undiscussed markers, hover/focus/hold previews, settings, hand knowledge, typed bids, undo/reveal/stop, assessment sheets and full history | `relay.html`, `app.js`, `table-ui.js`, `bid-preview.js`, `relay.css` |
 | Source preservation | Unchanged Word originals, indexed extracts, email transcription, precedence, reproducible hashes | `docs/system-sources/`, extraction script |
 | Human reference | Family tables, generated 63-exercise catalogue, source reviews, coverage and maintainer guide | `docs/relay-system/`, `docs/relay-*.md` |
 

@@ -1,9 +1,10 @@
 import { revealPractice, handFeatures, SUITS, RANKS, getPracticeProfile, practiceNode } from './core.js';
-import { availablePracticeActions, applyPracticeBid, practiceView } from './practice.js';
+import { availablePracticeActions, practiceCalls, applyPracticeBid, practiceView } from './practice.js';
 import { createEvaluationDeals, fillOpponentHands, defaultContracts } from './evaluation.js';
 import { loadPracticeProgress, savePracticeProgress } from './progress.js';
 import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile } from './families.js';
 import { AUCTION_SEATS, auctionRounds } from './table-ui.js';
+import { attachBidPreview } from './bid-preview.js';
 
 const byId = (id) => document.getElementById(id);
 const symbols = { S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' };
@@ -19,6 +20,7 @@ let committedStudyProfileId = '';
 let selectedLevel = null;
 let lastAuctionKey = '';
 let auctionRowLimit = 4;
+let bidPreview = null;
 
 class WorkerClient {
   constructor(file) {
@@ -129,6 +131,8 @@ function cardMarkup(cards) {
 }
 
 function renderBidding(actions) {
+  bidPreview?.reset();
+  const calls = practiceCalls(session);
   const key = `${session.seed}:${session.practiceRole}:${session.auction.length}:${session.revealed}:${session.pendingAsk?.bid}`;
   if (lastAuctionKey !== key) {
     const next = actions.find(action => ['relay', 'response'].includes(action.kind) && action.bid !== 'Pass')
@@ -138,7 +142,7 @@ function renderBidding(actions) {
   }
   byId('bid-levels').innerHTML = Array.from({ length: 7 }, (_, i) => {
     const level = i + 1;
-    const available = actions.some(action => action.bid[0] === String(level));
+    const available = calls.some(action => action.bid[0] === String(level));
     return `<button type="button" class="level-button" data-level="${level}" aria-label="Level ${level}" aria-pressed="${level === selectedLevel}" ${busy || !available ? 'disabled' : ''}>${level}</button>`;
   }).join('');
   const strains = ['C', 'D', 'H', 'S', 'NT'];
@@ -147,12 +151,12 @@ function renderBidding(actions) {
     const strain = pass ? '' : action.bid.slice(1);
     const column = pass ? 6 : strains.indexOf(strain) + 1;
     const name = pass ? 'Pass' : `${action.bid[0]} ${({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades', NT: 'notrump' })[strain]}`;
-    return `<button type="button" class="bid-button ${pass ? 'pass-bid' : `suit-${strain}`}" data-bid="${escapeHtml(action.bid)}" aria-label="${name}" style="grid-column:${column}" ${!pass && Number(action.bid[0]) !== selectedLevel ? 'hidden' : ''} ${busy ? 'disabled' : ''}><strong>${pass ? 'PASS' : escapeHtml(bidLabel(action.bid))}</strong></button>`;
+    return `<button type="button" class="bid-button ${pass ? 'pass-bid' : `suit-${strain}`} ${action.discussed ? '' : 'is-undiscussed'}" data-bid="${escapeHtml(action.bid)}" data-discussed="${action.discussed}" aria-label="${name}${action.discussed ? '' : ', undiscussed'}" style="grid-column:${column}" ${!pass && Number(action.bid[0]) !== selectedLevel ? 'hidden' : ''} ${busy ? 'disabled' : ''}><strong>${pass ? 'PASS' : escapeHtml(bidLabel(action.bid))}</strong></button>`;
   };
-  byId('relay-actions').innerHTML = actions.filter(action => action.kind !== 'signoff').map(button).join('');
-  byId('signoff-actions').innerHTML = actions.filter(action => action.kind === 'signoff').map(button).join('');
+  byId('relay-actions').innerHTML = calls.filter(action => action.kind !== 'signoff').map(button).join('');
+  byId('signoff-actions').innerHTML = calls.filter(action => action.kind === 'signoff').map(button).join('');
   byId('signoff-section').hidden = false;
-  byId('unavailable-bids').innerHTML = [...strains, 'Pass'].filter(strain => !actions.some(action => action.bid === (strain === 'Pass' ? 'Pass' : `${selectedLevel}${strain}`)))
+  byId('unavailable-bids').innerHTML = [...strains, 'Pass'].filter(strain => !calls.some(action => action.bid === (strain === 'Pass' ? 'Pass' : `${selectedLevel}${strain}`)))
     .map(strain => `<button type="button" class="bid-button ${strain === 'Pass' ? 'pass-bid' : `suit-${strain}`}" style="grid-column:${strain === 'Pass' ? 6 : strains.indexOf(strain) + 1}" disabled aria-label="${strain === 'Pass' ? 'Pass unavailable' : `${selectedLevel}${strain} unavailable`}"><strong>${strain === 'Pass' ? 'PASS' : bidLabel(`${selectedLevel}${strain}`)}</strong></button>`).join('');
 }
 
@@ -196,9 +200,9 @@ function render() {
   byId('bidding-controls').hidden = stopped;
   byId('review-actions').hidden = !stopped;
   byId('phase-label').textContent = stopped ? 'Review' : 'Your turn';
-  byId('action-title').textContent = session.contract ? `${bidLabel(session.contract.bid)} · ${session.contract.declarer}`
+  byId('action-title').textContent = session.undiscussedBid ? `${bidLabel(session.undiscussedBid)} · Undiscussed` : session.contract ? `${bidLabel(session.contract.bid)} · ${session.contract.declarer}`
     : stopped ? 'Hand revealed' : teller ? `Your response to ${bidLabel(session.pendingAsk?.bid ?? '')}` : 'Your call';
-  byId('table-state').textContent = busy ? 'Working…' : stopped ? 'Complete' : 'Your turn';
+  byId('table-state').textContent = busy ? 'Working…' : session.undiscussedBid ? 'Undiscussed' : stopped ? 'Complete' : 'Your turn';
   byId('action-help').textContent = session.unsupportedReason || (teller ? bidLabel(session.pendingAsk?.label ?? 'Auction complete.')
     : practiceNode(session)?.help ?? 'Choose a relay question or a final contract.');
   byId('bid-meanings').innerHTML = actions.filter(action => action.kind !== 'signoff' || action.bid === 'Pass')
@@ -307,7 +311,7 @@ function chooseBid(bid) {
   try {
     const next = applyPracticeBid(session, bid);
     history.push(session);
-    session = next.finished ? revealPractice(next) : next;
+    session = next.finished && !next.undiscussedBid ? revealPractice(next) : next;
     if (session.contract) {
       const option = document.createElement('option');
       option.value = session.contract.bid;
@@ -315,7 +319,7 @@ function chooseBid(bid) {
       byId('assessed-contract').replaceChildren(option);
     }
     invalidateAnalysis();
-    status(session.finished ? 'Auction complete.' : session.practiceRole === 'teller'
+    status(session.undiscussedBid ? session.unsupportedReason : session.finished ? 'Auction complete.' : session.practiceRole === 'teller'
       ? 'Correct response. Partner’s next question is ready.' : 'Partner has answered from the original hand.');
     byId('bid-input').value = '';
     render();
@@ -478,9 +482,10 @@ byId('bid-form').addEventListener('submit', (event) => {
   }
   chooseBid(bid);
 });
-for (const id of ['relay-actions', 'signoff-actions']) byId(id).addEventListener('click', (event) => {
-  const button = event.target.closest('[data-bid]');
-  if (button) chooseBid(button.dataset.bid);
+bidPreview = attachBidPreview(byId('bid-options'), byId('bid-preview'), {
+  getCall: bid => session && !busy ? practiceCalls(session).find(call => call.bid === bid) : null,
+  label: bidLabel,
+  commit: chooseBid,
 });
 byId('reveal-hand').addEventListener('click', () => {
   history.push(session);

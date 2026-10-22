@@ -38,9 +38,23 @@ boundary it takes the lowest available final-contract action. This is a
 deterministic recall coach, not an optimal bidding policy. A wrong response
 leaves the question, deal and constraints unchanged so you can try again.
 Choose a level, then tap a suit or **PASS** to bid. The level starts at the next
-supported relay or response, so that call usually needs one tap. Unavailable
-calls are disabled. Final contracts use the same bidding box. **Undo** restores
+supported relay or response, so that call usually needs one tap. All legal
+calls are available; lower, illegal bids stay disabled. A small hollow dot
+marks a call with no agreed meaning in this exercise. Final contracts use the same bidding box. **Undo** restores
 the previous question and the same cards.
+
+Hover over a bid on desktop, or focus it with the keyboard, to preview its
+meaning before bidding. On a phone, **press and hold** the bid. Releasing the
+hold closes the preview without bidding; a separate normal tap commits it.
+Dragging away or cancelling the touch also leaves the auction unchanged.
+The preview and agreement markers use public agreements, never the hidden
+hand or knowledge of the correct teller answer.
+
+An undiscussed call is recorded at the correct seat and pauses practice for
+review without inventing a partner answer, adding constraints or revealing
+cards. Undo resumes the previous question. If the call is Pass, the actual
+last contract and its first-strain declarer are retained. These states autosave
+and restore like supported auctions.
 
 Tap a call in the auction for its meaning. **Meanings** shows the available
 questions or answers; **Show response steps** expands the ladders without
@@ -172,7 +186,7 @@ keycard choice closes those alternative agreements.
   immediately below a small slam in the agreed suit. Trump bids below game
   remain relay steps: with diamonds agreed and a game force established, 4D
   can ask for the queen after a 4C keycard reply.
-  Grand-try responses remain undefined, so that reserved call is not offered.
+  Grand-try responses remain undefined, so that reserved call is marked undiscussed.
 
 Asking omissions are branch-specific. Revised minor relays reserve responder's
 3NT for play and do not inherit the major-raise 4M omission. Club/Dappleton
@@ -277,8 +291,10 @@ An undefined branch stops with an explanation rather than inventing an answer.
 | `website/relay/evaluation-worker.js` | Loads DDS and solves complete deals off the UI thread |
 | `website/relay/app.js` | Practice, hints, undo, reveal, cancellation and reports |
 | `website/relay/table-ui.js` | Four-seat auction layout with opponent passes and pending-call placement |
+| `website/relay/bid-preview.js` | Hover/focus/hold previews with cancelled-touch and compatibility-click suppression |
 | `website/relay/browser/families.spec.mjs` | Cross-browser family/study, cache, compatibility, cancellation and restoration regression |
 | `website/relay/browser/mobile.spec.mjs` | Phone/landscape geometry, on-demand information and a complete long auction without page scrolling |
+| `website/relay/browser/previews.spec.mjs` | All legal calls, agreement markers, undiscussed restore/undo, and preview gestures without unintended bids |
 | `website/relay-browser-smoke.mjs` | Playwright regression using shipped modules and real DDS |
 | `engine/src/wasm_bindings.cpp` | Stateless validated `ddTable(north,east,south,west)` binding |
 
@@ -474,3 +490,10 @@ contains **60 cases** across the five configurations, including geometry at
 knowledge, and a 22-call teller auction through review, history, undo and
 reload. The real-DDS/restart smoke also checks typed-bid validation in its
 sheet. These are browser emulations rather than physical-device tests.
+
+The legal-call and preview update passes **130 Node unit/build tests** and
+**85 browser cases** across the five configurations. Coverage includes public
+agreement markers in all 63 initial branches and both roles, undiscussed
+recording/restoration/undo, hover and keyboard previews, held/dragged/cancelled
+pointer gestures, Android native touch compatibility clicks, and normal taps
+after a preview. Real-DDS assessment and full browser-restart checks also pass.

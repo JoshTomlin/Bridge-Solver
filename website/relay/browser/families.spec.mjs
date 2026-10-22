@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { settings, selectSetting, closeSheets, newHand, clickBid, fitsScreen } from './helpers.mjs';
 import { AUCTION_FAMILIES, auctionFamilyForProfile } from '../families.js';
 import { applyBid, RANKS, SUITS } from '../core.js';
-import { practiceView, availablePracticeActions } from '../practice.js';
+import { practiceView, availablePracticeActions, practiceCalls } from '../practice.js';
 
 const key = 'bridge-lab.relay-progress.v1';
 const symbol = suit => ({ S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' })[suit];
@@ -35,7 +35,7 @@ async function checkVisibleDeal(page, familyId, role) {
   const holdings = SUITS.map(suit => symbol(suit) + (RANKS.filter(rank => view.playerHand.includes(suit + rank)).join('') || '—'));
   expect(await page.locator('#player-hand .suit-holding').allTextContents()).toEqual(holdings);
   expect(await page.locator('#relay-actions [data-bid], #signoff-actions [data-bid]').evaluateAll(nodes => nodes.map(n => n.dataset.bid).sort()))
-    .toEqual(availablePracticeActions(session).map(action => action.bid).sort());
+    .toEqual(practiceCalls(session).map(action => action.bid).sort());
   await expect(page.locator('#status')).not.toHaveClass(/is-error/);
   return progress;
 }

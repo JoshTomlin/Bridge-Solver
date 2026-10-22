@@ -204,7 +204,7 @@ bundled runtimes can be used when `node`/`python` are not on PATH.
 
 | Check | What it establishes | What it does not establish |
 |---|---|---|
-| Relay suite, currently 124 tests | Source partitions/examples, transitions, sampler uniformity/replay, both roles, complete family grouping/random selection, family/study restoration, storage errors, public prompts, retry, paired outcomes, four-seat table placement and source hashes | Entire untranscribed partnership system or all human judgements |
+| Relay suite, currently 129 tests | Source partitions/examples, transitions, sampler uniformity/replay, both roles, complete family grouping/random selection, family/study restoration, storage errors, public prompts, all legal calls and undiscussed boundaries, retry, paired outcomes, four-seat table placement and source hashes | Entire untranscribed partnership system or all human judgements |
 | `deal-utils.test.mjs` | Play-lab deal utilities | New relay browser interactions |
 | `ui-smoke.mjs` | Existing play-lab DOM/control smoke | A visual test of the relay page |
 | `build.test.mjs` | HTML points to content-versioned scripts/styles; changes to transitive modules, workers or WASM invalidate the whole graph | Successful DDS availability by itself |
@@ -212,6 +212,7 @@ bundled runtimes can be used when `node`/`python` are not on PATH.
 | `relay-browser-smoke.mjs` | Broad family picker, random branches/seeds, hidden study/replay menu, both roles, DDS assessment, reload/full browser restart, restored undo/preferences, corrupt save, Stop and mobile | Every family branch or optimal bidding judgement |
 | `relay/browser/families.spec.mjs` | Eight families and all 63 study entries in both roles across five browser configurations; visible hands/auctions/actions match saved state; cache and compatibility regressions | Physical phones or every later bidding continuation |
 | `relay/browser/mobile.spec.mjs` | Bidding fits phone/landscape viewports; all 13 cards stay visible; meanings/info do not bid; long auctions use recent rounds and full history | Physical devices, OS keyboard behaviour or every accessibility setting |
+| `relay/browser/previews.spec.mjs` | Legal calls and public markers in both roles, undiscussed recording/restoration/undo, hover and keyboard previews, held/dragged/cancelled touches, and Android native touch compatibility clicks | Native iOS long-press automation or physical devices |
 | Catalogue regeneration | Exact current profile count, prefixes, roles and first source calls | Every dynamic later response |
 | Markdown link/heading/table review | Navigable, readable documentation | Bidding correctness without source/code comparison |
 
