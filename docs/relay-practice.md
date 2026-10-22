@@ -4,21 +4,27 @@ Relay practice is a separate Bridge Lab page at `website/relay.html`. It combine
 a fixed hidden partner hand, deterministic relay answers, public constraints,
 compatible-hand sampling and double-dummy contract comparison.
 
+The phone layout keeps the auction, bidding box and all 13 cards in the
+viewport. It uses dynamic viewport height and safe-area padding; landscape
+places the table beside the controls and cards. The main bidding screen does
+not scroll. Settings, information and analysis open in dismissible sheets;
+long reference material and reports can scroll inside their sheet.
+
 Choose **Asker · Ask and interpret** or **Teller · Answer the questions** in
-the toolbar. The asker chooses relay questions, interprets the replies and
+the top-right **Practice settings** menu. The asker chooses relay questions, interprets the replies and
 selects the final contract. The teller sees the describing hand and answers
 the practice partner's questions. All 63 exercises support both roles,
 including Dappleton's reversed North/South seats. Changing role restarts the
 exercise. Replaying the same branch and seed preserves the same two hands.
 
-The main choice is **Which auction family?** Select **Jacoby · 1M–2NT**,
+The menu's main choice is **Which auction family?** Select **Jacoby · 1M–2NT**,
 **1D–1NT**, **Minor 3-bid**, **Horton · 2NT**, **Dappleton · 1NT**,
 **Split range**, **Reordered rebid**, or **Club · 1C–1S**. **New hand** draws
 a fresh seed and a random entry branch within that family. Reordered rebid
 includes single-suiters, support entries, reverses and mini–mega splinters;
 the separate club family retains the existing 1C–1S continuations.
 
-Open **Study a particular branch** to choose a specific entry. **Next study
+In settings, open **Study a particular branch** to choose a specific entry. **Next study
 hand** then deals fresh cards within that entry. Choose **Random branch · Whole
 family** to mix entries again; changing the main family also clears the branch
 selection. The seed is hidden inside **Hand seed and replay** in the study
@@ -31,9 +37,22 @@ chooses a question by inspecting the teller's undisclosed cards. At the source
 boundary it takes the lowest available final-contract action. This is a
 deterministic recall coach, not an optimal bidding policy. A wrong response
 leaves the question, deal and constraints unchanged so you can try again.
-Show meanings displays every response meaning without selecting the answer.
-Undo restores the previous question and the same cards. Contract-assessment
-tools belong to asker practice and are hidden in teller mode.
+Choose a level, then tap a suit or **PASS** to bid. The level starts at the next
+supported relay or response, so that call usually needs one tap. Unavailable
+calls are disabled. Final contracts use the same bidding box. **Undo** restores
+the previous question and the same cards.
+
+Tap a call in the auction for its meaning. **Meanings** shows the available
+questions or answers; **Show response steps** expands the ladders without
+selecting the correct answer. The “i” beside a name opens that hand's details:
+your known cards, or public facts about the describing hand. Partner's cards
+stay hidden until **Reveal partner** or auction completion. **Assess** opens
+contract comparisons in asker mode. **Type** opens optional keyboard entry.
+
+North/East/South/West columns include the opponents' automatic passes. A dealer
+dot and **You** mark the seats. The table retains as many recent rounds as fit
+the screen; **Full auction** opens the complete history, including meanings
+for earlier calls. Opening or closing a sheet does not change bidding progress.
 
 Choose a first/second-seat, uncontested practice family: **1M–2NT**, the revised
 **minor-opening relays**, selected **1C–1S** continuations, or **Dappleton** after
@@ -161,16 +180,16 @@ minor agreements also reserve 3NT where the source says so; their defined
 major-agreement routes use their own policy. Reply steps are counted separately
 from ask reservations. The response-step panel shows the actual ladder used.
 
-Show meanings can be switched off for recall practice. With meanings on,
-expand “Response steps for these asks” to inspect the compressed answer ladder.
-Enter a bid using text or suit symbols, or use the bid buttons. Undo restores
+Meanings stay off the table for recall practice. Open **Meanings** and enable
+**Show response steps** to inspect the compressed answer ladder.
+Use the bidding box, or open **Type** for text/suit-symbol entry. Undo restores
 the prior auction with the same partner hand. Choosing a final contract reveals
 partner and allows the selected contract to be highlighted in comparison.
 
 ### Judging the final contract as asker
 
-Choose a **Contract to assess** before signing off or when reviewing the
-finished auction, then use **Compare contracts with DDS**. The report shows
+Open **Assess**, choose a **Contract** before signing off or when reviewing the
+finished auction, then use **Compare contracts**. The report shows
 the required tricks, DD make rate, 95% sampling interval and mean DD tricks.
 Game, small slam and grand slam in the agreed suit and notrumps share exactly
 the same complete deals. Your chosen contract remains marked when you assess
@@ -257,7 +276,9 @@ An undefined branch stops with an explanation rather than inventing an answer.
 | `website/relay/evaluation.js` | Opponent completion, declarers, DD aggregation and Wilson intervals |
 | `website/relay/evaluation-worker.js` | Loads DDS and solves complete deals off the UI thread |
 | `website/relay/app.js` | Practice, hints, undo, reveal, cancellation and reports |
+| `website/relay/table-ui.js` | Four-seat auction layout with opponent passes and pending-call placement |
 | `website/relay/browser/families.spec.mjs` | Cross-browser family/study, cache, compatibility, cancellation and restoration regression |
+| `website/relay/browser/mobile.spec.mjs` | Phone/landscape geometry, on-demand information and a complete long auction without page scrolling |
 | `website/relay-browser-smoke.mjs` | Playwright regression using shipped modules and real DDS |
 | `engine/src/wasm_bindings.cpp` | Stateless validated `ddTable(north,east,south,west)` binding |
 
@@ -444,3 +465,12 @@ as both asker and teller (630 selections total). Real-DDS assessment and full
 browser-restart persistence checks also pass. The tests emulate missing APIs
 and stale module URLs; they do not claim physical-device coverage. Both browser
 suites now run before Pages publication.
+
+The phone interface adds a fixed 13-card hand, level/suit bidding box, four-seat
+auction and information/settings/assessment sheets. **125 Node unit/build
+tests** pass (124 relay tests and asset versioning). The browser suite now
+contains **60 cases** across the five configurations, including geometry at
+320×568 through 412×915 and 844×390 landscape, on-demand meanings and hand
+knowledge, and a 22-call teller auction through review, history, undo and
+reload. The real-DDS/restart smoke also checks typed-bid validation in its
+sheet. These are browser emulations rather than physical-device tests.

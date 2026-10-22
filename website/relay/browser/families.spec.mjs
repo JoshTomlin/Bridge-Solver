@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { settings, selectSetting, closeSheets, newHand, clickBid, fitsScreen } from './helpers.mjs';
 import { AUCTION_FAMILIES, auctionFamilyForProfile } from '../families.js';
 import { applyBid, RANKS, SUITS } from '../core.js';
 import { practiceView, availablePracticeActions } from '../practice.js';
@@ -27,7 +28,10 @@ async function checkVisibleDeal(page, familyId, role) {
   await expect(page.locator('#practice-badge')).toHaveText(label(AUCTION_FAMILIES.find(f => f.id === familyId).name));
   const view = practiceView(session);
   const bids = view.auction.filter(call => ['North', 'South'].includes(call.seat)).map(call => label(call.bid));
-  expect(await page.locator('#auction .bid').allTextContents()).toEqual(bids);
+  expect(await page.locator('#auction-history .bid').allTextContents()).toEqual(bids);
+  const visibleBids = await page.locator('#auction .bid').allTextContents();
+  expect(visibleBids).toEqual(bids.slice(-visibleBids.length));
+  expect(await page.locator('#player-hand .playing-card').evaluateAll(cards => cards.map(card => card.dataset.card).sort())).toEqual([...view.playerHand].sort());
   const holdings = SUITS.map(suit => symbol(suit) + (RANKS.filter(rank => view.playerHand.includes(suit + rank)).join('') || '—'));
   expect(await page.locator('#player-hand .suit-holding').allTextContents()).toEqual(holdings);
   expect(await page.locator('#relay-actions [data-bid], #signoff-actions [data-bid]').evaluateAll(nodes => nodes.map(n => n.dataset.bid).sort()))
@@ -51,7 +55,7 @@ test('starts and changes family without Map.groupBy', async ({ page }) => {
   await page.goto('relay.html');
   await ready(page);
   const previous = (await saved(page)).session.seed;
-  await page.selectOption('#auction-family', 'dappleton');
+  await selectSetting(page, '#auction-family', 'dappleton');
   await ready(page, previous);
   await checkVisibleDeal(page, 'dappleton', 'asker');
 });
@@ -69,7 +73,7 @@ test('new page bypasses cached legacy module URLs', async ({ page }) => {
   await page.goto('relay.html');
   await ready(page);
   expect(stale).toEqual([]);
-  await page.selectOption('#auction-family', 'horton');
+  await selectSetting(page, '#auction-family', 'horton');
   await checkVisibleDeal(page, 'horton', 'asker');
   await expect(page.locator('#dds-status')).toHaveText('DDS ready');
   // The same build step versions the play lab's separate worker/engine graph.
@@ -85,14 +89,14 @@ for (const role of ['asker', 'teller']) {
     await ready(page);
     if (role === 'teller') {
       const previous = (await saved(page)).session.seed;
-      await page.selectOption('#practice-role', role);
+      await selectSetting(page, '#practice-role', role);
       await ready(page, previous);
     }
     await expect(page.locator('#profile')).toBeHidden();
     await expect(page.locator('#seed')).toBeHidden();
     for (const family of AUCTION_FAMILIES) {
       const previous = (await saved(page)).session.seed;
-      await page.selectOption('#auction-family', family.id);
+      await selectSetting(page, '#auction-family', family.id);
       await ready(page, previous);
       const first = await checkVisibleDeal(page, family.id, role);
       expect(first.preferences.studyProfileId).toBe('');
@@ -103,7 +107,7 @@ for (const role of ['asker', 'teller']) {
         ? availablePracticeActions(session).find(action => action.kind === 'relay')?.bid
         : applyBid(session, session.pendingAsk.bid).auction.slice(session.auction.length).find(call => call.seat === session.partnerSeat)?.bid;
       expect(bid).toBeTruthy();
-      await page.locator(`#relay-actions [data-bid="${bid}"]`).click();
+      await clickBid(page, bid);
       await expect(page.locator('#bid-feedback')).toBeEmpty();
       await expect(page.locator('#auction')).not.toHaveJSProperty('innerHTML', before);
       expect(await page.locator('#player-hand').innerHTML()).toBe(hand);
@@ -112,9 +116,10 @@ for (const role of ['asker', 'teller']) {
       await checkVisibleDeal(page, family.id, role);
       expect((await saved(page)).session).toEqual(advanced.session);
       await expect(page.locator('#status')).toContainText('Restored your saved bidding progress');
+      await closeSheets(page);
       await page.click('#undo-bid');
       expect(await page.locator('#auction').innerHTML()).toBe(before);
-      await page.click('#new-deal');
+      await newHand(page);
       await ready(page, first.session.seed);
       await checkVisibleDeal(page, family.id, role);
       await expect(page.locator('#seed')).toBeHidden();
@@ -126,23 +131,24 @@ test('every study branch is selectable in both roles', async ({ page }) => {
   test.setTimeout(180000);
   await page.goto('relay.html');
   await ready(page);
+  await settings(page);
   await page.locator('#study-menu > summary').click();
   let count = 0;
   for (const role of ['asker', 'teller']) {
     if (role === 'teller') {
       const previous = (await saved(page)).session.seed;
-      await page.selectOption('#practice-role', role);
+      await selectSetting(page, '#practice-role', role);
       await ready(page, previous);
     }
     for (const family of AUCTION_FAMILIES) {
       let previous = (await saved(page)).session.seed;
-      await page.selectOption('#auction-family', family.id);
+      await selectSetting(page, '#auction-family', family.id);
       await ready(page, previous);
       expect(await page.locator('#profile option').evaluateAll(options => options.map(option => option.value).sort()))
         .toEqual(['', ...family.profileIds].sort());
       for (const profileId of family.profileIds) {
         previous = (await saved(page)).session.seed;
-        await page.selectOption('#profile', profileId);
+        await selectSetting(page, '#profile', profileId);
         await ready(page, previous);
         const progress = await checkVisibleDeal(page, family.id, role);
         expect(progress.session.familyId).toBe(profileId);
@@ -158,9 +164,10 @@ test('every study branch is selectable in both roles', async ({ page }) => {
 test('study pin, replay, clear and legacy save preserve the right scope', async ({ page }) => {
   await page.goto('relay.html');
   await ready(page);
+  await settings(page);
   await page.locator('#study-menu > summary').click();
   let previous = (await saved(page)).session.seed;
-  await page.selectOption('#profile', 'major-S');
+  await selectSetting(page, '#profile', 'major-S');
   await ready(page, previous);
   await page.locator('.replay-options > summary').click();
   await page.fill('#seed', 'family-replay-regression');
@@ -168,9 +175,10 @@ test('study pin, replay, clear and legacy save preserve the right scope', async 
   await expect.poll(async () => (await saved(page)).session.seed).toBe('family-replay-regression');
   await ready(page);
   const replay = (await saved(page)).session;
-  await page.click('#new-deal');
+  await newHand(page);
   await ready(page, replay.seed);
   expect((await saved(page)).session.familyId).toBe('major-S');
+  await settings(page);
   await page.fill('#seed', replay.seed);
   await page.click('#replay-deal');
   await expect.poll(async () => (await saved(page)).session.seed).toBe(replay.seed);
@@ -180,7 +188,7 @@ test('study pin, replay, clear and legacy save preserve the right scope', async 
   await expect(page.locator('#profile')).toHaveValue('major-S');
   await expect(page.locator('#study-menu')).toHaveJSProperty('open', true);
   previous = (await saved(page)).session.seed;
-  await page.selectOption('#profile', '');
+  await selectSetting(page, '#profile', '');
   await ready(page, previous);
   await expect(page.locator('#practice-scope')).toHaveText('Random branch');
   const legacy = await saved(page);
@@ -197,10 +205,11 @@ test('picker works with keyboard and fits a touch viewport', async ({ page, isMo
   await page.goto('relay.html');
   await ready(page);
   const previous = (await saved(page)).session.seed;
+  await settings(page);
   if (isMobile) {
     await page.locator('#auction-family').tap();
     // Native OS picker internals are outside the browser DOM.
-    await page.selectOption('#auction-family', 'diamond-notrump');
+    await selectSetting(page, '#auction-family', 'diamond-notrump');
   } else {
     await page.locator('#auction-family').focus();
     await page.keyboard.press('ArrowDown');
@@ -208,7 +217,8 @@ test('picker works with keyboard and fits a touch viewport', async ({ page, isMo
   }
   await ready(page, previous);
   await checkVisibleDeal(page, 'diamond-notrump', 'asker');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await closeSheets(page);
+  await fitsScreen(page);
 });
 
 for (const outcome of ['error', 'stop']) {
@@ -225,7 +235,9 @@ for (const outcome of ['error', 'stop']) {
                 data: { id: message.id, error: 'Injected deal failure' },
               })));
             } else {
-              setTimeout(() => super.postMessage(message, ...rest), 500);
+              // Keep this request pending until Stop has actually been tapped.
+              // A short timer races menu dismissal on mobile browsers.
+              globalThis.releaseHeldDeal = () => super.postMessage(message, ...rest);
             }
           } else super.postMessage(message, ...rest);
         }
@@ -233,17 +245,20 @@ for (const outcome of ['error', 'stop']) {
     });
     await page.goto('relay.html');
     await ready(page);
+    await settings(page);
     await page.locator('#study-menu > summary').click();
     const previous = (await saved(page)).session.seed;
-    await page.selectOption('#profile', 'major-S');
+    await selectSetting(page, '#profile', 'major-S');
     await ready(page, previous);
     const original = await saved(page);
     await page.evaluate(outcome => { globalThis.nextDealOutcome = outcome; }, outcome);
-    await page.selectOption('#auction-family', 'dappleton');
+    await selectSetting(page, '#auction-family', 'dappleton');
     if (outcome === 'stop') {
       await expect(page.locator('#new-deal')).toBeDisabled();
-      await page.click('#stop-analysis');
+      await closeSheets(page);
+      await page.click('#stop-deal');
       await expect(page.locator('#status')).toContainText('Stopped');
+      await page.evaluate(() => globalThis.releaseHeldDeal?.());
     } else {
       await expect(page.locator('#status')).toContainText('Injected deal failure');
     }
@@ -255,7 +270,7 @@ for (const outcome of ['error', 'stop']) {
     await page.reload();
     await checkVisibleDeal(page, 'jacoby', 'asker');
     await expect(page.locator('#profile')).toHaveValue('major-S');
-    await page.selectOption('#auction-family', 'dappleton');
+    await selectSetting(page, '#auction-family', 'dappleton');
     await ready(page, original.session.seed);
     await checkVisibleDeal(page, 'dappleton', 'asker');
   });

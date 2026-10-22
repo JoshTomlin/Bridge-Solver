@@ -3,6 +3,7 @@ import { availablePracticeActions, applyPracticeBid, practiceView } from './prac
 import { createEvaluationDeals, fillOpponentHands, defaultContracts } from './evaluation.js';
 import { loadPracticeProgress, savePracticeProgress } from './progress.js';
 import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile } from './families.js';
+import { AUCTION_SEATS, auctionRounds } from './table-ui.js';
 
 const byId = (id) => document.getElementById(id);
 const symbols = { S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' };
@@ -15,6 +16,9 @@ let busy = false;
 let ddsReady = false;
 let job = 0;
 let committedStudyProfileId = '';
+let selectedLevel = null;
+let lastAuctionKey = '';
+let auctionRowLimit = 4;
 
 class WorkerClient {
   constructor(file) {
@@ -54,6 +58,8 @@ let evaluator = new WorkerClient('./evaluation-worker.js');
 function status(message, error = false) {
   byId('status').textContent = message;
   byId('status').classList.toggle('is-error', error);
+  byId('notice').textContent = error ? message : '';
+  byId('notice').hidden = !error;
 }
 
 function sampleStatus(message, error = false) {
@@ -88,7 +94,66 @@ function setBusy(value) {
   busy = value;
   for (const id of ['practice-role', 'auction-family', 'profile', 'seed', 'new-deal', 'replay-deal', 'sample-count', 'analysis-basis', 'assessed-contract']) byId(id).disabled = busy;
   byId('stop-analysis').hidden = !busy;
+  byId('stop-deal').hidden = !busy;
   render();
+}
+
+function auctionMarkup(rows) {
+  return rows.map(row => `<tr>${row.map(call => `<td>${!call ? '' : call.kind === 'pending'
+    ? '<span class="awaiting-bid" aria-label="Awaiting your bid">?</span>'
+    : call.kind === 'opponent' ? '<span class="opponent-pass">Pass</span>'
+    : `<button type="button" class="bid auction-call suit-${call.bid.match(/NT|[SHDC]/)?.[0] ?? 'NT'}" data-call-index="${call.index}" aria-label="${escapeHtml(bidLabel(call.bid))}, ${call.seat}. Show meaning">${escapeHtml(bidLabel(call.bid))}</button>`}</td>`).join('')}</tr>`).join('');
+}
+
+function renderAuction() {
+  if (!session) return;
+  const view = practiceView(session);
+  const rounds = auctionRounds(view.auction, session.finished || session.revealed);
+  byId('auction').innerHTML = auctionMarkup(rounds.slice(-auctionRowLimit));
+  byId('auction-history').innerHTML = auctionMarkup(rounds);
+  const earlier = Math.max(0, rounds.length - auctionRowLimit);
+  byId('earlier-count').textContent = earlier ? `+${earlier}` : '';
+  byId('earlier-count').hidden = !earlier;
+  for (const seat of AUCTION_SEATS) {
+    const heading = byId(`${seat.toLowerCase()}-heading`);
+    heading.textContent = seat[0] + (seat === view.playerSeat ? ' · You' : '');
+    heading.setAttribute('aria-label', `${seat}${seat === view.playerSeat ? ', you' : seat === view.partnerSeat ? ', partner' : ''}`);
+    heading.classList.toggle('is-you', seat === view.playerSeat);
+    heading.classList.toggle('is-dealer', seat === view.auction[0]?.seat);
+  }
+}
+
+function cardMarkup(cards) {
+  return SUITS.flatMap(suit => RANKS.filter(rank => cards.includes(suit + rank)).map(rank =>
+    `<span class="playing-card suit-${suit}" data-card="${suit + rank}" aria-hidden="true"><span class="card-corner"><b>${rank}</b><i>${symbols[suit]}</i></span><span class="card-pip">${symbols[suit]}</span></span>`)).join('');
+}
+
+function renderBidding(actions) {
+  const key = `${session.seed}:${session.practiceRole}:${session.auction.length}:${session.revealed}:${session.pendingAsk?.bid}`;
+  if (lastAuctionKey !== key) {
+    const next = actions.find(action => ['relay', 'response'].includes(action.kind) && action.bid !== 'Pass')
+      ?? actions.find(action => action.bid !== 'Pass');
+    selectedLevel = next ? Number(next.bid[0]) : 1;
+    lastAuctionKey = key;
+  }
+  byId('bid-levels').innerHTML = Array.from({ length: 7 }, (_, i) => {
+    const level = i + 1;
+    const available = actions.some(action => action.bid[0] === String(level));
+    return `<button type="button" class="level-button" data-level="${level}" aria-label="Level ${level}" aria-pressed="${level === selectedLevel}" ${busy || !available ? 'disabled' : ''}>${level}</button>`;
+  }).join('');
+  const strains = ['C', 'D', 'H', 'S', 'NT'];
+  const button = action => {
+    const pass = action.bid === 'Pass';
+    const strain = pass ? '' : action.bid.slice(1);
+    const column = pass ? 6 : strains.indexOf(strain) + 1;
+    const name = pass ? 'Pass' : `${action.bid[0]} ${({ C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades', NT: 'notrump' })[strain]}`;
+    return `<button type="button" class="bid-button ${pass ? 'pass-bid' : `suit-${strain}`}" data-bid="${escapeHtml(action.bid)}" aria-label="${name}" style="grid-column:${column}" ${!pass && Number(action.bid[0]) !== selectedLevel ? 'hidden' : ''} ${busy ? 'disabled' : ''}><strong>${pass ? 'PASS' : escapeHtml(bidLabel(action.bid))}</strong></button>`;
+  };
+  byId('relay-actions').innerHTML = actions.filter(action => action.kind !== 'signoff').map(button).join('');
+  byId('signoff-actions').innerHTML = actions.filter(action => action.kind === 'signoff').map(button).join('');
+  byId('signoff-section').hidden = false;
+  byId('unavailable-bids').innerHTML = [...strains, 'Pass'].filter(strain => !actions.some(action => action.bid === (strain === 'Pass' ? 'Pass' : `${selectedLevel}${strain}`)))
+    .map(strain => `<button type="button" class="bid-button ${strain === 'Pass' ? 'pass-bid' : `suit-${strain}`}" style="grid-column:${strain === 'Pass' ? 6 : strains.indexOf(strain) + 1}" disabled aria-label="${strain === 'Pass' ? 'Pass unavailable' : `${selectedLevel}${strain} unavailable`}"><strong>${strain === 'Pass' ? 'PASS' : bidLabel(`${selectedLevel}${strain}`)}</strong></button>`).join('');
 }
 
 function render() {
@@ -97,100 +162,73 @@ function render() {
   const view = practiceView(session);
   const teller = view.role === 'teller';
   const profile = getPracticeProfile(session.familyId);
+  const stopped = session.finished || session.revealed;
+  const actions = availablePracticeActions(session);
   byId('practice-badge').textContent = bidLabel(auctionFamilyForProfile(session.familyId).name);
+  byId('role-badge').textContent = teller ? 'Teller' : 'Asker';
   const studying = Boolean(byId('profile').value);
   byId('practice-scope').textContent = studying ? 'Branch study' : 'Random branch';
-  byId('new-deal').textContent = studying ? 'Next study hand' : 'New hand';
+  byId('new-deal').setAttribute('aria-label', studying ? 'Next study hand' : 'New hand');
   byId('active-branch').textContent = `Current branch: ${bidLabel(profile.name)}`;
   byId('system-assumptions').innerHTML = [...(profile.assumptions ?? []), ...(profile.limitations ?? [])].map(text => `<li>${escapeHtml(bidLabel(text))}</li>`).join('');
   byId('role-help').textContent = teller
-    ? 'As teller, answer partner’s relay questions from your fixed hand. The practice asker follows supported questions in source order, then takes the lowest available final contract. This is a recall exercise; its contract choice is not a bidding recommendation.'
-    : 'As asker, choose the relay questions, interpret partner’s answers and judge the final contract. Use auction information before deciding, then review the revealed partnership.';
-  byId('partner-seat').textContent = `${view.partnerSeat} · Partner · ${teller ? 'Asker' : 'Teller'}`;
+    ? 'Describe your hand. Partner follows supported questions in source order, then takes the lowest supported final contract. This is recall practice, not an optimal bidding policy.'
+    : 'Ask, interpret partner’s answers, then choose and assess your contract.';
+  byId('partner-seat').textContent = `${view.partnerSeat} · Partner`;
   byId('player-seat').textContent = `${view.playerSeat} · You · ${teller ? 'Teller' : 'Asker'}`;
-  byId('north-heading').textContent = `North · ${view.playerSeat === 'North' ? 'You' : 'Partner'}`;
-  byId('south-heading').textContent = `South · ${view.playerSeat === 'South' ? 'You' : 'Partner'}`;
+  byId('partner-info-title').textContent = `${view.partnerSeat} · Partner · ${teller ? 'Asker' : 'Teller'}`;
+  byId('player-info-title').textContent = `${view.playerSeat} · You · ${teller ? 'Teller' : 'Asker'}`;
   const features = handFeatures(view.playerHand, session.major);
-  byId('player-hand').innerHTML = handMarkup(view.playerHand);
+  byId('player-hand').innerHTML = `<div class="sr-only">${handMarkup(view.playerHand)}</div>${cardMarkup(view.playerHand)}`;
+  byId('player-detail').innerHTML = handMarkup(view.playerHand);
+  byId('player-facts').textContent = `${features.hcp} HCP · ${SUITS.map(suit => view.playerHand.filter(card => card[0] === suit).length).join('–')} shape (♠ ♥ ♦ ♣)`;
   byId('player-hcp').textContent = `${features.hcp} HCP`;
   byId('partner-hand').innerHTML = session.revealed
-    ? `<div class="hand-lines">${handMarkup(view.partnerHand)}</div><p>${handFeatures(view.partnerHand, session.major).hcp} HCP · Partner’s original hand</p>`
-    : '<div class="card-backs" aria-label="Partner’s hand is hidden"><i></i><i></i><i></i><i></i><i></i></div><p>13 cards. One fixed hand.</p>';
-  const cells = view.auction.filter((call) => ['North', 'South'].includes(call.seat));
-  const rows = [];
-  for (let index = 0; index < cells.length; index += 2) {
-    rows.push(`<tr>${[cells[index], cells[index + 1]].map((call) => `<td>${call ? `<span class="bid">${escapeHtml(bidLabel(call.bid))}</span>${hints ? `<small>${escapeHtml(bidLabel(call.meaning))}</small>` : ''}` : session.finished ? '<span aria-label="Auction complete">—</span>' : '<span aria-label="Awaiting your bid">·</span>'}</td>`).join('')}</tr>`);
-  }
-  byId('auction').innerHTML = rows.join('');
-  const actions = availablePracticeActions(session);
-  const actionMarkup = (action) => `<button type="button" class="bid-button" data-bid="${escapeHtml(action.bid)}" ${busy ? 'disabled' : ''}><strong>${escapeHtml(bidLabel(action.bid))}</strong>${(hints && action.kind !== 'signoff') || action.bid === 'Pass' ? `<small>${escapeHtml(bidLabel(action.label))}</small>` : ''}</button>`;
-  byId('relay-actions').innerHTML = actions.filter((a) => a.kind !== 'signoff').map(actionMarkup).join('');
-  const ladders = teller && !session.finished && !session.revealed ? [session.pendingAsk].filter(Boolean) : actions.filter((action) => action.responseLadder);
+    ? `<div class="hand-lines">${handMarkup(view.partnerHand)}</div><p>${handFeatures(view.partnerHand, session.major).hcp} HCP · Original hand</p>`
+    : '<div class="card-backs" aria-label="Partner’s hand is hidden"><i></i><i></i><i></i><i></i><i></i></div><p>Partner’s hand is hidden.</p>';
+  const facts = `<ul class="constraint-list">${session.constraints.map(constraint => `<li>${escapeHtml(bidLabel(constraint.label))}</li>`).join('')}</ul>`;
+  byId('knowledge-title').textContent = teller ? 'Asking hand' : 'What the auction shows';
+  byId('constraint-count').textContent = teller ? '' : `${session.constraints.length} facts`;
+  byId('knowledge').innerHTML = teller ? '<p>Partner asks the questions. Their cards stay hidden until review.</p>' : facts;
+  byId('player-knowledge').innerHTML = teller ? `<h3>What you have told partner</h3>${facts}` : '';
+  renderAuction();
+  renderBidding(actions);
+  byId('bidding-controls').hidden = stopped;
+  byId('review-actions').hidden = !stopped;
+  byId('phase-label').textContent = stopped ? 'Review' : 'Your turn';
+  byId('action-title').textContent = session.contract ? `${bidLabel(session.contract.bid)} · ${session.contract.declarer}`
+    : stopped ? 'Hand revealed' : teller ? `Your response to ${bidLabel(session.pendingAsk?.bid ?? '')}` : 'Your call';
+  byId('table-state').textContent = busy ? 'Working…' : stopped ? 'Complete' : 'Your turn';
+  byId('action-help').textContent = session.unsupportedReason || (teller ? bidLabel(session.pendingAsk?.label ?? 'Auction complete.')
+    : practiceNode(session)?.help ?? 'Choose a relay question or a final contract.');
+  byId('bid-meanings').innerHTML = actions.filter(action => action.kind !== 'signoff' || action.bid === 'Pass')
+    .map(action => `<dt>${escapeHtml(bidLabel(action.bid))}</dt><dd>${escapeHtml(bidLabel(action.label))}</dd>`).join('') || '<dt>Done</dt><dd>Review the auction or deal another hand.</dd>';
+  const ladders = teller && !stopped ? [session.pendingAsk].filter(Boolean) : actions.filter(action => action.responseLadder);
   byId('response-steps').hidden = !hints || !ladders.length;
-  byId('response-ladders').innerHTML = ladders.map((action) => `<p><strong>${escapeHtml(bidLabel(action.bid))} · ${escapeHtml(action.label)}</strong></p><dl>${action.responseLadder.map((answer) => `<dt>${escapeHtml(bidLabel(answer.bid))}</dt><dd>${escapeHtml(answer.label)}</dd>`).join('')}</dl>`).join('');
-  const signoffs = actions.filter((a) => a.kind === 'signoff');
-  byId('signoff-actions').innerHTML = signoffs.map(actionMarkup).join('');
-  byId('signoff-section').hidden = !signoffs.length;
-  const stopped = session.finished || session.revealed;
-  const noFurtherAsk = !actions.some((action) => action.kind === 'relay' || action.kind === 'response');
-  byId('phase-label').textContent = stopped ? 'Review' : noFurtherAsk ? 'Review the auction' : 'Your turn';
+  byId('response-ladders').innerHTML = ladders.map(action => `<p><strong>${escapeHtml(bidLabel(action.bid))} · ${escapeHtml(bidLabel(action.label))}</strong></p><dl>${action.responseLadder.map(answer => `<dt>${escapeHtml(bidLabel(answer.bid))}</dt><dd>${escapeHtml(answer.label)}</dd>`).join('')}</dl>`).join('');
   byId('bid-form').hidden = stopped || !actions.length;
   byId('bid-input').disabled = busy;
   byId('submit-bid').disabled = busy;
-  if (session.contract) {
-    byId('action-title').textContent = `${bidLabel(`${session.contract.level}${session.contract.strain}`)} by ${session.contract.declarer}`;
-    byId('action-help').textContent = teller
-      ? 'Auction complete. Review the questions and your answers, undo an answer, or deal another hand.'
-      : 'Auction complete. Assess your chosen contract using auction information, then compare with the revealed partnership over many opponent layouts.';
-  } else if (stopped) {
-    byId('action-title').textContent = 'Partner’s hand revealed';
-    byId('action-help').textContent = session.unsupportedReason || 'Review what the auction showed. Undo or deal another hand to continue practising.';
-  } else if (teller && session.pendingAsk) {
-    byId('action-title').textContent = `Answer partner’s ${bidLabel(session.pendingAsk.bid)}`;
-    byId('action-help').textContent = hints ? bidLabel(session.pendingAsk.label)
-      : 'Choose the response that describes your hand. Turn on “Show meanings” to see the question and all response steps.';
-  } else if (noFurtherAsk) {
-    byId('action-title').textContent = 'Choose your contract';
-    byId('action-help').textContent = session.unsupportedReason || 'No further supported asks are available here. Choose a final contract or reveal partner and review the auction.';
-  } else {
-    const help = {
-      family: [practiceNode(session)?.label ?? 'Continue the relay', practiceNode(session)?.help ?? 'Choose another ask or your final contract.'],
-      raise: ['Begin the relay', 'Use 2NT to ask partner to describe their hand. A low-shortage answer also gives the strength range.'],
-      range: ['Ask for partner’s range', 'The next relay asks strength. Opener’s answer counts every bid, including game in the major.'],
-      shortage: ['Ask for partner’s range', 'The next relay asks strength.'],
-      keycard: ['Ask about keycards', 'Continue with the next relay, or choose a final contract.'],
-      'void-keycard': ['Partner has a void', 'The next relay asks keycards now that the void is known.'],
-      'post-keycard': actions.some((action) => action.askType === 'queen')
-        ? ['Queen or specific suit?', 'Ask about the trump queen, or choose a specific side-suit ask.']
-        : ['Ask about a side suit', session.queenAskAllowed === false
-          ? 'Horton’s two-keycard answer omits the queen ask. Choose a specific side-suit ask or your final contract.'
-          : 'The trump queen is known. Choose a specific side-suit ask or your final contract.'],
-      'suit-ask': ['Explore the remaining suit', 'You can ask an eligible unasked suit. Response steps omit holdings already ruled out by the auction.'],
-    }[session.phase] || ['Continue the relay', 'Choose another supported ask or your final contract.'];
-    byId('action-title').textContent = hints ? help[0] : 'Your next call';
-    byId('action-help').textContent = hints ? help[1] : 'Enter your bid or choose a call below. Turn on “Show meanings” whenever you want a hint.';
-  }
-  byId('constraint-count').textContent = hints ? `${session.constraints.length} facts` : 'Hidden';
-  byId('knowledge-title').textContent = teller ? 'What you have told partner' : 'Auction knowledge';
-  byId('knowledge').innerHTML = hints
-    ? `<ul class="constraint-list">${session.constraints.map((constraint) => `<li>${escapeHtml(constraint.label)}</li>`).join('')}</ul>`
-    : `<p>Meanings and constraints are hidden for recall practice.${teller ? '' : ' Sampling still uses every fact established by the auction.'}</p>`;
+  byId('type-bid-open').disabled = busy || stopped;
   byId('undo-bid').disabled = busy || !history.length;
   byId('reveal-hand').disabled = busy || session.revealed;
   byId('sample-hands').disabled = busy;
   byId('evaluate').disabled = busy || !ddsReady;
   byId('contract-tools').hidden = teller;
+  byId('assessment-open').hidden = teller;
+  byId('review-assess').hidden = teller;
+  for (const button of byId('review-actions').querySelectorAll('button')) button.disabled = busy;
   byId('revealed-basis').disabled = !session.revealed;
   if (!session.revealed) byId('analysis-basis').value = 'auction';
   const revealedBasis = byId('analysis-basis').value === 'revealed';
   byId('analysis-help').textContent = revealedBasis
-    ? 'Hold both revealed partnership hands fixed and test many random East/West layouts. This is a hindsight review, separate from what the auction told you.'
-    : 'Compare a contract using hands consistent with the auction and your cards. Partner’s actual hand is excluded from this estimate, even after reveal.';
+    ? 'Both partnership hands stay fixed. Test many East/West layouts for a hindsight review.'
+    : 'Use your cards and the auction. Partner’s actual hand is excluded from this estimate.';
   byId('sample-hands').textContent = revealedBasis ? 'Sample opponent layouts' : 'Sample hands';
   const context = { trump: session.trump, playerSeat: session.playerSeat, partnerSeat: session.partnerSeat, auction: session.auction };
   const candidate = byId('assessed-contract').value || session.contract?.bid;
   const lastContract = session.auction.findLast(call => call.bid !== 'Pass').bid;
-  const otherContracts = signoffs.map(action => action.bid === 'Pass' ? lastContract : action.bid);
+  const otherContracts = actions.filter(action => action.kind === 'signoff').map(action => action.bid === 'Pass' ? lastContract : action.bid);
   if (session.contract) otherContracts.push(session.contract);
   const contracts = defaultContracts(context, candidate || undefined, otherContracts);
   byId('assessed-contract').innerHTML = contracts.map(contract => {
@@ -206,6 +244,7 @@ function invalidateAnalysis() {
   byId('evaluation-results').replaceChildren();
   sampleStatus('Each sample gets one random East/West split. All contracts use the same deals.');
   byId('bid-feedback').textContent = '';
+  byId('typed-feedback').textContent = '';
 }
 
 function populateStudyProfiles(selectedProfileId = '') {
@@ -281,7 +320,11 @@ function chooseBid(bid) {
     byId('bid-input').value = '';
     render();
     persistProgress();
-  } catch (error) { byId('bid-feedback').textContent = error.message; }
+    byId('typed-dialog').close();
+  } catch (error) {
+    byId('bid-feedback').textContent = error.message;
+    byId('typed-feedback').textContent = error.message;
+  }
 }
 
 function showSamples(result) {
@@ -370,6 +413,46 @@ async function probeDds() {
   render();
 }
 
+document.addEventListener('click', event => {
+  const opener = event.target.closest('[data-open]');
+  if (opener) {
+    const dialog = byId(opener.dataset.open);
+    if (!dialog.open) dialog.showModal();
+    if (dialog.id === 'typed-dialog') byId('bid-input').focus();
+    return;
+  }
+  if (event.target.closest('[data-close]')) event.target.closest('dialog').close();
+  const callButton = event.target.closest('[data-call-index]');
+  if (callButton && session) {
+    const call = practiceView(session).auction[Number(callButton.dataset.callIndex)];
+    byId('bid-meaning-title').textContent = `${bidLabel(call.bid)} · ${call.seat}`;
+    byId('bid-meaning-text').textContent = bidLabel(call.meaning || 'No further meaning is recorded for this call.');
+    byId('bid-meaning-dialog').showModal();
+  }
+});
+for (const dialog of document.querySelectorAll('dialog')) {
+  dialog.addEventListener('click', event => {
+    const box = dialog.getBoundingClientRect();
+    if (event.target === dialog && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) dialog.close();
+  });
+}
+byId('bid-levels').addEventListener('click', event => {
+  const button = event.target.closest('[data-level]');
+  if (button && !button.disabled && session) {
+    selectedLevel = Number(button.dataset.level);
+    renderBidding(availablePracticeActions(session));
+    byId('bid-levels').querySelector(`[data-level="${selectedLevel}"]`).focus({ preventScroll: true });
+  }
+});
+byId('stop-deal').addEventListener('click', () => byId('stop-analysis').click());
+new ResizeObserver(() => {
+  const table = document.querySelector('.practice-table');
+  const available = table.clientHeight - table.firstElementChild.offsetHeight - table.lastElementChild.offsetHeight;
+  const compact = matchMedia('(max-height: 680px)').matches;
+  const rows = Math.max(1, Math.min(6, Math.floor((available - (compact ? 27 : 41)) / (compact ? 34 : 49))));
+  if (rows !== auctionRowLimit) { auctionRowLimit = rows; renderAuction(); }
+}).observe(document.querySelector('.practice-table'));
+
 byId('auction-family').innerHTML = AUCTION_FAMILIES.map(family => `<option value="${escapeHtml(family.id)}">${escapeHtml(bidLabel(family.name))}</option>`).join('');
 populateStudyProfiles();
 byId('auction-family').addEventListener('change', () => { populateStudyProfiles(); dealHand(); });
@@ -387,7 +470,12 @@ byId('bid-form').addEventListener('submit', (event) => {
   let bid = byId('bid-input').value.trim().toUpperCase().replace(/\s+/g, '').replace(/[♠♥♦♣]/g, (symbol) => ({ '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' })[symbol]);
   if (/^[1-7]N$/.test(bid)) bid += 'T';
   if (bid === 'P' || bid === 'PASS') bid = 'Pass';
-  if (!bid) { byId('bid-feedback').textContent = 'Enter a bid, for example 4D or 5NT.'; return; }
+  if (!bid) {
+    const message = 'Enter a bid, for example 4D or 5NT.';
+    byId('bid-feedback').textContent = message;
+    byId('typed-feedback').textContent = message;
+    return;
+  }
   chooseBid(bid);
 });
 for (const id of ['relay-actions', 'signoff-actions']) byId(id).addEventListener('click', (event) => {

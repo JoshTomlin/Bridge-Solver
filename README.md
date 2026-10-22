@@ -179,8 +179,10 @@ assessment compares DD make rates and paired outcomes using auction-compatible
 hands, with a separate post-reveal review over many opponent layouts.
 The current relay hand, auction and undo history autosave in the browser and
 restore when you return to the same site address.
-The main picker offers eight broad families and deals a random branch and hand.
-Use the collapsed study menu for a specific branch or seed replay.
+The phone layout keeps the auction, bidding box and all 13 cards on one screen.
+Tap a call for its meaning, use the “i” buttons for hand knowledge, and open
+**Assess** for contract comparisons. Family, role, branch and replay settings
+live behind the menu. The next-hand arrow deals a fresh random branch and hand.
 
 The [partnership system sources](docs/system-sources/README.md) retain both
 Word originals, searchable paragraph extracts and the July email content in

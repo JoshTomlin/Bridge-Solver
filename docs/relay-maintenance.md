@@ -193,6 +193,10 @@ and cached legacy scripts.
 signoff, contract-assessment modes, full browser restart, Stop and absent DDS.
 Both commands start their own preview server. Pages deployment requires these
 checks to pass; browser traces and screenshots are retained on CI failure.
+The mobile suite also checks 320–412px phone widths and landscape, card and
+control bounds, non-overlapping panels, on-demand meanings/knowledge and a
+22-call auction through completion, full history, undo and reload. Essential
+bidding must fit without page scrolling; sheets may scroll their own content.
 
 Use Node 22+ for development; browser code does not require `Map.groupBy`.
 The extraction script uses Python 3.10+ for explicit LF output. The repository's
@@ -200,13 +204,14 @@ bundled runtimes can be used when `node`/`python` are not on PATH.
 
 | Check | What it establishes | What it does not establish |
 |---|---|---|
-| Relay suite, currently 121 tests | Source partitions/examples, transitions, sampler uniformity/replay, both roles, complete family grouping/random selection, family/study restoration, storage errors, public prompts, retry, paired outcomes and source hashes | Entire untranscribed partnership system or all human judgements |
+| Relay suite, currently 124 tests | Source partitions/examples, transitions, sampler uniformity/replay, both roles, complete family grouping/random selection, family/study restoration, storage errors, public prompts, retry, paired outcomes, four-seat table placement and source hashes | Entire untranscribed partnership system or all human judgements |
 | `deal-utils.test.mjs` | Play-lab deal utilities | New relay browser interactions |
 | `ui-smoke.mjs` | Existing play-lab DOM/control smoke | A visual test of the relay page |
 | `build.test.mjs` | HTML points to content-versioned scripts/styles; changes to transitive modules, workers or WASM invalidate the whole graph | Successful DDS availability by itself |
 | `wasm-smoke.mjs` | Actual DDS, preserved play state and shipped minor/Dappleton/rebid sampling-to-evaluation paths | Human make probability or visual UI layout |
 | `relay-browser-smoke.mjs` | Broad family picker, random branches/seeds, hidden study/replay menu, both roles, DDS assessment, reload/full browser restart, restored undo/preferences, corrupt save, Stop and mobile | Every family branch or optimal bidding judgement |
 | `relay/browser/families.spec.mjs` | Eight families and all 63 study entries in both roles across five browser configurations; visible hands/auctions/actions match saved state; cache and compatibility regressions | Physical phones or every later bidding continuation |
+| `relay/browser/mobile.spec.mjs` | Bidding fits phone/landscape viewports; all 13 cards stay visible; meanings/info do not bid; long auctions use recent rounds and full history | Physical devices, OS keyboard behaviour or every accessibility setting |
 | Catalogue regeneration | Exact current profile count, prefixes, roles and first source calls | Every dynamic later response |
 | Markdown link/heading/table review | Navigable, readable documentation | Bidding correctness without source/code comparison |
 

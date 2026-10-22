@@ -2,74 +2,85 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#123d34">
-    <title>Relay practice · Bridge Lab</title>
-    <link rel="stylesheet" href="./styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="theme-color" content="#151c27">
+    <title>Relay · Bridge Lab</title>
     <link rel="stylesheet" href="./relay/relay.css">
   </head>
   <body>
-    <header class="site-header">
-      <a class="brand" href="./index.html"><span class="brand-mark">♠</span><span>Bridge Lab</span></a>
-      <nav aria-label="Lab"><a href="./index.html">Play lab</a><a href="./relay.html" aria-current="page">Relay practice</a></nav>
-    </header>
-    <main class="relay-main">
-      <section class="relay-heading">
-        <div><p class="eyebrow">Bidding systems / Practice lab</p><h1>A conversation in bids.</h1><p>Practise a relay auction with a partner whose hand is fixed from the start.</p></div>
-        <span class="draft-badge" id="practice-badge">Relay practice</span>
+    <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+      <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+      <symbol id="icon-next" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="icon-undo" viewBox="0 0 24 24"><path d="M8 5 3 10l5 5M3 10h10a7 7 0 0 1 7 7v2"/></symbol>
+      <symbol id="icon-hint" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M8 14a7 7 0 1 1 8 0c-1 1-1 2-1 2H9s0-1-1-2Z"/></symbol>
+      <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 3v17h17M9 15V9M14 15V5M19 15v-4"/></symbol>
+      <symbol id="icon-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h1m4 0h1m4 0h1M6 13h1m4 0h1m4 0h1M8 16h8"/></symbol>
+      <symbol id="icon-history" viewBox="0 0 24 24"><path d="M4 5v5h5M4 10a8 8 0 1 1 1 8M12 7v5l3 2"/></symbol>
+    </defs></svg>
+    <main class="relay-main" aria-label="Relay bidding practice">
+      <header class="table-header">
+        <a class="brand" href="./index.html" aria-label="Bridge Lab"><span>♠</span></a>
+        <button type="button" class="table-title" data-open="settings-dialog" aria-label="Choose auction family and role"><strong id="practice-badge">Relay</strong><span id="role-badge">Asker</span></button>
+        <form id="deal-form"><button class="icon-button" type="submit" id="new-deal" aria-label="New hand" title="New hand"><svg><use href="#icon-next"/></svg></button></form>
+        <button type="button" id="settings-open" class="icon-button" data-open="settings-dialog" aria-label="Practice settings" title="Settings"><svg><use href="#icon-menu"/></svg></button>
+      </header>
+      <section class="practice-table" aria-label="Practice auction">
+        <div class="table-topline"><div class="seat-label"><span class="seat-dot"></span><span id="partner-seat">North · Partner</span><button type="button" class="info-button" data-open="partner-dialog" aria-label="Partner hand information">i</button></div><button type="button" class="icon-button history-button" data-open="history-dialog" aria-label="Full auction" title="Full auction"><svg><use href="#icon-history"/></svg><span id="earlier-count" hidden></span></button></div>
+        <div class="auction-area">
+          <table class="auction-table"><thead><tr><th id="north-heading">N</th><th id="east-heading">E</th><th id="south-heading">S</th><th id="west-heading">W</th></tr></thead><tbody id="auction"></tbody></table>
+        </div>
+        <div class="table-bottomline"><span id="practice-scope">Random branch</span><span class="turn-indicator" id="table-state">Dealing…</span></div>
       </section>
-      <details class="system-note">
-        <summary>System notes and practice-hand restrictions</summary>
-        <p>The exercises follow your Word notes, the July minor-relay email revisions and your later clarifications. Each starts from the auction shown below. The selected exercise’s hand restrictions and remaining gaps are listed here.</p>
-        <ul id="system-assumptions"></ul>
-      </details>
-      <form id="deal-form" class="practice-toolbar">
-        <label class="family-field">Which auction family?<select id="auction-family"></select></label>
-        <label class="role-field">Your role<select id="practice-role"><option value="asker">Asker · Ask and interpret</option><option value="teller">Teller · Answer the questions</option></select></label>
-        <button class="button primary" type="submit" id="new-deal">New hand</button>
-        <label class="hint-toggle"><input id="show-hints" type="checkbox"> Show meanings</label>
-      </form>
-      <p id="role-help" class="role-help">As asker, choose the relay questions, interpret partner’s answers and judge the final contract.</p>
-      <details id="study-menu" class="study-menu">
-        <summary>Study a particular branch</summary>
-        <p>Practise one branch repeatedly, or leave “Random branch” selected to explore the whole family.</p>
-        <div class="study-controls"><label class="profile-field">Branch to practise<select id="profile"></select></label></div>
-        <p id="active-branch" class="active-branch"></p>
-        <details class="replay-options"><summary>Hand seed and replay</summary><p>Every new hand uses a random seed. Reuse a seed here to repeat a hand in the current branch.</p><div class="study-controls"><label class="seed-field">Hand seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false"></label><button type="button" id="replay-deal" class="button secondary">Replay this branch</button></div></details>
-      </details>
-      <p id="status" class="relay-status" role="status" aria-live="polite">Dealing a practice hand…</p>
-      <p id="save-status" class="save-status" role="status" aria-live="polite"></p>
-      <div class="practice-grid">
-        <section class="practice-table" aria-label="Practice auction">
-          <div class="practice-topline"><span id="partner-seat">North · Your partner</span><span id="practice-scope">Random branch</span></div>
-          <div id="partner-hand" class="partner-hand"><div class="card-backs" aria-label="Partner’s hand is hidden"><i></i><i></i><i></i><i></i><i></i></div><p>13 cards. One fixed hand.</p></div>
-          <div class="auction-area">
-            <p class="auction-caption">Uncontested auction · East and West always pass</p>
-            <table class="auction-table"><thead><tr><th id="north-heading">North · Partner</th><th id="south-heading">South · You</th></tr></thead><tbody id="auction"></tbody></table>
-          </div>
-          <div class="your-hand-block"><div class="practice-topline"><span id="player-seat">South · Your hand</span><span id="player-hcp"></span></div><div id="player-hand" class="hand-lines"></div></div>
-        </section>
-        <aside class="relay-side">
-          <section class="relay-panel action-panel">
-            <p class="eyebrow" id="phase-label">Your turn</p><h2 id="action-title">Begin the relay</h2><p id="action-help"></p>
-            <div id="relay-actions" class="bid-actions"></div>
-            <details id="response-steps" class="response-steps" hidden><summary>Response steps for these asks</summary><div id="response-ladders"></div></details>
-            <form id="bid-form" class="bid-entry"><label for="bid-input">Enter a bid</label><div><input id="bid-input" placeholder="e.g. 4D or 5NT" autocomplete="off" spellcheck="false" maxlength="12"><button class="button secondary" id="submit-bid" type="submit">Bid</button></div><small id="bid-feedback" role="status" aria-live="polite"></small></form>
-            <details id="signoff-section"><summary>Choose a final contract</summary><div id="signoff-actions" class="bid-actions signoffs"></div></details>
-            <div class="session-actions"><button type="button" id="undo-bid" class="text-button" disabled>Undo bid</button><button type="button" id="reveal-hand" class="text-button" disabled>Reveal partner</button></div>
-          </section>
-          <section class="relay-panel knowledge-panel"><div class="panel-title"><h2 id="knowledge-title">Auction knowledge</h2><span id="constraint-count"></span></div><div id="knowledge"></div></section>
-        </aside>
-      </div>
-      <section id="contract-tools" class="relay-panel sampling-panel">
-        <div class="sampling-heading"><div><p class="eyebrow">Asker’s contract assessment</p><h2>Judge your final contract</h2><p id="analysis-help">Compare a contract using hands consistent with the auction and your cards. Partner’s actual hand is excluded from this estimate.</p></div><span id="dds-status" class="runtime-label">DDS: checking…</span></div>
-        <div class="sampling-controls"><label>Information to use<select id="analysis-basis"><option value="auction">Auction information</option><option id="revealed-basis" value="revealed" disabled>Revealed partnership</option></select></label><label>Contract to assess<select id="assessed-contract"></select></label><label>Sample deals<select id="sample-count"><option value="100" selected>100 · Quick check</option><option value="500">500</option><option value="1000">1,000</option></select></label><button type="button" id="sample-hands" class="button secondary" disabled>Sample hands</button><button type="button" id="evaluate" class="button primary" disabled>Compare contracts with DDS</button><button type="button" id="stop-analysis" class="button secondary" hidden>Stop</button></div>
-        <p id="sample-status" role="status" aria-live="polite">Each sample gets one random East/West split. All contracts use the same deals.</p>
-        <div id="sample-results"></div><div id="evaluation-results"></div>
-        <p class="method-note">DD make rates assume perfect play with all four hands visible. They are conditional on the practice-hand restrictions, and do not estimate human success rates. The intervals show sampling uncertainty only. Comparisons include hypothetical contracts that may be below the current auction.</p>
+      <section class="bidding-panel" aria-label="Bidding box">
+        <div class="bidding-caption"><span id="action-title">Your call</span><button type="button" class="stop-button" id="stop-deal" hidden>Stop</button></div>
+        <div id="bidding-controls">
+          <div id="bid-levels" class="bid-levels" role="group" aria-label="Bid level"></div>
+          <div id="bid-options" class="bid-options"><div id="unavailable-bids"></div><div id="relay-actions"></div><div id="signoff-section"><div id="signoff-actions"></div></div></div>
+        </div>
+        <div id="review-actions" class="review-actions" hidden><button type="button" class="button secondary" data-open="partner-dialog">Review hand</button><button type="button" class="button primary" id="review-assess" data-open="assessment-dialog">Assess contract</button><button type="submit" form="deal-form" class="button primary">Next hand</button></div>
+        <nav class="table-tools" aria-label="Bidding tools">
+          <button type="button" class="tool-button" id="undo-bid" disabled><svg><use href="#icon-undo"/></svg><span>Undo</span></button>
+          <button type="button" class="tool-button" id="meanings-open" data-open="meanings-dialog"><svg><use href="#icon-hint"/></svg><span>Meanings</span></button>
+          <button type="button" class="tool-button" id="assessment-open" data-open="assessment-dialog"><svg><use href="#icon-chart"/></svg><span>Assess</span></button>
+          <button type="button" class="tool-button" data-open="typed-dialog" id="type-bid-open"><svg><use href="#icon-keyboard"/></svg><span>Type</span></button>
+        </nav>
+        <p id="bid-feedback" class="feedback" role="status" aria-live="polite"></p><p id="notice" class="feedback" role="status" hidden></p>
       </section>
-      <footer class="relay-footer">Bridge Lab · Relay practice <span>Shape · Strength · Keycards · Specific suits</span></footer>
+      <section class="your-hand-block" aria-label="Your hand">
+        <div class="hand-heading"><div class="seat-label"><span id="player-seat">South · You</span><button type="button" class="info-button" data-open="player-dialog" aria-label="Your hand information">i</button></div><span id="player-hcp"></span></div>
+        <div id="player-hand" class="hand-cards"></div>
+      </section>
+      <p id="status" class="sr-only" role="status" aria-live="polite">Dealing a practice hand…</p><span id="phase-label" class="sr-only"></span>
     </main>
+
+    <dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
+      <header class="sheet-heading"><h2 id="settings-title">Practice</h2><button type="button" class="icon-button" data-close aria-label="Close settings"><svg><use href="#icon-close"/></svg></button></header>
+      <div class="sheet-body">
+        <div class="settings-fields"><label>Which auction family?<select id="auction-family"></select></label><label>Your role<select id="practice-role"><option value="asker">Asker · Ask and interpret</option><option value="teller">Teller · Answer the questions</option></select></label></div>
+        <details id="study-menu" class="menu-section"><summary>Study a particular branch</summary><label>Branch<select id="profile"></select></label><p id="active-branch" class="muted"></p><details class="replay-options"><summary>Hand seed and replay</summary><label>Hand seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false"></label><button type="button" id="replay-deal" class="button secondary">Replay this branch</button></details></details>
+        <details class="menu-section"><summary>System notes</summary><ul id="system-assumptions" class="constraint-list"></ul></details>
+        <p id="save-status" class="muted" role="status" aria-live="polite"></p><a class="quiet-link" href="./index.html">Back to play lab ↗</a>
+      </div>
+    </dialog>
+    <dialog id="meanings-dialog" class="sheet" aria-labelledby="meanings-title">
+      <header class="sheet-heading"><h2 id="meanings-title">Bid meanings</h2><button type="button" class="icon-button" data-close aria-label="Close meanings"><svg><use href="#icon-close"/></svg></button></header>
+      <div class="sheet-body"><p id="action-help" class="muted"></p><dl id="bid-meanings" class="meaning-list"></dl><label class="hint-toggle"><input type="checkbox" id="show-hints"> Show response steps</label><details id="response-steps" open hidden><summary>Response steps</summary><div id="response-ladders"></div></details><details class="menu-section"><summary>About your role</summary><p id="role-help" class="muted"></p></details></div>
+    </dialog>
+    <dialog id="bid-meaning-dialog" class="sheet small-sheet" aria-labelledby="bid-meaning-title"><header class="sheet-heading"><h2 id="bid-meaning-title">Bid meaning</h2><button type="button" class="icon-button" data-close aria-label="Close bid meaning"><svg><use href="#icon-close"/></svg></button></header><div class="sheet-body"><p id="bid-meaning-text"></p></div></dialog>
+    <dialog id="partner-dialog" class="sheet" aria-labelledby="partner-info-title"><header class="sheet-heading"><h2 id="partner-info-title">Partner</h2><button type="button" class="icon-button" data-close aria-label="Close partner information"><svg><use href="#icon-close"/></svg></button></header><div class="sheet-body"><div id="partner-hand"></div><div class="panel-title"><h3 id="knowledge-title">Auction knowledge</h3><span id="constraint-count"></span></div><div id="knowledge"></div><button type="button" id="reveal-hand" class="button secondary" disabled>Reveal partner</button></div></dialog>
+    <dialog id="player-dialog" class="sheet" aria-labelledby="player-info-title"><header class="sheet-heading"><h2 id="player-info-title">Your hand</h2><button type="button" class="icon-button" data-close aria-label="Close your hand information"><svg><use href="#icon-close"/></svg></button></header><div class="sheet-body"><div id="player-detail" class="hand-lines"></div><p id="player-facts" class="muted"></p><div id="player-knowledge"></div></div></dialog>
+    <dialog id="history-dialog" class="sheet" aria-labelledby="history-title"><header class="sheet-heading"><h2 id="history-title">Full auction</h2><button type="button" class="icon-button" data-close aria-label="Close full auction"><svg><use href="#icon-close"/></svg></button></header><div class="sheet-body"><p class="muted">Uncontested · East and West pass. Tap a call for its meaning.</p><table class="auction-table history-table"><thead><tr><th>N</th><th>E</th><th>S</th><th>W</th></tr></thead><tbody id="auction-history"></tbody></table></div></dialog>
+    <dialog id="typed-dialog" class="sheet small-sheet" aria-labelledby="typed-title"><header class="sheet-heading"><h2 id="typed-title">Enter a bid</h2><button type="button" class="icon-button" data-close aria-label="Close bid entry"><svg><use href="#icon-close"/></svg></button></header><div class="sheet-body"><form id="bid-form" class="bid-entry"><label for="bid-input">Bid</label><div><input id="bid-input" placeholder="e.g. 4D or 5NT" autocomplete="off" spellcheck="false" maxlength="12"><button class="button primary" id="submit-bid" type="submit">Bid</button></div><p id="typed-feedback" class="muted" role="status"></p></form></div></dialog>
+    <dialog id="assessment-dialog" class="sheet assessment-sheet" aria-labelledby="assessment-title">
+      <header class="sheet-heading"><h2 id="assessment-title">Assess a contract</h2><button type="button" class="icon-button" data-close aria-label="Close assessment"><svg><use href="#icon-close"/></svg></button></header>
+      <section id="contract-tools" class="sheet-body">
+        <div class="runtime-row"><span id="dds-status" class="runtime-label">DDS: checking…</span><button type="button" id="stop-analysis" class="stop-button" hidden>Stop</button></div><p id="analysis-help" class="muted"></p>
+        <div class="sampling-controls"><label>Information<select id="analysis-basis"><option value="auction">Auction information</option><option id="revealed-basis" value="revealed" disabled>Revealed partnership</option></select></label><label>Contract<select id="assessed-contract"></select></label><label>Sample deals<select id="sample-count"><option value="100" selected>100 · Quick check</option><option value="500">500</option><option value="1000">1,000</option></select></label><button type="button" id="sample-hands" class="button secondary" disabled>Sample hands</button><button type="button" id="evaluate" class="button primary" disabled>Compare contracts</button></div>
+        <p id="sample-status" class="muted" role="status" aria-live="polite"></p><div id="sample-results"></div><div id="evaluation-results"></div>
+        <details class="menu-section"><summary>How to read these results</summary><p class="muted">Double-dummy make rates assume perfect play with all hands visible, not human success rates. Auction estimates exclude partner’s actual hand. Revealed partnership fixes both hands and varies opponent layouts. Intervals show sampling uncertainty; comparisons use the same deals and may include contracts below the current auction.</p></details>
+      </section>
+    </dialog>
     <script type="module" src="./relay/app.js"></script>
   </body>
 </html>

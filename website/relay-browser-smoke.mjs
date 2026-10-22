@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { selectSetting, closeSheets, newHand, clickBid as clickUiBid } from './relay/browser/helpers.mjs';
 import { createTrainingPractice, applyPracticeBid, availablePracticeActions } from './dist/relay/practice.js';
 import { applyBid } from './dist/relay/core.js';
 import { AUCTION_FAMILIES, auctionFamilyForProfile } from './dist/relay/families.js';
@@ -37,17 +38,29 @@ try {
     && localStorage.getItem('bridge-lab.relay-progress.v1'));
   const auction = () => page.locator('#auction').innerHTML();
   const hand = () => page.locator('#player-hand').innerHTML();
-  const clickBid = bid => page.locator(`#relay-actions [data-bid="${bid}"]`).click();
+  const clickBid = bid => clickUiBid(page, bid);
+  const openAssessment = async () => { await closeSheets(page); await page.click('#assessment-open'); };
+  const selectControl = async (selector, value) => {
+    if (['#auction-family', '#profile', '#practice-role'].includes(selector)) return selectSetting(page, selector, value);
+    await openAssessment();
+    await page.selectOption(selector, value);
+  };
+  const guidance = async checked => {
+    await closeSheets(page); await page.click('#meanings-open'); await page.locator('#show-hints').setChecked(checked);
+  };
+  const typeBid = async value => {
+    await closeSheets(page); await page.click('#type-bid-open'); await page.fill('#bid-input', value);
+  };
   const savedProgress = () => page.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
   const studyProfile = async (profileId, role = 'asker') => {
-    await page.selectOption('#auction-family', auctionFamilyForProfile(profileId).id);
+    await selectControl('#auction-family', auctionFamilyForProfile(profileId).id);
     await ready();
     if (await page.locator('#practice-role').inputValue() !== role) {
-      await page.selectOption('#practice-role', role);
+      await selectControl('#practice-role', role);
       await ready();
     }
     if (!(await page.locator('#study-menu').evaluate(menu => menu.open))) await page.locator('#study-menu > summary').click();
-    await page.selectOption('#profile', profileId);
+    await selectControl('#profile', profileId);
     await ready();
     if (!(await page.locator('.replay-options').evaluate(menu => menu.open))) await page.locator('.replay-options > summary').click();
     await page.fill('#seed', 'relay-1');
@@ -59,20 +72,20 @@ try {
   await page.goto(url);
   await ready();
   await page.waitForFunction(() => document.getElementById('dds-status').textContent === 'DDS ready');
-  assert.equal(await page.locator('#contract-tools').isVisible(), true);
+  assert.equal(await page.locator('#assessment-open').isVisible(), true);
   assert.equal(await page.locator('#revealed-basis').evaluate(option => option.disabled), true);
 
   assert.equal(await page.locator('#auction-family option').count(), AUCTION_FAMILIES.length);
   assert.equal(await page.locator('#profile').isVisible(), false);
   assert.equal(await page.locator('#seed').isVisible(), false);
   for (const family of AUCTION_FAMILIES) {
-    await page.selectOption('#auction-family', family.id);
+    await selectControl('#auction-family', family.id);
     await ready();
     const first = await savedProgress();
     assert.ok(family.profileIds.includes(first.session.familyId));
     assert.equal(first.preferences.studyProfileId, '');
     assert.notEqual(first.session.seed, 'relay-1');
-    await page.click('#new-deal');
+    await newHand(page);
     await ready();
     const second = await savedProgress();
     assert.ok(family.profileIds.includes(second.session.familyId));
@@ -97,7 +110,7 @@ try {
     let practice = createTrainingPractice({ profileId, role: 'teller', seed: 'relay-1' });
     const originalHand = await hand();
     const originalAuction = await auction();
-    assert.equal(await page.locator('#contract-tools').isVisible(), false);
+    assert.equal(await page.locator('#assessment-open').isVisible(), false);
     assert.equal(await page.locator('#partner-hand .card-backs').count(), 1);
     const humanSeat = practice.partnerSeat;
     assert.match(await page.locator('#player-seat').textContent(), new RegExp(`${humanSeat}.*Teller`));
@@ -112,18 +125,24 @@ try {
           assert.equal(await auction(), originalAuction);
           assert.equal(await hand(), originalHand);
         }
-        await page.check('#show-hints');
-        assert.ok(await page.locator('#relay-actions small').count() > 0);
-        await page.uncheck('#show-hints');
+        await guidance(true);
+        assert.ok(await page.locator('#response-ladders dd').count() > 0);
+        assert.equal(await page.locator('#response-steps').isVisible(), true);
+        await guidance(false);
       }
       await clickBid(answer);
       assert.equal(await hand(), originalHand);
       if (turn === 0) {
+        await closeSheets(page);
         await page.click('#undo-bid');
         assert.equal(await auction(), originalAuction);
         assert.equal(await hand(), originalHand);
+        await typeBid('');
+        await page.click('#submit-bid');
+        assert.match(await page.locator('#typed-feedback').textContent(), /Enter a bid/);
+        assert.equal(await auction(), originalAuction);
         // Also exercise typed suit-symbol input.
-        await page.fill('#bid-input', answer.replace('S', '♠').replace('H', '♥').replace('D', '♦').replace('C', '♣'));
+        await typeBid(answer.replace('S', '♠').replace('H', '♥').replace('D', '♦').replace('C', '♣'));
         await page.click('#submit-bid');
         assert.equal(await page.locator('#bid-feedback').textContent(), '');
         const savedAuction = await auction();
@@ -148,10 +167,10 @@ try {
   await studyProfile('major-S');
   const originalHand = await hand();
   const originalAuction = await auction();
-  await page.selectOption('#assessed-contract', '6S');
-  await page.check('#show-hints');
-  await page.selectOption('#sample-count', '500');
-  await page.fill('#bid-input', '4♠');
+  await selectControl('#assessed-contract', '6S');
+  await guidance(true);
+  await selectControl('#sample-count', '500');
+  await typeBid('4♠');
   await page.reload();
   await ready();
   assert.equal(await hand(), originalHand);
@@ -159,10 +178,11 @@ try {
   assert.equal(await page.locator('#show-hints').isChecked(), true);
   assert.equal(await page.locator('#sample-count').inputValue(), '500');
   assert.equal(await page.locator('#bid-input').inputValue(), '4♠');
-  await page.uncheck('#show-hints');
-  await page.selectOption('#sample-count', '100');
-  await page.fill('#bid-input', '');
+  await guidance(false);
+  await selectControl('#sample-count', '100');
+  await typeBid('');
   await page.waitForFunction(() => document.getElementById('dds-status').textContent === 'DDS ready');
+  await openAssessment();
   await page.click('#evaluate');
   await page.waitForSelector('.contract-assessment', { timeout: 120000 });
   assert.match(await page.locator('.contract-assessment').textContent(), /Using auction information/);
@@ -174,17 +194,17 @@ try {
   assert.ok(await page.locator('.paired-results tbody tr').count() >= 5);
   assert.doesNotMatch(await page.locator('#evaluation-results').textContent(), /NaN|undefined/);
 
-  await page.click('#signoff-section summary');
-  await page.locator('#signoff-actions [data-bid="5S"]').click();
+  await clickBid('5S');
   assert.equal(await page.locator('#assessed-contract').inputValue(), '5S');
-  await page.selectOption('#analysis-basis', 'revealed');
+  await selectControl('#analysis-basis', 'revealed');
+  await openAssessment();
   await page.click('#evaluate');
   await page.waitForSelector('.contract-assessment', { timeout: 120000 });
   assert.match(await page.locator('.contract-assessment').textContent(), /With the revealed partnership/);
   assert.match(await page.locator('#sample-status').textContent(), /100 random opponent layouts/);
   assert.equal(await page.locator('#sample-results').textContent(), '');
   // Reassessing an alternative after signoff must retain both chosen/assessed labels.
-  await page.selectOption('#assessed-contract', '3NT');
+  await selectControl('#assessed-contract', '3NT');
   const completedAuction = await auction();
   await page.reload();
   await ready();
@@ -193,18 +213,21 @@ try {
   assert.equal(await page.locator('#assessed-contract').inputValue(), '3NT');
   assert.equal(await page.locator('#partner-hand .card-backs').count(), 0);
   await page.waitForFunction(() => document.getElementById('dds-status').textContent === 'DDS ready');
+  await openAssessment();
   await page.click('#evaluate');
   await page.waitForSelector('.contract-assessment', { timeout: 120000 });
   assert.match(await page.locator('.contract-assessment h3').textContent(), /needs 9 tricks/);
   assert.match(await page.locator('#evaluation-results').textContent(), /5♠ · chosen/);
   assert.equal(await page.locator('#assessed-contract option[value="5S"]').count(), 1);
+  await closeSheets(page);
   await page.click('#undo-bid');
   assert.equal(await auction(), originalAuction);
   assert.equal(await hand(), originalHand);
   assert.equal(await page.locator('#analysis-basis').inputValue(), 'auction');
   assert.equal(await page.locator('#revealed-basis').evaluate(option => option.disabled), true);
 
-  await page.selectOption('#sample-count', '1000');
+  await selectControl('#sample-count', '1000');
+  await openAssessment();
   await page.click('#evaluate');
   await page.click('#stop-analysis');
   await ready();
@@ -230,7 +253,7 @@ try {
   persistent = await chromium.launchPersistentContext(browserProfile, { headless: true });
   let returning = persistent.pages()[0];
   await returning.goto(url);
-  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled);
+  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled && document.querySelectorAll('.playing-card').length === 13 && document.querySelector('#auction tr'));
   await returning.locator('#relay-actions [data-bid="2NT"]').click();
   const closedAuction = await returning.locator('#auction').innerHTML();
   const closedHand = await returning.locator('#player-hand').innerHTML();
@@ -238,18 +261,18 @@ try {
   persistent = await chromium.launchPersistentContext(browserProfile, { headless: true });
   returning = persistent.pages()[0];
   await returning.goto(url);
-  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled);
+  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled && document.querySelectorAll('.playing-card').length === 13 && document.querySelector('#auction tr'));
   assert.match(await returning.locator('#status').textContent(), /Restored your saved bidding progress/);
   assert.equal(await returning.locator('#auction').innerHTML(), closedAuction);
   assert.equal(await returning.locator('#player-hand').innerHTML(), closedHand);
   await returning.click('#undo-bid');
   assert.equal(await returning.locator('#auction .bid').count(), 1);
   await returning.reload();
-  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled);
+  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled && document.querySelectorAll('.playing-card').length === 13 && document.querySelector('#auction tr'));
   assert.equal(await returning.locator('#auction .bid').count(), 1, 'Undo was saved too');
   await returning.evaluate(() => localStorage.setItem('bridge-lab.relay-progress.v1', '{broken'));
   await returning.reload();
-  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled);
+  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled && document.querySelectorAll('.playing-card').length === 13 && document.querySelector('#auction tr'));
   assert.match(await returning.locator('#status').textContent(), /could not be restored/);
   assert.equal(await returning.locator('#auction .bid').count(), 1);
   console.log('Browser persistence checks passed: reload both roles, preferences, completed auction, undo, full browser restart and corrupt-save recovery.');
