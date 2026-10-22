@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { applyBid, availableActions, matchesConstraints } from '../core.js';
 import { practiceView } from '../practice.js';
+import { shortBidDescription } from '../bid-descriptions.js';
 import { clickBid, closeSheets, fitsScreen, selectSetting } from './helpers.mjs';
 
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
@@ -82,9 +83,9 @@ for (const role of ['asker', 'teller']) {
       await page.getByRole('button', { name: 'Full auction', exact: true }).click();
       await page.locator(`#auction-history [data-call-index="${selected}"]`).click();
       await expect(page.locator('#bid-meaning-dialog')).toBeVisible();
-      await expect(page.locator('#bid-meaning-text')).toHaveText(label(session.auction[selected].meaning));
+      await expect(page.locator('#bid-meaning-text')).toHaveText(label(shortBidDescription(session.auction[selected].meaning)));
       expect(await page.locator('#bid-alternatives dt').allTextContents()).toEqual([...expected.keys()].map(label));
-      expect(await page.locator('#bid-alternatives dd').allTextContents()).toEqual([...expected].map(([bid, text]) => label(text) + (bid === response.bid ? 'Played' : '')));
+      expect(await page.locator('#bid-alternatives dd').allTextContents()).toEqual([...expected].map(([bid, text]) => label(shortBidDescription(text)) + (bid === response.bid ? 'Played' : '')));
       expect(await page.locator('#alternatives-auction .bid').allTextContents()).toEqual(initial.auction.map(call => label(call.bid)).concat(label(question.bid)));
       await expect(page.locator('#alternatives-auction .awaiting-bid')).toHaveCount(1);
       await expect(page.locator('#alternatives-empty')).toBeHidden();

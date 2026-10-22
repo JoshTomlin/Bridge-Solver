@@ -68,6 +68,11 @@ hands and undo history stay unchanged. Fixed opening sequences without a
 recorded response ladder say so; no alternatives are invented. Older saved
 major auctions recover their ladders from the saved undo states.
 
+Bid descriptions use compact wording in previews, meanings and alternatives:
+for example, **Club shortage 12-14**. The same display format applies to saved
+auctions; source definitions and stored bidding progress retain their original
+meanings.
+
 **Meanings** shows the available
 questions or answers; **Show response steps** expands the ladders without
 selecting the correct answer. The “i” beside a name opens that hand's details:

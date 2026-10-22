@@ -6,11 +6,13 @@ import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFami
 import { AUCTION_SEATS, auctionRounds } from './table-ui.js';
 import { auctionCallDetails } from './auction-study.js';
 import { attachBidPreview } from './bid-preview.js';
+import { shortBidDescription } from './bid-descriptions.js';
 
 const byId = (id) => document.getElementById(id);
 const symbols = { S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' };
 const escapeHtml = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const bidLabel = (bid) => String(bid).replace(/([1-7])(NT|[SHDC])/g, (_, level, suit) => level + symbols[suit]);
+const describeBid = text => bidLabel(shortBidDescription(text));
 let session = null;
 let history = [];
 let samples = null;
@@ -221,13 +223,13 @@ function render() {
   byId('action-title').textContent = session.undiscussedBid ? `${bidLabel(session.undiscussedBid)} · Undiscussed` : session.contract ? `${bidLabel(session.contract.bid)} · ${session.contract.declarer}`
     : stopped ? 'Hand revealed' : teller ? `Your response to ${bidLabel(session.pendingAsk?.bid ?? '')}` : 'Your call';
   byId('table-state').textContent = busy ? 'Working…' : session.undiscussedBid ? 'Undiscussed' : stopped ? 'Complete' : 'Your turn';
-  byId('action-help').textContent = session.unsupportedReason || (teller ? bidLabel(session.pendingAsk?.label ?? 'Auction complete.')
+  byId('action-help').textContent = session.unsupportedReason || (teller ? describeBid(session.pendingAsk?.label ?? 'Auction complete.')
     : practiceNode(session)?.help ?? 'Choose a relay question or a final contract.');
   byId('bid-meanings').innerHTML = actions.filter(action => action.kind !== 'signoff' || action.bid === 'Pass')
-    .map(action => `<dt>${escapeHtml(bidLabel(action.bid))}</dt><dd>${escapeHtml(bidLabel(action.label))}</dd>`).join('') || '<dt>Done</dt><dd>Review the auction or deal another hand.</dd>';
+    .map(action => `<dt>${escapeHtml(bidLabel(action.bid))}</dt><dd>${escapeHtml(describeBid(action.label))}</dd>`).join('') || '<dt>Done</dt><dd>Review the auction or deal another hand.</dd>';
   const ladders = teller && !stopped ? [session.pendingAsk].filter(Boolean) : actions.filter(action => action.responseLadder);
   byId('response-steps').hidden = !hints || !ladders.length;
-  byId('response-ladders').innerHTML = ladders.map(action => `<p><strong>${escapeHtml(bidLabel(action.bid))} · ${escapeHtml(bidLabel(action.label))}</strong></p><dl>${action.responseLadder.map(answer => `<dt>${escapeHtml(bidLabel(answer.bid))}</dt><dd>${escapeHtml(answer.label)}</dd>`).join('')}</dl>`).join('');
+  byId('response-ladders').innerHTML = ladders.map(action => `<p><strong>${escapeHtml(bidLabel(action.bid))} · ${escapeHtml(describeBid(action.label))}</strong></p><dl>${action.responseLadder.map(answer => `<dt>${escapeHtml(bidLabel(answer.bid))}</dt><dd>${escapeHtml(describeBid(answer.label))}</dd>`).join('')}</dl>`).join('');
   byId('bid-form').hidden = stopped || !actions.length;
   byId('bid-input').disabled = busy;
   byId('submit-bid').disabled = busy;
@@ -449,10 +451,10 @@ document.addEventListener('click', event => {
     const detail = auctionCallDetails(session, history, Number(callButton.dataset.callIndex));
     const { call } = detail;
     byId('bid-meaning-title').textContent = `${bidLabel(call.bid)} · ${call.seat}`;
-    byId('bid-meaning-text').textContent = bidLabel(call.meaning || 'No further meaning is recorded for this call.');
-    byId('alternatives-question').textContent = detail.question ? `Responses to ${bidLabel(detail.question.bid)} · ${bidLabel(detail.question.meaning)}` : '';
+    byId('bid-meaning-text').textContent = describeBid(call.meaning || 'No further meaning is recorded for this call.');
+    byId('alternatives-question').textContent = detail.question ? `Responses to ${bidLabel(detail.question.bid)} · ${describeBid(detail.question.meaning)}` : '';
     byId('alternatives-auction').innerHTML = auctionMarkup(auctionRounds(detail.auction, !detail.question), false);
-    byId('bid-alternatives').innerHTML = detail.alternatives.map(answer => `<dt class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.bid))}</dt><dd class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.label))}${answer.bid === detail.playedBid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
+    byId('bid-alternatives').innerHTML = detail.alternatives.map(answer => `<dt class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.bid))}</dt><dd class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(describeBid(answer.label))}${answer.bid === detail.playedBid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
     byId('alternatives-empty').hidden = detail.alternatives.length > 0;
     byId('alternatives-empty').textContent = call.meaning?.includes('Undiscussed')
       ? 'This call is undiscussed in this exercise.'
@@ -505,7 +507,7 @@ byId('bid-form').addEventListener('submit', (event) => {
 });
 bidPreview = attachBidPreview(byId('bid-options'), byId('bid-preview'), {
   getCall: bid => session && !busy ? practiceCalls(session).find(call => call.bid === bid) : null,
-  label: bidLabel,
+  label: describeBid,
   commit: chooseBid,
 });
 byId('reveal-hand').addEventListener('click', () => {
