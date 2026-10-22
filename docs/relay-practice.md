@@ -9,6 +9,9 @@ viewport. It uses dynamic viewport height and safe-area padding; landscape
 places the table beside the controls and cards. The main bidding screen does
 not scroll. Settings, information and analysis open in dismissible sheets;
 long reference material and reports can scroll inside their sheet.
+Both hands use short cards to leave more room for the auction. Partner's 13
+cards sit above the auction, face down during bidding and face up at completion.
+Undoing completion hides them again.
 
 Choose **Asker · Ask and interpret** or **Teller · Answer the questions** in
 the top-right **Practice settings** menu. The asker chooses relay questions, interprets the replies and
@@ -51,12 +54,21 @@ The preview and agreement markers use public agreements, never the hidden
 hand or knowledge of the correct teller answer.
 
 An undiscussed call is recorded at the correct seat and pauses practice for
-review without inventing a partner answer, adding constraints or revealing
-cards. Undo resumes the previous question. If the call is Pass, the actual
-last contract and its first-strain declarer are retained. These states autosave
+review without inventing a partner answer or adding constraints. Cards stay
+hidden while an undiscussed continuation is paused. Undo resumes the previous
+question. If the call is Pass, the actual last contract and its first-strain
+declarer are retained, and partner's hand is revealed at completion. These states autosave
 and restore like supported auctions.
 
-Tap a call in the auction for its meaning. **Meanings** shows the available
+Tap a call in the auction for its meaning. Below it, **Alternatives** shows
+the auction through that question and all its agreed response steps, marking
+the response actually played. Tap either a question or its answer, including
+older calls in **Full auction**. This is a read-only study view: later bids,
+hands and undo history stay unchanged. Fixed opening sequences without a
+recorded response ladder say so; no alternatives are invented. Older saved
+major auctions recover their ladders from the saved undo states.
+
+**Meanings** shows the available
 questions or answers; **Show response steps** expands the ladders without
 selecting the correct answer. The “i” beside a name opens that hand's details:
 your known cards, or public facts about the describing hand. Partner's cards
@@ -65,7 +77,7 @@ contract comparisons in asker mode. **Type** opens optional keyboard entry.
 
 North/East/South/West columns include the opponents' automatic passes. A dealer
 dot and **You** mark the seats. The table retains as many recent rounds as fit
-the screen; **Full auction** opens the complete history, including meanings
+the screen, with no fixed six-round limit; **Full auction** opens the complete history, including meanings
 for earlier calls. Opening or closing a sheet does not change bidding progress.
 
 Choose a first/second-seat, uncontested practice family: **1M–2NT**, the revised

@@ -179,8 +179,10 @@ assessment compares DD make rates and paired outcomes using auction-compatible
 hands, with a separate post-reveal review over many opponent layouts.
 The current relay hand, auction and undo history autosave in the browser and
 restore when you return to the same site address.
-The phone layout keeps the auction, bidding box and all 13 cards on one screen.
-Tap a call for its meaning, use the “i” buttons for hand knowledge, and open
+The phone layout keeps the auction, bidding box and both compact hands on one
+screen. Partner's cards sit face down above the auction and turn over when
+bidding finishes. Tap a call for its meaning and alternative responses at
+that point in the auction, use the “i” buttons for hand knowledge, and open
 **Assess** for contract comparisons. Family, role, branch and replay settings
 live behind the menu. The next-hand arrow deals a fresh random branch and hand.
 All legal bids are selectable; a hollow dot marks undiscussed calls. Hover or

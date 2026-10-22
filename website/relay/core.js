@@ -432,7 +432,8 @@ export function applyBid(session, bid) {
     return freeze(applyPostRangeBid(session, bid));
   }
   const next = { ...session, auction: session.auction.slice(), constraints: session.constraints.slice() };
-  next.auction.push({ seat: 'South', bid, meaning: action.label });
+  next.auction.push({ seat: 'South', bid, meaning: action.label,
+    ...(action.responseLadder ? { responseLadder: action.responseLadder } : {}) });
   if (action.kind === 'signoff') {
     const contractBid = bid === 'Pass' ? lastBid(session) : bid;
     const match = /^([1-7])(C|D|H|S|NT)$/.exec(contractBid);

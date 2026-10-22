@@ -60,7 +60,7 @@ test('meanings and hand information open on demand without placing a bid', async
   await fitsScreen(page);
 });
 
-test('a long teller auction keeps bids and all cards on screen through completion and undo', async ({ page }) => {
+test('a long teller auction keeps bids and all cards on screen through completion and undo', async ({ page }, info) => {
   test.setTimeout(90000);
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('relay.html');
@@ -101,6 +101,8 @@ test('a long teller auction keeps bids and all cards on screen through completio
   const complete = (await progress(page)).session;
   expect(complete.finished).toBe(true);
   expect(complete.auction.length).toBeGreaterThanOrEqual(20);
+  await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(0);
+  await expect(page.locator('#partner-cards [data-card]')).toHaveCount(13);
   await expect(page.locator('#review-actions')).toBeVisible();
   await expect(page.locator('#bidding-controls')).toBeHidden();
   await expect(page.locator('#earlier-count')).toBeVisible();
@@ -111,6 +113,8 @@ test('a long teller auction keeps bids and all cards on screen through completio
   await closeSheets(page);
   await page.click('#undo-bid');
   await expect(page.locator('#bidding-controls')).toBeVisible();
+  await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(13);
+  await expect(page.locator('#partner-cards [data-card]')).toHaveCount(0);
   await fitsScreen(page);
   const restored = (await progress(page)).session;
   await page.reload();
@@ -118,4 +122,8 @@ test('a long teller auction keeps bids and all cards on screen through completio
   expect((await progress(page)).session).toEqual(restored);
   expect(await page.locator('#player-hand').innerHTML()).toBe(originalHand);
   await fitsScreen(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.locator('#auction tr').count()).toBeGreaterThan(6);
+  await fitsScreen(page);
+  await page.screenshot({ path: info.outputPath('long-auction-390x844.png') });
 });

@@ -14,6 +14,7 @@ export function practiceView(session) {
     partnerHand: teller ? session.playerHand : session.partnerHand,
     auction: session.pendingAsk ? [...session.auction, {
       seat: session.playerSeat, bid: session.pendingAsk.bid, meaning: session.pendingAsk.label,
+      responseLadder: session.pendingAsk.responseLadder,
     }] : session.auction,
   };
 }

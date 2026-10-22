@@ -4,6 +4,7 @@ import { createEvaluationDeals, fillOpponentHands, defaultContracts } from './ev
 import { loadPracticeProgress, savePracticeProgress } from './progress.js';
 import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile } from './families.js';
 import { AUCTION_SEATS, auctionRounds } from './table-ui.js';
+import { auctionCallDetails } from './auction-study.js';
 import { attachBidPreview } from './bid-preview.js';
 
 const byId = (id) => document.getElementById(id);
@@ -100,11 +101,12 @@ function setBusy(value) {
   render();
 }
 
-function auctionMarkup(rows) {
+function auctionMarkup(rows, interactive = true) {
   return rows.map(row => `<tr>${row.map(call => `<td>${!call ? '' : call.kind === 'pending'
-    ? '<span class="awaiting-bid" aria-label="Awaiting your bid">?</span>'
+    ? `<span class="awaiting-bid" aria-label="${interactive ? 'Awaiting your bid' : 'Response to this question'}">?</span>`
     : call.kind === 'opponent' ? '<span class="opponent-pass">Pass</span>'
-    : `<button type="button" class="bid auction-call suit-${call.bid.match(/NT|[SHDC]/)?.[0] ?? 'NT'}" data-call-index="${call.index}" aria-label="${escapeHtml(bidLabel(call.bid))}, ${call.seat}. Show meaning">${escapeHtml(bidLabel(call.bid))}</button>`}</td>`).join('')}</tr>`).join('');
+    : interactive ? `<button type="button" class="bid auction-call suit-${call.bid.match(/NT|[SHDC]/)?.[0] ?? 'NT'}" data-call-index="${call.index}" aria-label="${escapeHtml(bidLabel(call.bid))}, ${call.seat}. Show meaning and alternatives">${escapeHtml(bidLabel(call.bid))}</button>`
+    : `<span class="bid suit-${call.bid.match(/NT|[SHDC]/)?.[0] ?? 'NT'}">${escapeHtml(bidLabel(call.bid))}</span>`}</td>`).join('')}</tr>`).join('');
 }
 
 function renderAuction() {
@@ -123,6 +125,18 @@ function renderAuction() {
     heading.classList.toggle('is-you', seat === view.playerSeat);
     heading.classList.toggle('is-dealer', seat === view.auction[0]?.seat);
   }
+  fitAuction();
+}
+
+function fitAuction() {
+  const area = document.querySelector('.auction-area');
+  const table = area.querySelector('table');
+  const spacing = parseFloat(getComputedStyle(table).borderSpacing.split(' ').at(-1));
+  const headingHeight = table.tHead.getBoundingClientRect().height;
+  const rowHeight = table.tBodies[0].rows[0]?.getBoundingClientRect().height;
+  if (!rowHeight) return;
+  const rows = Math.max(1, Math.floor((area.clientHeight - headingHeight - 2 * spacing) / (rowHeight + spacing)));
+  if (rows !== auctionRowLimit) { auctionRowLimit = rows; renderAuction(); }
 }
 
 function cardMarkup(cards) {
@@ -187,6 +201,10 @@ function render() {
   byId('player-detail').innerHTML = handMarkup(view.playerHand);
   byId('player-facts').textContent = `${features.hcp} HCP · ${SUITS.map(suit => view.playerHand.filter(card => card[0] === suit).length).join('–')} shape (♠ ♥ ♦ ♣)`;
   byId('player-hcp').textContent = `${features.hcp} HCP`;
+  byId('partner-cards').innerHTML = session.revealed
+    ? `<div class="sr-only">${handMarkup(view.partnerHand)}</div>${cardMarkup(view.partnerHand)}`
+    : '<span class="sr-only">Partner’s 13 cards are face down.</span>' + '<span class="playing-card face-down-card" aria-hidden="true"></span>'.repeat(13);
+  byId('partner-hcp').textContent = session.revealed ? `${handFeatures(view.partnerHand, session.major).hcp} HCP` : '';
   byId('partner-hand').innerHTML = session.revealed
     ? `<div class="hand-lines">${handMarkup(view.partnerHand)}</div><p>${handFeatures(view.partnerHand, session.major).hcp} HCP · Original hand</p>`
     : '<div class="card-backs" aria-label="Partner’s hand is hidden"><i></i><i></i><i></i><i></i><i></i></div><p>Partner’s hand is hidden.</p>';
@@ -311,7 +329,7 @@ function chooseBid(bid) {
   try {
     const next = applyPracticeBid(session, bid);
     history.push(session);
-    session = next.finished && !next.undiscussedBid ? revealPractice(next) : next;
+    session = next.finished && (!next.undiscussedBid || next.contract) ? revealPractice(next) : next;
     if (session.contract) {
       const option = document.createElement('option');
       option.value = session.contract.bid;
@@ -428,9 +446,18 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-close]')) event.target.closest('dialog').close();
   const callButton = event.target.closest('[data-call-index]');
   if (callButton && session) {
-    const call = practiceView(session).auction[Number(callButton.dataset.callIndex)];
+    const detail = auctionCallDetails(session, history, Number(callButton.dataset.callIndex));
+    const { call } = detail;
     byId('bid-meaning-title').textContent = `${bidLabel(call.bid)} · ${call.seat}`;
     byId('bid-meaning-text').textContent = bidLabel(call.meaning || 'No further meaning is recorded for this call.');
+    byId('alternatives-question').textContent = detail.question ? `Responses to ${bidLabel(detail.question.bid)} · ${bidLabel(detail.question.meaning)}` : '';
+    byId('alternatives-auction').innerHTML = auctionMarkup(auctionRounds(detail.auction, !detail.question), false);
+    byId('bid-alternatives').innerHTML = detail.alternatives.map(answer => `<dt class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.bid))}</dt><dd class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.label))}${answer.bid === detail.playedBid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
+    byId('alternatives-empty').hidden = detail.alternatives.length > 0;
+    byId('alternatives-empty').textContent = call.meaning?.includes('Undiscussed')
+      ? 'This call is undiscussed in this exercise.'
+      : 'No response alternatives are recorded for this call.';
+    byId('bid-meaning-dialog').querySelector('.sheet-body').scrollTop = 0;
     byId('bid-meaning-dialog').showModal();
   }
 });
@@ -449,13 +476,7 @@ byId('bid-levels').addEventListener('click', event => {
   }
 });
 byId('stop-deal').addEventListener('click', () => byId('stop-analysis').click());
-new ResizeObserver(() => {
-  const table = document.querySelector('.practice-table');
-  const available = table.clientHeight - table.firstElementChild.offsetHeight - table.lastElementChild.offsetHeight;
-  const compact = matchMedia('(max-height: 680px)').matches;
-  const rows = Math.max(1, Math.min(6, Math.floor((available - (compact ? 27 : 41)) / (compact ? 34 : 49))));
-  if (rows !== auctionRowLimit) { auctionRowLimit = rows; renderAuction(); }
-}).observe(document.querySelector('.practice-table'));
+new ResizeObserver(fitAuction).observe(document.querySelector('.auction-area'));
 
 byId('auction-family').innerHTML = AUCTION_FAMILIES.map(family => `<option value="${escapeHtml(family.id)}">${escapeHtml(bidLabel(family.name))}</option>`).join('');
 populateStudyProfiles();
