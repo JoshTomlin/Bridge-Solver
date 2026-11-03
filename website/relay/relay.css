@@ -21,8 +21,8 @@ svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width:
 .icon-button:hover, .tool-button:hover { background: #ffffff0a; }
 #new-deal { border: 1px solid var(--line); }
 .icon-button:disabled { opacity: .35; }
-.practice-table { display: grid; grid-template-rows: 36px auto minmax(0,1fr) 24px; background: linear-gradient(160deg, var(--felt), var(--felt-deep)); border: 1px solid #ffffff08; border-radius: 19px; min-height: 0; padding: 0 14px; }
-.table-topline, .table-bottomline, .hand-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.practice-table { display: grid; grid-template-rows: 36px auto minmax(0,1fr); background: linear-gradient(160deg, var(--felt), var(--felt-deep)); border: 1px solid #ffffff08; border-radius: 19px; min-height: 0; padding: 0 14px 4px; }
+.table-topline, .hand-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .seat-label { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
 .seat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: .7; }
 .info-button { display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: none; color: #adc2c7; font-family: Georgia, serif; font-size: 14px; font-style: italic; position: relative; }
@@ -39,8 +39,6 @@ svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width:
 .auction-call:hover { background: #ffffff17; }
 .opponent-pass { color: #79939b; font-size: 11px; font-weight: 500; }
 .awaiting-bid { display: flex; height: 34px; justify-content: center; align-items: center; border: 1px dashed #b3e4bd65; border-radius: 7px; color: var(--accent); font-size: 20px; }
-.table-bottomline { font-size: 10px; color: #7d9aa3; }
-.turn-indicator { color: var(--accent); }
 .bidding-panel { position: relative; min-width: 0; }
 .bidding-caption { display: flex; align-items: center; justify-content: space-between; height: 29px; font-size: 12px; color: #c2ced1; }
 .stop-button { border-radius: 6px; padding: 5px 11px; background: var(--red); color: #38201d; font-size: 11px; }
@@ -102,7 +100,7 @@ summary { font-weight: 500; min-height: 28px; }.replay-options { margin-top: 20p
 .results-wrap { overflow-x: auto; }.results-table { border-collapse: collapse; font-size: 11px; width: 100%; margin: 16px 0; }.results-table th { text-align: left; color: #a1b2bd; font-weight: 400; }.results-table th, .results-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }.results-table tr.is-selected { background: #b3e4bd0c; }
 .rate-bar { display: none; }.paired-results, .sample-details { font-size: 12px; margin: 16px 0; }.sample-preview { display: grid; gap: 8px; padding: 10px; font-size: 12px; }.is-error, #sample-status.is-error { color: var(--red); }
 @media (min-width: 760px) { .relay-main { padding-top: 20px; padding-bottom: 20px; gap: 16px; }.sheet { margin: auto; max-height: 85dvh; }.assessment-sheet { width: min(900px,100% - 48px); }.practice-table { padding: 0 28px; }.auction-table { border-spacing: 7px 4px; }.auction-table td, .bid, .awaiting-bid { height: 36px; }.table-title strong { font-size: 17px; } }
-@media (max-height: 680px) { .relay-main { gap: 6px; }.practice-table { grid-template-rows: 32px auto minmax(0,1fr) 22px; }.auction-table { border-spacing: 4px 3px; }.auction-table th { height: 21px; padding-bottom: 3px; }.auction-table td, .bid, .awaiting-bid { height: 30px; }.bid { font-size: 18px; }.bidding-caption { height: 24px; }.bid-levels .level-button { height: 31px; }.bid-options { padding: 8px; min-height: 65px; }.bid-button { height: 49px; }.table-tools { padding-top: 2px; }.tool-button { min-height: 36px; }.hand-heading { height: 26px; } }
+@media (max-height: 680px) { .relay-main { gap: 6px; }.practice-table { grid-template-rows: 32px auto minmax(0,1fr); }.auction-table { border-spacing: 4px 3px; }.auction-table th { height: 21px; padding-bottom: 3px; }.auction-table td, .bid, .awaiting-bid { height: 30px; }.bid { font-size: 18px; }.bidding-caption { height: 24px; }.bid-levels .level-button { height: 31px; }.bid-options { padding: 8px; min-height: 65px; }.bid-button { height: 49px; }.table-tools { padding-top: 2px; }.tool-button { min-height: 36px; }.hand-heading { height: 26px; } }
 @media (orientation: landscape) and (max-height: 520px) { .relay-main { width: min(100%, 1000px); grid-template-columns: 1fr 1fr; grid-template-rows: 44px minmax(0,1fr) auto; gap: 6px 16px; padding-top: max(4px,env(safe-area-inset-top)); padding-bottom: max(6px,env(safe-area-inset-bottom)); }.table-header { grid-column: 1 / -1; }.practice-table { grid-column: 1; grid-row: 2 / 4; }.bidding-panel { grid-column: 2; grid-row: 2; align-self: end; }.your-hand-block { grid-column: 2; grid-row: 3; }.hand-cards { --card-width: 36px; height: clamp(40px,11dvh,48px); }.card-corner { width: 19px; }.card-corner b { font-size: 18px; }.card-corner i { font-size: 16px; }.card-pip { font-size: 22px; bottom: 5px; right: 5px; }.tool-button { padding: 3px; }.tool-button span { font-size: 9px; }.bid-button strong { font-size: 20px; } }
 @media (prefers-reduced-motion: no-preference) { .sheet[open] { animation: sheet-in .16s ease-out; }@keyframes sheet-in { from { opacity: 0; transform: translateY(10px); }to { opacity: 1; transform: translateY(0); } } }
 .bid-button { position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -119,3 +117,12 @@ summary { font-weight: 500; min-height: 28px; }.replay-options { margin-top: 20p
 #bid-alternatives { gap: 0 14px; }#bid-alternatives dt, #bid-alternatives dd { padding: 10px 0; border-bottom: 1px solid var(--line); }#bid-alternatives .is-played { color: var(--ink); }.played-label { display: inline-block; margin-left: 8px; color: var(--accent); font-size: 10px; white-space: nowrap; }
 @media (max-height: 680px) { .partner-cards .card-corner { padding-top: 1px; }.partner-cards .card-corner b { font-size: 16px; }.partner-cards .card-corner i { font-size: 13px; } }
 @media (orientation: landscape) and (max-height: 520px) { .partner-cards { height: 32px; }.partner-cards .card-corner { padding-top: 1px; }.partner-cards .card-corner b { font-size: 16px; }.partner-cards .card-corner i { font-size: 13px; } }
+
+.bidding-caption { gap: 8px; }#action-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview-tip { display: none; color: #b0c0c7; font-size: 10px; white-space: nowrap; }
+.table-title > span.is-error { color: var(--red); }
+@media (hover: none), (pointer: coarse) { .preview-tip { display: inline; } }
+.typed-menu-button { margin-top: 18px; width: 100%; }.typed-menu-button svg { width: 18px; height: 18px; }
+.context-toggle { display: flex; align-items: center; min-height: 40px; padding: 4px 0; background: none; color: var(--accent); font-size: 12px; }
+.context-toggle::before { content: '+'; width: 20px; font-size: 16px; }.context-toggle[aria-expanded=true]::before { content: '−'; }
+@media (max-width: 420px) { .hand-lines { grid-template-columns: 1fr; } }

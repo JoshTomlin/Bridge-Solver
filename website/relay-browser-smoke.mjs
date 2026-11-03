@@ -49,7 +49,7 @@ try {
     await closeSheets(page); await page.click('#meanings-open'); await page.locator('#show-hints').setChecked(checked);
   };
   const typeBid = async value => {
-    await closeSheets(page); await page.click('#type-bid-open'); await page.fill('#bid-input', value);
+    await closeSheets(page); await page.click('#settings-open'); await page.click('#type-bid-open'); await page.fill('#bid-input', value);
   };
   const savedProgress = () => page.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
   const studyProfile = async (profileId, role = 'asker') => {

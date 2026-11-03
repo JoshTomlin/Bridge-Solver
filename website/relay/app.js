@@ -24,6 +24,8 @@ let selectedLevel = null;
 let lastAuctionKey = '';
 let auctionRowLimit = 4;
 let bidPreview = null;
+let saveFailed = false;
+let studyContext = null;
 
 class WorkerClient {
   constructor(file) {
@@ -85,6 +87,16 @@ function persistProgress() {
   byId('save-status').classList.toggle('is-error', !saved.ok);
   byId('save-status').textContent = saved.ok ? 'Progress saved in this browser.'
     : 'Progress could not be saved in this browser. Keep this tab open to retain your auction.';
+  saveFailed = !saved.ok;
+  renderSaveBadge();
+}
+
+function renderSaveBadge() {
+  const badge = byId('role-badge');
+  const text = `${session.practiceRole === 'teller' ? 'Teller' : 'Asker'}${saveFailed ? ' · Not saved' : ''}`;
+  if (badge.textContent !== text) badge.textContent = text;
+  badge.classList.toggle('is-error', saveFailed);
+  badge.title = saveFailed ? 'Progress is not being saved. Open settings for details.' : '';
 }
 
 function handMarkup(cards) {
@@ -111,6 +123,16 @@ function auctionMarkup(rows, interactive = true) {
     : `<span class="bid suit-${call.bid.match(/NT|[SHDC]/)?.[0] ?? 'NT'}">${escapeHtml(bidLabel(call.bid))}</span>`}</td>`).join('')}</tr>`).join('');
 }
 
+function renderStudyContext() {
+  const { rows, expanded } = studyContext;
+  const earlier = Math.max(0, rows.length - 2);
+  byId('alternatives-auction').innerHTML = auctionMarkup(expanded ? rows : rows.slice(-2), false);
+  const button = byId('study-context-toggle');
+  button.hidden = !earlier;
+  button.textContent = expanded ? 'Show recent rounds' : `Show ${earlier} earlier rounds`;
+  button.setAttribute('aria-expanded', String(expanded));
+}
+
 function renderAuction() {
   if (!session) return;
   const view = practiceView(session);
@@ -134,10 +156,13 @@ function fitAuction() {
   const area = document.querySelector('.auction-area');
   const table = area.querySelector('table');
   const spacing = parseFloat(getComputedStyle(table).borderSpacing.split(' ').at(-1));
-  const headingHeight = table.tHead.getBoundingClientRect().height;
-  const rowHeight = table.tBodies[0].rows[0]?.getBoundingClientRect().height;
+  const body = table.tBodies[0];
+  const rowHeight = body.rows[0]?.getBoundingClientRect().height;
   if (!rowHeight) return;
-  const rows = Math.max(1, Math.floor((area.clientHeight - headingHeight - 2 * spacing) / (rowHeight + spacing)));
+  // WebKit includes spacing in row-group bounds differently. Start from the
+  // whole rendered table so header spacing is never counted twice.
+  const spare = area.clientHeight - table.getBoundingClientRect().height;
+  const rows = Math.max(1, body.rows.length + Math.floor(spare / (rowHeight + spacing)));
   if (rows !== auctionRowLimit) { auctionRowLimit = rows; renderAuction(); }
 }
 
@@ -153,7 +178,8 @@ function renderBidding(actions) {
   if (lastAuctionKey !== key) {
     const next = actions.find(action => ['relay', 'response'].includes(action.kind) && action.bid !== 'Pass')
       ?? actions.find(action => action.bid !== 'Pass');
-    selectedLevel = next ? Number(next.bid[0]) : 1;
+    const fallback = calls.find(call => call.bid !== 'Pass') ?? practiceView(session).auction.findLast(call => call.bid !== 'Pass');
+    selectedLevel = Number((next ?? fallback)?.bid[0] ?? 1);
     lastAuctionKey = key;
   }
   byId('bid-levels').innerHTML = Array.from({ length: 7 }, (_, i) => {
@@ -183,9 +209,10 @@ function render() {
   const teller = view.role === 'teller';
   const profile = getPracticeProfile(session.familyId);
   const stopped = session.finished || session.revealed;
+  const paused = stopped && !session.revealed && Boolean(session.undiscussedBid);
   const actions = availablePracticeActions(session);
   byId('practice-badge').textContent = bidLabel(auctionFamilyForProfile(session.familyId).name);
-  byId('role-badge').textContent = teller ? 'Teller' : 'Asker';
+  renderSaveBadge();
   const studying = Boolean(byId('profile').value);
   byId('practice-scope').textContent = studying ? 'Branch study' : 'Random branch';
   byId('new-deal').setAttribute('aria-label', studying ? 'Next study hand' : 'New hand');
@@ -219,6 +246,11 @@ function render() {
   renderBidding(actions);
   byId('bidding-controls').hidden = stopped;
   byId('review-actions').hidden = !stopped;
+  byId('preview-tip').hidden = busy || stopped;
+  byId('resume-bidding').hidden = !paused;
+  byId('review-hand').hidden = paused;
+  byId('review-next').classList.toggle('primary', !paused);
+  byId('review-next').classList.toggle('secondary', paused);
   byId('phase-label').textContent = stopped ? 'Review' : 'Your turn';
   byId('action-title').textContent = session.undiscussedBid ? `${bidLabel(session.undiscussedBid)} · Undiscussed` : session.contract ? `${bidLabel(session.contract.bid)} · ${session.contract.declarer}`
     : stopped ? 'Hand revealed' : teller ? `Your response to ${bidLabel(session.pendingAsk?.bid ?? '')}` : 'Your call';
@@ -240,8 +272,9 @@ function render() {
   byId('evaluate').disabled = busy || !ddsReady;
   byId('contract-tools').hidden = teller;
   byId('assessment-open').hidden = teller;
-  byId('review-assess').hidden = teller;
+  byId('review-assess').hidden = teller || paused;
   for (const button of byId('review-actions').querySelectorAll('button')) button.disabled = busy;
+  byId('resume-bidding').disabled = busy || !history.length;
   byId('revealed-basis').disabled = !session.revealed;
   if (!session.revealed) byId('analysis-basis').value = 'auction';
   const revealedBasis = byId('analysis-basis').value === 'revealed';
@@ -441,6 +474,7 @@ document.addEventListener('click', event => {
   const opener = event.target.closest('[data-open]');
   if (opener) {
     const dialog = byId(opener.dataset.open);
+    if (dialog.id === 'typed-dialog') byId('settings-dialog').close();
     if (!dialog.open) dialog.showModal();
     if (dialog.id === 'typed-dialog') byId('bid-input').focus();
     return;
@@ -453,7 +487,8 @@ document.addEventListener('click', event => {
     byId('bid-meaning-title').textContent = `${bidLabel(call.bid)} · ${call.seat}`;
     byId('bid-meaning-text').textContent = describeBid(call.meaning || 'No further meaning is recorded for this call.');
     byId('alternatives-question').textContent = detail.question ? `Responses to ${bidLabel(detail.question.bid)} · ${describeBid(detail.question.meaning)}` : '';
-    byId('alternatives-auction').innerHTML = auctionMarkup(auctionRounds(detail.auction, !detail.question), false);
+    studyContext = { rows: auctionRounds(detail.auction, !detail.question), expanded: false };
+    renderStudyContext();
     byId('bid-alternatives').innerHTML = detail.alternatives.map(answer => `<dt class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.bid))}</dt><dd class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(describeBid(answer.label))}${answer.bid === detail.playedBid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
     byId('alternatives-empty').hidden = detail.alternatives.length > 0;
     byId('alternatives-empty').textContent = call.meaning?.includes('Undiscussed')
@@ -462,6 +497,11 @@ document.addEventListener('click', event => {
     byId('bid-meaning-dialog').querySelector('.sheet-body').scrollTop = 0;
     byId('bid-meaning-dialog').showModal();
   }
+});
+byId('study-context-toggle').addEventListener('click', () => {
+  if (!studyContext) return;
+  studyContext.expanded = !studyContext.expanded;
+  renderStudyContext();
 });
 for (const dialog of document.querySelectorAll('dialog')) {
   dialog.addEventListener('click', event => {
@@ -525,6 +565,7 @@ byId('undo-bid').addEventListener('click', () => {
   render();
   persistProgress();
 });
+byId('resume-bidding').addEventListener('click', () => byId('undo-bid').click());
 byId('sample-hands').addEventListener('click', () => analyze(false));
 byId('evaluate').addEventListener('click', () => analyze(true));
 byId('sample-count').addEventListener('change', () => { invalidateAnalysis(); persistProgress(); });

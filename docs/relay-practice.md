@@ -67,6 +67,8 @@ older calls in **Full auction**. This is a read-only study view: later bids,
 hands and undo history stay unchanged. Fixed opening sequences without a
 recorded response ladder say so; no alternatives are invented. Older saved
 major auctions recover their ladders from the saved undo states.
+Long contexts show the latest two rounds first; **Show earlier rounds** expands
+the complete auction through that question without changing practice progress.
 
 Bid descriptions use compact wording in previews, meanings and alternatives:
 for example, **Club shortage 12-14**. The same display format applies to saved
@@ -78,7 +80,8 @@ questions or answers; **Show response steps** expands the ladders without
 selecting the correct answer. The “i” beside a name opens that hand's details:
 your known cards, or public facts about the describing hand. Partner's cards
 stay hidden until **Reveal partner** or auction completion. **Assess** opens
-contract comparisons in asker mode. **Type** opens optional keyboard entry.
+contract comparisons in asker mode. **Type a bid** in settings opens optional
+keyboard entry. A paused undiscussed continuation offers **Undo and continue**.
 
 North/East/South/West columns include the opponents' automatic passes. A dealer
 dot and **You** mark the seats. The table retains as many recent rounds as fit
@@ -125,10 +128,14 @@ Older saves resume their exact auction in random-family mode.
 The save is local to the same browser and site address, including its port.
 Clearing site data or using a different browser/address does not carry it over.
 The page shows whether progress was saved; blocked storage or a full quota
-produces a visible notice. Invalid/incompatible saves fall back to a new hand
-with an explanation. Samples and DDS results are recomputed when requested;
+shows **Not saved** beside your role on the main screen, with details in
+settings. The warning clears when saving succeeds. Invalid/incompatible saves
+fall back to a new hand with an explanation. Samples and DDS results are recomputed when requested;
 running analysis does not resume after reopening. Auctions lost before autosave
 was added were not stored and cannot be restored from browser storage.
+
+The [phone design audit](relay-design-audit.md) records the review against the
+user's design requests, before/after captures and measured auction capacity.
 
 ## Covered auction families
 
