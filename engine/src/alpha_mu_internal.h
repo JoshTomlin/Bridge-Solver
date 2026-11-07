@@ -13,6 +13,10 @@
 
 namespace bridge::alpha_mu_detail {
 
+// Shared with native research builders so search and witness construction can
+// obey one deadline. This remains an internal implementation detail.
+struct SearchDeadlineReached {};
+
 struct NodeKey {
     std::uint64_t first {};
     std::uint64_t second {};

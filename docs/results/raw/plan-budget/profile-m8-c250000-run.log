@@ -1,0 +1,4 @@
+Building proof-aware M=26 plan on 10 layouts
+Graph ready: nodes=690 frontiers=1 win_proofs=0 budget_exhausted=1 stop=time total_ms=30001.4 storage_m=6 min_frontier_m=6 continued_responses=20/20
+Checking construction layouts, then frozen holdout, without DDS winning leaves
+Mining covered branches with DD frontiers; 0.1 seconds and 20000 nodes per layout

@@ -35,6 +35,11 @@ algorithms; use the result reports when you want a concrete measured example.
 | [DTAC-style claim bounds](dtac-claim.md) | Conservative public claim proof using the combined defender pool |
 | [Competent defence](competent-defender.md) | DD-safe policy-breaking defender and its limitations |
 | [Reliability lab](alpha-mu-testing.md) | Corpus format, collision miner, paired tests, and Bridge Master test method |
+| [Detailed plan trees](plan-trees.md) | Native-only raw/shared policy storage, exact replay checks, JSON export, and depth measurements |
+| [Varied plan counterexamples](plan-challenges.md) | Shared-plan evaluation, multiple failure witnesses, mixed challengers and controlled second-pass selection |
+| [Persistent plan repair](plan-persistent.md) | Ten-layout construction, retained challenge archive, occurrence-specific repairs and explicit unfinished frontiers |
+| [Proof-aware deep plans](plan-deep.md) | Full-hand search, typed proof endings, direct graph construction and context-safe replay |
+| [Bounded plan storage](plan-budget.md) | Independent search/storage depths, completed-pass retention, DD challenge mining and budget measurement |
 
 ## Recorded experiments
 
@@ -44,6 +49,10 @@ performance guarantees.
 
 | Report | What it demonstrates |
 |---|---|
+| [Plan budget and DD mining experiment](results/plan-budget.md) | Broad-prefix limits, larger deep-plan budgets, and independently verified HA-discard counterexamples |
+| [Deep-plan experiment](results/plan-deep.md) | A complete one-layout proof and the remaining construction limits at two and ten layouts |
+| [Persistent-plan experiment](results/plan-persistent.md) | Local branch repair and deepening, compared with rebuilding on selected layouts |
+| [Varied-counterexample experiment](results/plan-refinement.md) | Three-seed second-pass comparison with untouched test layouts and mixed results for diversity scoring |
 | [Bridge Master 6S discovery benchmark](results/bridge-master-6s.md) | Exact 12,376-layout oracle and a fixed-policy continuation failure repaired by AlphaMu2 |
 | [AlphaMu2 forced-prefix analysis](results/alpha-mu2-forced-prefix.md) | Active-set screening, counterexamples, and the retained discovery policy in one position |
 | [AlphaMu2 6S playthrough](results/alpha-mu2-6s-playthrough.md) | Full card-by-card generated report from an earlier engine configuration |

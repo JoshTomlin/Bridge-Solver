@@ -1,0 +1,5 @@
+stage,seed,initial_m,archive,nodes,min_frontier_m,max_frontier_m,patches,reused,deepened,attempts,max_local_worlds,work_ms,search_ms,local_validation_ms,holdout,horizon_pass,dd_loss,gap,unknown,repairs,regressions,validation_ms,strict_proven,strict_unresolved,strict_failure,strict_budget_unknown
+initial,11565831,6,10,690,6,6,0,0,0,0,0,2259.08,2254.39,0,256,0,0,256,0,0,0,53.6033,0,26,230,0
+local_round_1,11565831,6,266,724,6,9,6,5,1,24,5,642.091,304.708,29.1114,256,0,0,256,0,0,0,59.9422,0,38,218,0
+local_round_2,11565831,6,522,738,6,9,4,3,1,40,10,769.708,394.306,81.0955,256,0,0,256,0,0,0,82.6437,0,46,210,0
+full_rebuild_control,11565831,6,26,971,6,6,0,0,0,0,0,4425.18,4416.6,0,256,12,0,244,0,12,0,264.303,0,70,186,0

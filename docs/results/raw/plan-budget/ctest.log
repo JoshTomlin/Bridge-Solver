@@ -1,0 +1,314 @@
+Start testing: Sep 25 13:59 Cen. Australia Standard Time
+----------------------------------------------------------
+1/16 Testing: bridge_plan_tree_tests
+1/16 Test: bridge_plan_tree_tests
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_plan_tree_tests.exe"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_tree_tests" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+All plan tree tests passed.
+<end of output>
+Test time =   1.10 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_tree_tests" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_tree_tests" time elapsed: 00:00:01
+----------------------------------------------------------
+
+2/16 Testing: bridge_plan_tree_corpus_smoke
+2/16 Test: bridge_plan_tree_corpus_smoke
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "plan-trees" "C:/Codex Projects/Bridge-Solver-plan-trees/engine/tests/data/alpha_mu_corpus.tsv" "3" "10"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_tree_corpus_smoke" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+case,worlds,requested_m,completed_m,move,nodes,play_nodes,observe_nodes,frontiers,card_edges,max_card_plies,max_declarer_plies,max_defender_fanout,program_bytes,evidence_bytes,allocated_payload_bytes,unique_subtrees,shared_program_bytes_estimate,tree_search_ms,policy_build_ms,capture_ms,measure_ms
+"discovery_play",2,1,1,SK,2,1,0,1,1,1,1,0,64,32,96,2,64,15.4713,0.0029,0.0029,0.0072
+"discovery_play",2,2,2,SK,10,5,1,4,9,3,2,4,384,160,832,5,224,1.8373,0.2637,0.0018,0.0038
+"discovery_play",2,3,3,SK,22,11,5,6,21,5,3,4,864,352,1792,11,480,2.1519,0.7799,0.0025,0.0071
+<end of output>
+Test time =   0.93 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_tree_corpus_smoke" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_tree_corpus_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/16 Testing: bridge_plan_dag_tests
+3/16 Test: bridge_plan_dag_tests
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_plan_dag_tests.exe"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_dag_tests" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+All plan DAG tests passed.
+<end of output>
+Test time =   1.03 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_dag_tests" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_dag_tests" time elapsed: 00:00:01
+----------------------------------------------------------
+
+4/16 Testing: bridge_plan_dag_corpus_smoke
+4/16 Test: bridge_plan_dag_corpus_smoke
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "plan-dags" "C:/Codex Projects/Bridge-Solver-plan-trees/engine/tests/data/alpha_mu_corpus.tsv" "3" "10"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_dag_corpus_smoke" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+case,worlds,requested_m,completed_m,move,nodes,play_nodes,observe_nodes,frontiers,card_edges,max_card_plies,max_declarer_plies,max_defender_fanout,program_bytes,evidence_bytes,allocated_payload_bytes,unique_subtrees,shared_program_bytes_estimate,tree_search_ms,policy_build_ms,capture_ms,measure_ms,dag_nodes,dag_play_nodes,dag_observe_nodes,dag_frontiers,dag_card_edges,dag_program_bytes,raw_allocated_program_bytes,dag_allocated_program_bytes,mapping_payload_bytes,mapping_allocated_bytes,verified_occurrences,verified_edges,dag_build_ms,dag_verify_ms,raw_walk_ms,dag_walk_ms,walk_repetitions,walk_checksum
+"discovery_play",2,1,1,SK,2,1,0,1,1,1,1,0,64,32,96,2,64,17.6768,0.0036,0.0027,0.009,2,1,0,1,1,64,64,64,8,8,2,1,0.0049,0.0018,4.6875e-05,4.0625e-05,32,1125899906842628
+"discovery_play",2,2,2,SK,10,5,1,4,9,3,2,4,384,160,832,5,224,1.9161,0.2702,0.0018,0.0036,5,3,1,1,7,224,576,320,40,40,10,9,0.0035,0.0011,0.00014375,0.000134375,32,6878544743366670
+"discovery_play",2,3,3,SK,22,11,5,6,21,5,3,4,864,352,1792,11,480,2.2469,0.8167,0.0026,0.0065,11,6,4,1,14,480,1280,640,88,88,22,21,0.006,0.0016,0.000171875,0.000171875,32,9187519161696290
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_dag_corpus_smoke" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_dag_corpus_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/16 Testing: bridge_plan_challenge_tests
+5/16 Test: bridge_plan_challenge_tests
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_plan_challenge_tests.exe"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_challenge_tests" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+All plan challenge tests passed.
+<end of output>
+Test time =   1.07 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_challenge_tests" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_challenge_tests" time elapsed: 00:00:01
+----------------------------------------------------------
+
+6/16 Testing: bridge_plan_refinement_smoke
+6/16 Test: bridge_plan_refinement_smoke
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "plan-refine-6s" "4" "42" "1" "32" "10"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_refinement_smoke" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+Building initial plan on 30 layouts
+Batch 1: 32 layouts, 13 failing layouts, 32 witnesses
+method,seed,m,active,selected,selected_features,dag_nodes,search_ms,policy_build_ms,mining_ms,screened,dd_impossible,mining_unknown,failing_layouts,witnesses,random,structural,targeted,holdout,holdout_makeable,horizon_pass,dd_loss,coverage_gap,budget_unknown,repairs,regressions,holdout_ms,promoted_survivors,promoted_total
+Evaluating initial with 30 active layouts
+initial,42,4,30,0,0,67,107.987,73.2043,65.3229,32,0,0,13,32,16,8,8,256,256,138,0,118,0,0,0,152.819,0,0
+Evaluating first_failure_reference with 38 active layouts
+first_failure_reference,42,4,38,8,27,73,129.778,64.3313,65.3229,32,0,0,13,32,16,8,8,256,256,164,0,92,0,26,0,223.996,8,8
+Evaluating diverse with 38 active layouts
+diverse,42,4,38,8,30,73,143.139,60.7684,65.3229,32,0,0,13,32,16,8,8,256,256,155,0,101,0,17,0,316.11,8,8
+<end of output>
+Test time =   1.55 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_refinement_smoke" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_refinement_smoke" time elapsed: 00:00:01
+----------------------------------------------------------
+
+7/16 Testing: bridge_plan_repair_tests
+7/16 Test: bridge_plan_repair_tests
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_plan_repair_tests.exe"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_repair_tests" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+All persistent plan repair tests passed.
+<end of output>
+Test time =   0.93 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_repair_tests" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_repair_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/16 Testing: bridge_plan_persistent_smoke
+8/16 Test: bridge_plan_persistent_smoke
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "plan-persist-6s" "2" "42" "1" "16" "10"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_persistent_smoke" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+Constructing M=2 plan on ten layouts
+Round 1: archive=26 failures=4 patches=4 reused=4 deepened=1 graph=16 work_ms=649.364
+Constructing full-rebuild control on 14 layouts
+stage,seed,initial_m,archive,nodes,min_frontier_m,max_frontier_m,patches,reused,deepened,attempts,max_local_worlds,work_ms,search_ms,local_validation_ms,holdout,horizon_pass,dd_loss,gap,unknown,repairs,regressions,validation_ms,strict_proven,strict_unresolved,strict_failure,strict_budget_unknown
+Validating frozen initial on 256 untouched layouts
+initial,42,2,10,4,2,2,0,0,0,0,0,78.1424,78.103,0,256,223,0,33,0,0,0,56.6738,0,238,18,0
+Validating frozen local_round_1 on 256 untouched layouts
+local_round_1,42,2,26,16,2,5,4,4,1,5,9,649.364,604.916,22.7389,256,197,0,59,0,3,29,162.092,0,252,4,0
+Validating frozen full_rebuild_control on 256 untouched layouts
+full_rebuild_control,42,2,14,4,2,2,0,0,0,0,0,97.151,97.1268,0,256,240,0,16,0,17,0,93.1313,0,256,0,0
+<end of output>
+Test time =   1.15 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_persistent_smoke" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_persistent_smoke" time elapsed: 00:00:01
+----------------------------------------------------------
+
+9/16 Testing: bridge_plan_proof_storage_tests
+9/16 Test: bridge_plan_proof_storage_tests
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_plan_proof_storage_tests.exe"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_proof_storage_tests" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+All plan proof storage tests passed.
+<end of output>
+Test time =   0.62 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_proof_storage_tests" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_proof_storage_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/16 Testing: bridge_plan_deep_tests
+10/16 Test: bridge_plan_deep_tests
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_plan_deep_tests.exe"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_deep_tests" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+All deep plan and contextual proof tests passed.
+<end of output>
+Test time =   0.98 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_deep_tests" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_deep_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/16 Testing: bridge_plan_deep_smoke
+11/16 Test: bridge_plan_deep_smoke
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "plan-deep-6s" "2" "26" "3" "42"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_plan_deep_smoke" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+Building proof-aware M=26 plan on 2 layouts
+Graph ready: nodes=2841 frontiers=1 win_proofs=2 budget_exhausted=1 stop=time total_ms=3001.53 storage_m=0 min_frontier_m=1 continued_responses=1/13
+Checking construction layouts, then frozen holdout, without DDS winning leaves
+seed,worlds,requested_m,value_m,value_complete,value_wins,nodes,win_proofs,loss_proofs,frontiers,max_declarer_plies,contexts,context_hits,proof_probes,proof_states,value_ms,construction_ms,total_ms,budget_exhausted,training_proven,training_unresolved,training_loss,training_gap,training_unknown,holdout_proven,holdout_unresolved,holdout_loss,holdout_gap,holdout_unknown,actual,public_proof_cache_hits,stop_reason,requested_storage_m,completed_storage_m,storage_horizon_complete,storage_passes,max_contexts,max_nodes,min_frontier_m,first_responses,continued_responses,program_bytes,peak_working_set_before_build,peak_commit_before_build,peak_working_set_after_build,peak_commit_after_build,terminal_ms,value_probe_ms,value_probes,search_claim_ms,mining_seconds_per_layout,training_mine_layouts,training_mine_completed,training_mine_proven,training_mine_survived,training_mine_losses,training_mine_gaps,training_mine_partial,training_mine_visited,training_mine_dds_calls,training_mine_ms,holdout_mine_layouts,holdout_mine_completed,holdout_mine_proven,holdout_mine_survived,holdout_mine_losses,holdout_mine_gaps,holdout_mine_partial,holdout_mine_visited,holdout_mine_dds_calls,holdout_mine_ms,actual_mine_layouts,actual_mine_completed,actual_mine_proven,actual_mine_survived,actual_mine_losses,actual_mine_gaps,actual_mine_partial,actual_mine_visited,actual_mine_dds_calls,actual_mine_ms
+42,2,26,26,1,2,2841,2,0,1,18,40485,16190,42121,1405515,14.721,2986.64,3001.53,1,0,2,0,0,0,0,18,0,238,0,unresolved,6221,time,-1,0,0,0,250000,100000,1,13,1,166816,7655424,6537216,92090368,98811904,692.134,2191.03,70077,1670.11,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+<end of output>
+Test time =   3.06 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_plan_deep_smoke" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_plan_deep_smoke" time elapsed: 00:00:03
+----------------------------------------------------------
+
+12/16 Testing: bridge_engine_tests
+12/16 Test: bridge_engine_tests
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_engine_tests.exe"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_engine_tests" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+All bridge engine tests passed.
+<end of output>
+Test time =   0.89 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_engine_tests" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_engine_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/16 Testing: bridge_alpha_mu_corpus
+13/16 Test: bridge_alpha_mu_corpus
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "corpus" "C:/Codex Projects/Bridge-Solver-plan-trees/engine/tests/data/alpha_mu_corpus.tsv"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_alpha_mu_corpus" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+case,layouts,expected,actual,policy_passes,weighted_score,status
+discovery_play,2,SK,SK,2,2,PASS
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_alpha_mu_corpus" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_alpha_mu_corpus" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/16 Testing: bridge_alpha_mu_collision_miner
+14/16 Test: bridge_alpha_mu_collision_miner
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "mine"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_alpha_mu_collision_miner" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+same-fingerprint policy counterexamples
+source=0 held_out=1 move=S3 signature=10779758237047893957 failure_depth=1 east=Q97 - - - west=8 AK - -
+layouts=20 fingerprints=2 collisions=1
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_alpha_mu_collision_miner" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_alpha_mu_collision_miner" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/16 Testing: bridge_alpha_mu_paired
+15/16 Test: bridge_alpha_mu_paired
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "paired" "20" "11565831"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_alpha_mu_paired" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+trial,baseline_move,baseline_oracle,alpha2_move,alpha2_oracle,counterexamples,collisions
+0,SK,1,SK,2,1,1
+1,SK,1,SK,2,1,1
+2,SK,1,SK,2,1,1
+3,SK,1,SK,2,1,1
+4,SK,1,SK,2,1,1
+5,SK,1,SK,2,1,1
+6,SK,1,SK,2,1,1
+7,SK,1,SK,2,1,1
+8,SK,1,SK,2,1,1
+9,SK,1,SK,2,1,1
+10,SK,1,SK,2,1,15
+11,SK,1,SK,2,1,1
+12,SK,1,SK,2,1,1
+13,SK,1,SK,2,1,1
+14,SK,1,SK,2,1,1
+15,SK,1,SK,2,1,1
+16,SK,1,SK,2,1,1
+17,SK,1,SK,2,1,1
+18,SK,1,SK,2,1,1
+19,SK,1,SK,2,1,1
+summary,20,baseline_full=0,alpha2_full=20,alpha2_counterexamples=20
+<end of output>
+Test time =   0.40 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_alpha_mu_paired" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_alpha_mu_paired" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/16 Testing: bridge_alpha_mu_bridgemaster_smoke
+16/16 Test: bridge_alpha_mu_bridgemaster_smoke
+Command: "C:/Codex Projects/Bridge-Solver-plan-trees/build/engine/Release/bridge_alpha_mu_lab.exe" "bridgemaster6s" "64" "2" "10" "11565831" "64"
+Directory: C:/Codex Projects/Bridge-Solver-plan-trees/build/engine
+"bridge_alpha_mu_bridgemaster_smoke" start time: Sep 25 13:59 Cen. Australia Standard Time
+Output:
+----------------------------------------------------------
+bridge_master_6s_oracle_layouts=12376 cold=12376 oracle_ms=369.316
+baseline move=SA M=2 held_out=64/64 actual=PASS nodes=141
+baseline_actual_failure=none
+alpha2 move=SA M=2 held_out=64/64 actual=PASS failure_depth=- unsupported=no counterexamples=0 collisions=0 active=30 total_ms=181.514
+alpha2_actual_failure=none
+<end of output>
+Test time =   0.80 sec
+----------------------------------------------------------
+Test Passed.
+"bridge_alpha_mu_bridgemaster_smoke" end time: Sep 25 13:59 Cen. Australia Standard Time
+"bridge_alpha_mu_bridgemaster_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 25 13:59 Cen. Australia Standard Time

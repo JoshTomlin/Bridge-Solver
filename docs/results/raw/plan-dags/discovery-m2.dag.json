@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "representation": "shared_dag",
+  "root": 4,
+  "declarer": "South",
+  "target_tricks": 3,
+  "completed_m": 2,
+  "frontier_semantics": "unexpanded continuation; not a win certificate",
+  "stats": {"nodes": 5, "play_nodes": 3, "observe_nodes": 1, "frontiers": 1, "card_edges": 7, "program_bytes": 224, "allocated_program_bytes": 320},
+  "nodes": [
+    {"id": 0, "kind": "frontier"},
+    {"id": 1, "kind": "play", "player": "North", "card": "SA", "next": 0},
+    {"id": 2, "kind": "play", "player": "North", "card": "SJ", "next": 0},
+    {"id": 3, "kind": "observe", "player": "West", "responses": [{"card": "S7", "next": 1},{"card": "S8", "next": 2},{"card": "S9", "next": 2},{"card": "SQ", "next": 1}]},
+    {"id": 4, "kind": "play", "player": "South", "card": "SK", "next": 3}
+  ]
+}

@@ -15,8 +15,6 @@
 namespace bridge::alpha_mu_detail {
 namespace {
 
-struct SearchDeadlineReached {};
-
 AlphaMuScore score_front(
     const ParetoFront& front,
     WorldMask relevant_worlds,

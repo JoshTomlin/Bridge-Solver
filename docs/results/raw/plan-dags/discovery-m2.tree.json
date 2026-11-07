@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "representation": "uncompressed_tree",
+  "root": 0,
+  "declarer": "South",
+  "target_tricks": 3,
+  "completed_m": 2,
+  "frontier_semantics": "unexpanded continuation; not a win certificate",
+  "stats": {"nodes": 10, "card_edges": 9, "unique_subtrees": 5, "program_bytes": 384, "evidence_bytes": 160, "shared_program_bytes_estimate": 224},
+  "nodes_by_card_depth": [1,1,4,4],
+  "nodes": [
+    {"id": 0, "kind": "play", "player": "South", "card": "SK", "next": 1, "possible_worlds": "0x3", "sampled_wins": "0x3"},
+    {"id": 1, "kind": "observe", "player": "West", "responses": [{"card": "SQ", "next": 2},{"card": "S9", "next": 4},{"card": "S8", "next": 6},{"card": "S7", "next": 8}], "possible_worlds": "0x3", "sampled_wins": "0x3"},
+    {"id": 2, "kind": "play", "player": "North", "card": "SA", "next": 3, "possible_worlds": "0x1", "sampled_wins": "0x1"},
+    {"id": 3, "kind": "frontier", "possible_worlds": "0x1", "sampled_wins": "0x0"},
+    {"id": 4, "kind": "play", "player": "North", "card": "SJ", "next": 5, "possible_worlds": "0x3", "sampled_wins": "0x3"},
+    {"id": 5, "kind": "frontier", "possible_worlds": "0x3", "sampled_wins": "0x0"},
+    {"id": 6, "kind": "play", "player": "North", "card": "SJ", "next": 7, "possible_worlds": "0x3", "sampled_wins": "0x3"},
+    {"id": 7, "kind": "frontier", "possible_worlds": "0x3", "sampled_wins": "0x0"},
+    {"id": 8, "kind": "play", "player": "North", "card": "SA", "next": 9, "possible_worlds": "0x2", "sampled_wins": "0x2"},
+    {"id": 9, "kind": "frontier", "possible_worlds": "0x2", "sampled_wins": "0x0"}
+  ]
+}

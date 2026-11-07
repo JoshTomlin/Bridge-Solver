@@ -1,0 +1,5 @@
+case,worlds,requested_m,completed_m,move,nodes,play_nodes,observe_nodes,frontiers,card_edges,max_card_plies,max_declarer_plies,max_defender_fanout,program_bytes,evidence_bytes,allocated_payload_bytes,unique_subtrees,shared_program_bytes_estimate,tree_search_ms,policy_build_ms,capture_ms,measure_ms
+"bridgemaster6s-seed-11565831",64,1,1,SA,2,1,0,1,1,1,1,0,64,32,96,2,64,15.6983,0.0257,0.0028,0.0033
+"bridgemaster6s-seed-11565831",64,2,2,SA,48,24,1,23,47,3,2,23,1904,768,3440,4,496,56.1492,46.5993,0.0043,0.0087
+"bridgemaster6s-seed-11565831",64,3,3,SA,71,47,1,23,70,4,3,23,2640,1136,6512,5,528,59.3467,46.9663,0.0047,0.0122
+"bridgemaster6s-seed-11565831",64,4,4,SA,859,441,24,394,858,6,4,23,34160,13744,60928,73,9008,130.669,58.217,0.0197,0.1171

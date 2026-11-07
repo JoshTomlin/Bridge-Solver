@@ -1,0 +1,7 @@
+case,worlds,requested_m,completed_m,move,nodes,play_nodes,observe_nodes,frontiers,card_edges,max_card_plies,max_declarer_plies,max_defender_fanout,program_bytes,evidence_bytes,allocated_payload_bytes,unique_subtrees,shared_program_bytes_estimate,tree_search_ms,policy_build_ms,capture_ms,measure_ms
+"discovery_play",2,1,1,SK,2,1,0,1,1,1,1,0,64,32,96,2,64,14.3046,0.0021,0.0024,0.0041
+"discovery_play",2,2,2,SK,10,5,1,4,9,3,2,4,384,160,832,5,224,1.9156,0.2629,0.0017,0.0036
+"discovery_play",2,3,3,SK,22,11,5,6,21,5,3,4,864,352,1792,11,480,2.1921,0.771,0.0027,0.0065
+"discovery_play",2,4,4,SK,46,23,11,12,45,7,4,4,1824,736,3584,24,1088,1.9107,2.9426,0.0038,0.0128
+"discovery_play",2,5,5,SK,94,47,23,24,93,9,5,4,3744,1504,7168,29,1344,1.8459,2.9255,0.0056,0.0194
+"discovery_play",2,6,6,SK,142,71,47,24,141,11,6,4,5664,2272,14336,36,1632,1.8277,2.9719,0.0077,0.0303

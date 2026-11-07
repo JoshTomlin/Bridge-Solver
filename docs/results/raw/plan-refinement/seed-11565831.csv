@@ -1,0 +1,4 @@
+method,seed,m,active,selected,selected_features,dag_nodes,search_ms,policy_build_ms,mining_ms,screened,dd_impossible,mining_unknown,failing_layouts,witnesses,random,structural,targeted,holdout,holdout_makeable,horizon_pass,dd_loss,coverage_gap,budget_unknown,repairs,regressions,holdout_ms,promoted_survivors,promoted_total
+initial,11565831,4,30,0,0,73,113.493,65.1057,2086.5,1024,0,0,585,1541,512,256,256,256,256,139,0,117,0,0,0,149.89,0,0
+first_failure_reference,11565831,4,38,8,30,70,119.62,57.7954,2086.5,1024,0,0,585,1541,512,256,256,256,256,190,0,66,0,51,0,227.014,8,8
+diverse,11565831,4,38,8,38,73,127.594,56.5581,2086.5,1024,0,0,585,1541,512,256,256,256,256,194,0,62,0,55,0,449.599,8,8

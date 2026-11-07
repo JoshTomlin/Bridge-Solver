@@ -31,11 +31,14 @@ play to trick two in 6S.
 
 ## Exact oracle
 
-After the observed cards, every remaining diamond is forced into West. There
+The user confirmed that the auction guarantees East's singleton diamond ace
+(the stated 7-1 diamond break). This is public information in the benchmark;
+the opening play alone would not establish it. Every remaining diamond is in West. There
 are 17 flexible spade, heart, and club cards, of which East must hold 11. This
 gives `C(17,11) = 12,376` legal hidden layouts.
 
-DDS proves that 6S is cold in all 12,376 layouts. This is useful because a
+DDS reports that 6S is makeable with perfect information in all 12,376 layouts.
+This alone does not prove a common imperfect-information strategy. It is useful because a
 failed fixed policy cannot be dismissed as an unavoidable layout: it is a real
 information-set or continuation failure.
 

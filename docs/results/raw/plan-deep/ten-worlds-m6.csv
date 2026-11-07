@@ -1,0 +1,2 @@
+seed,worlds,requested_m,value_m,value_complete,value_wins,nodes,win_proofs,loss_proofs,frontiers,max_declarer_plies,contexts,context_hits,proof_probes,proof_states,value_ms,construction_ms,total_ms,budget_exhausted,training_proven,training_unresolved,training_loss,training_gap,training_unknown,holdout_proven,holdout_unresolved,holdout_loss,holdout_gap,holdout_unknown,actual,public_proof_cache_hits,stop_reason
+11565831,10,6,6,1,10,690,0,0,1,6,8074,420,13888,3000701,170.671,3117.14,3287.91,0,0,10,0,0,0,0,26,0,230,0,unresolved,527,none

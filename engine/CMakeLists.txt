@@ -114,6 +114,12 @@ if (EMSCRIPTEN)
         RUNTIME_OUTPUT_DIRECTORY "${BRIDGE_WASM_OUTPUT_DIR}"
     )
 else()
+    # Opt-in native research tooling; the production/WASM engine is unchanged.
+    add_library(bridge_plan_tree src/plan_tree.cpp src/plan_dag.cpp
+        src/plan_evaluate.cpp src/plan_challenge.cpp src/plan_edit.cpp src/plan_repair.cpp
+        src/plan_proof.cpp src/plan_deep.cpp)
+    target_link_libraries(bridge_plan_tree PUBLIC bridge_engine)
+
     add_executable(bridge_engine_cli
         src/interactive_cli.cpp
         src/main.cpp
@@ -136,9 +142,43 @@ else()
 
     add_executable(bridge_alpha_mu_lab
         src/alpha_mu_lab.cpp
+        src/plan_refinement_lab.cpp
+        src/plan_deep_lab.cpp
     )
 
-    target_link_libraries(bridge_alpha_mu_lab PRIVATE bridge_engine)
+    target_link_libraries(bridge_alpha_mu_lab PRIVATE bridge_engine bridge_plan_tree)
+    if (WIN32)
+        target_link_libraries(bridge_alpha_mu_lab PRIVATE psapi)
+    endif()
+
+    add_executable(bridge_plan_tree_tests tests/plan_tree_tests.cpp)
+    target_link_libraries(bridge_plan_tree_tests PRIVATE bridge_plan_tree)
+    add_test(NAME bridge_plan_tree_tests COMMAND bridge_plan_tree_tests)
+    add_test(NAME bridge_plan_tree_corpus_smoke COMMAND bridge_alpha_mu_lab
+        plan-trees ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/alpha_mu_corpus.tsv 3 10)
+    add_executable(bridge_plan_dag_tests tests/plan_dag_tests.cpp)
+    target_link_libraries(bridge_plan_dag_tests PRIVATE bridge_plan_tree)
+    add_test(NAME bridge_plan_dag_tests COMMAND bridge_plan_dag_tests)
+    add_test(NAME bridge_plan_dag_corpus_smoke COMMAND bridge_alpha_mu_lab
+        plan-dags ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/alpha_mu_corpus.tsv 3 10)
+    add_executable(bridge_plan_challenge_tests tests/plan_challenge_tests.cpp)
+    target_link_libraries(bridge_plan_challenge_tests PRIVATE bridge_plan_tree)
+    add_test(NAME bridge_plan_challenge_tests COMMAND bridge_plan_challenge_tests)
+    add_test(NAME bridge_plan_refinement_smoke COMMAND bridge_alpha_mu_lab
+        plan-refine-6s 4 42 1 32 10)
+    add_executable(bridge_plan_repair_tests tests/plan_repair_tests.cpp)
+    target_link_libraries(bridge_plan_repair_tests PRIVATE bridge_plan_tree)
+    add_test(NAME bridge_plan_repair_tests COMMAND bridge_plan_repair_tests)
+    add_test(NAME bridge_plan_persistent_smoke COMMAND bridge_alpha_mu_lab
+        plan-persist-6s 2 42 1 16 10)
+    add_executable(bridge_plan_proof_storage_tests tests/plan_proof_storage_tests.cpp)
+    target_link_libraries(bridge_plan_proof_storage_tests PRIVATE bridge_plan_tree)
+    add_test(NAME bridge_plan_proof_storage_tests COMMAND bridge_plan_proof_storage_tests)
+    add_executable(bridge_plan_deep_tests tests/plan_deep_tests.cpp)
+    target_link_libraries(bridge_plan_deep_tests PRIVATE bridge_plan_tree)
+    add_test(NAME bridge_plan_deep_tests COMMAND bridge_plan_deep_tests)
+    add_test(NAME bridge_plan_deep_smoke COMMAND bridge_alpha_mu_lab
+        plan-deep-6s 2 26 3 42)
 
     add_test(
         NAME bridge_engine_tests
