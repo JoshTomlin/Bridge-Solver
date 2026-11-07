@@ -136,7 +136,10 @@ void test_different_play_does_not_transplant_a_later_matching_suffix() {
 
     const auto observer = graph(observe(Seat::West, {{card("S2"), 1, nullptr}}));
     const auto wrong_player = graph(observe(Seat::East, {{card("S3"), 1, play(Seat::North, "SA")}}));
-    for (const auto& incompatible : {wrong_player, graph(play(Seat::West, "S3"))}) {
+    // Capture a declaring-side play, then match the actor to isolate the kind mismatch.
+    auto wrong_kind = graph(play(Seat::South, "S3"));
+    wrong_kind.nodes[wrong_kind.root].player = Seat::West;
+    for (const auto& incompatible : {wrong_player, wrong_kind}) {
         const auto conflict = merge_plan_prefixes(observer, incompatible);
         require(conflict.conflicts == 1 && conflict.added_responses == 0 &&
             conflict.graph.nodes[conflict.graph.root].player == Seat::West &&
