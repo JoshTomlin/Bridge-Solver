@@ -12,7 +12,7 @@ const byId = (id) => document.getElementById(id);
 const symbols = { S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' };
 const escapeHtml = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const bidLabel = (bid) => String(bid).replace(/([1-7])(NT|[SHDC])/g, (_, level, suit) => level + symbols[suit]);
-const describeBid = text => bidLabel(shortBidDescription(text));
+const describeBid = (text, trump) => bidLabel(shortBidDescription(text, trump));
 let session = null;
 let history = [];
 let samples = null;
@@ -255,13 +255,13 @@ function render() {
   byId('action-title').textContent = session.undiscussedBid ? `${bidLabel(session.undiscussedBid)} · Undiscussed` : session.contract ? `${bidLabel(session.contract.bid)} · ${session.contract.declarer}`
     : stopped ? 'Hand revealed' : teller ? `Your response to ${bidLabel(session.pendingAsk?.bid ?? '')}` : 'Your call';
   byId('table-state').textContent = busy ? 'Working…' : session.undiscussedBid ? 'Undiscussed' : stopped ? 'Complete' : 'Your turn';
-  byId('action-help').textContent = session.unsupportedReason || (teller ? describeBid(session.pendingAsk?.label ?? 'Auction complete.')
+  byId('action-help').textContent = session.unsupportedReason || (teller ? describeBid(session.pendingAsk?.label ?? 'Auction complete.', session.trump ?? session.major)
     : practiceNode(session)?.help ?? 'Choose a relay question or a final contract.');
   byId('bid-meanings').innerHTML = actions.filter(action => action.kind !== 'signoff' || action.bid === 'Pass')
     .map(action => `<dt>${escapeHtml(bidLabel(action.bid))}</dt><dd>${escapeHtml(describeBid(action.label))}</dd>`).join('') || '<dt>Done</dt><dd>Review the auction or deal another hand.</dd>';
   const ladders = teller && !stopped ? [session.pendingAsk].filter(Boolean) : actions.filter(action => action.responseLadder);
   byId('response-steps').hidden = !hints || !ladders.length;
-  byId('response-ladders').innerHTML = ladders.map(action => `<p><strong>${escapeHtml(bidLabel(action.bid))} · ${escapeHtml(describeBid(action.label))}</strong></p><dl>${action.responseLadder.map(answer => `<dt>${escapeHtml(bidLabel(answer.bid))}</dt><dd>${escapeHtml(describeBid(answer.label))}</dd>`).join('')}</dl>`).join('');
+  byId('response-ladders').innerHTML = ladders.map(action => `<p><strong>${escapeHtml(bidLabel(action.bid))} · ${escapeHtml(describeBid(action.label, action.trump ?? session.trump ?? session.major))}</strong></p><dl>${action.responseLadder.map(answer => `<dt>${escapeHtml(bidLabel(answer.bid))}</dt><dd>${escapeHtml(describeBid(answer.label))}</dd>`).join('')}</dl>`).join('');
   byId('bid-form').hidden = stopped || !actions.length;
   byId('bid-input').disabled = busy;
   byId('submit-bid').disabled = busy;

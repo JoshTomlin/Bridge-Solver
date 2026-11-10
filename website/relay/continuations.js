@@ -195,10 +195,9 @@ export function keycardAction(session, bid, trump = agreedTrump(session), mode =
   const responses = shortage ? [{ void: true, label: 'Void in the known shortage' }, ...ordinary] : ordinary;
   const ladder = strengthResponseLadder(session, bid, responseLadder(bid, responses), trump);
   if (!ladder) return null;
-  const askLabel = shortage ? 'Ask Shortage Keycard' : 'Ask keycards';
   return {
     bid, kind: 'relay',
-    label: trump === agreedTrump(session) ? askLabel : `Agree ${NAMES[trump].toLowerCase()} and ${askLabel.toLowerCase()}`,
+    label: `${shortage ? 'Shortage Keycard' : 'Keycards'} in ${NAMES[trump]}`,
     askType: shortage ? 'shortage-keycard' : 'keycard',
     ...(horton ? { keycardScheme: 'horton' } : {}),
     trump, responseLadder: ladder,

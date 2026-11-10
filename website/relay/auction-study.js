@@ -1,5 +1,6 @@
 import { availableActions } from './core.js';
 import { practiceView } from './practice.js';
+import { shortBidDescription } from './bid-descriptions.js';
 
 // Read the public ladder at the time of the question, rather than the current
 // node (which may already be several questions further down the tree).
@@ -9,14 +10,18 @@ export function auctionCallDetails(session, history, index) {
   if (!call) return null;
 
   function questionAt(at) {
-    const question = auction[at];
+    let question = auction[at];
     if (!question || question.seat !== session.playerSeat) return null;
+    const before = [session, ...history].find(previous => previous.auction.length === at
+      && previous.auction.every((entry, i) => entry.bid === auction[i].bid && entry.seat === auction[i].seat));
+    if (before && /^Ask (Shortage Keycard|keycards)$/i.test(question.meaning ?? '')) {
+      // Use the original question's suit, never the current or bid strain.
+      question = { ...question, meaning: shortBidDescription(question.meaning, before.trump ?? before.major) };
+    }
     let ladder = question.responseLadder;
     if (!ladder?.length) {
       // This also supports auctions saved before ladders were recorded on all
       // calls. Undo snapshots contain the original public question state.
-      const before = [session, ...history].find(previous => previous.auction.length === at
-        && previous.auction.every((entry, i) => entry.bid === auction[i].bid && entry.seat === auction[i].seat));
       const action = before?.pendingAsk?.bid === question.bid ? before.pendingAsk
         : before && availableActions(before).find(action => action.bid === question.bid);
       ladder = action?.responseLadder;
@@ -38,7 +43,7 @@ export function auctionCallDetails(session, history, index) {
   const detail = call.seat === session.playerSeat ? questionAt(index) : questionAt(index - 1);
   const questionIndex = detail?.questionIndex ?? index;
   const response = detail && auction[questionIndex + 1];
-  return { call, question: detail?.question ?? null,
+  return { call: detail && index === questionIndex ? detail.question : call, question: detail?.question ?? null,
     auction: auction.slice(0, questionIndex + 1), alternatives: detail?.alternatives ?? [],
     playedBid: response?.seat === session.partnerSeat ? response.bid : null };
 }

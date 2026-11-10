@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { applyBid, availableActions, matchesConstraints } from '../core.js';
-import { practiceView } from '../practice.js';
+import { practiceView, createTrainingPractice, applyPracticeBid } from '../practice.js';
 import { shortBidDescription } from '../bid-descriptions.js';
 import { clickBid, closeSheets, fitsScreen, selectSetting } from './helpers.mjs';
 
@@ -105,3 +105,75 @@ for (const role of ['asker', 'teller']) {
     await fitsScreen(page);
   });
 }
+
+test('saved keycard questions name their suit, and previews distinguish club, spade and heart agreements', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const initial = createTrainingPractice({ profileId: 'minor-c-h-s', seed: 'keycard-suit-3' });
+  const before = applyPracticeBid(initial, '2D');
+  const session = JSON.parse(JSON.stringify(applyPracticeBid(before, '3D')));
+  const index = before.auction.length;
+  session.auction[index].meaning = 'Ask Shortage Keycard';
+  const progress = { version: 1, session, history: [initial, before], preferences: {} };
+  await page.addInitScript(progress => {
+    if (!localStorage.getItem('bridge-lab.relay-progress.v1')) localStorage.setItem('bridge-lab.relay-progress.v1', JSON.stringify(progress));
+  }, progress);
+  await page.goto('relay.html');
+  await ready(page);
+  const restored = await saved(page);
+  for (const selected of [index, index + 1]) {
+    await page.locator(`#auction [data-call-index="${selected}"]`).click();
+    await expect(page.locator('#alternatives-question')).toHaveText('Responses to 3♦ · Shortage Keycard in Clubs');
+    if (selected === index) {
+      await expect(page.locator('#bid-meaning-text')).toHaveText('Shortage Keycard in Clubs');
+      await page.screenshot({ path: info.outputPath('keycard-suit.png') });
+    }
+    expect(await saved(page)).toEqual(restored);
+    await closeSheets(page);
+  }
+  await page.reload();
+  await ready(page);
+  await page.click('#undo-bid');
+  await page.click('#meanings-open');
+  for (const suit of ['Clubs', 'Spades', 'Hearts', 'Diamonds']) {
+    await expect(page.locator('#bid-meanings')).toContainText(`Shortage Keycard in ${suit}`);
+  }
+  await closeSheets(page);
+  const unbid = await saved(page);
+  for (const [bid, suit] of [['3D', 'Clubs'], ['3H', 'Spades'], ['3S', 'Hearts']]) {
+    const button = page.locator(`[data-bid="${bid}"]`);
+    const bounds = await button.boundingBox();
+    const pointer = { pointerId: 7, pointerType: 'touch', isPrimary: true, button: 0, buttons: 1,
+      clientX: bounds.x + bounds.width / 2, clientY: bounds.y + bounds.height / 2 };
+    await button.dispatchEvent('pointerdown', pointer);
+    await expect(page.locator('#bid-preview')).toBeVisible();
+    await expect(page.locator('#preview-meaning')).toHaveText(`Shortage Keycard in ${suit}`);
+    await button.dispatchEvent('pointercancel', { ...pointer, buttons: 0 });
+    expect(await saved(page)).toEqual(unbid);
+  }
+  await clickBid(page, '3H');
+  expect((await saved(page)).session.trump).toBe('S');
+  await page.locator(`#auction [data-call-index="${index}"]`).click();
+  await expect(page.locator('#bid-meaning-text')).toHaveText('Shortage Keycard in Spades');
+  await closeSheets(page);
+  await fitsScreen(page);
+});
+
+test('an older pending teller question names the suit in both meanings and study', async ({ page }) => {
+  const initial = createTrainingPractice({ profileId: 'minor-c-h-s', seed: 'keycard-suit-3', role: 'teller' });
+  const session = JSON.parse(JSON.stringify(applyPracticeBid(initial, '3C')));
+  expect(session.pendingAsk.bid).toBe('3D');
+  session.pendingAsk.label = 'Ask Shortage Keycard';
+  await page.addInitScript(progress => localStorage.setItem('bridge-lab.relay-progress.v1', JSON.stringify(progress)),
+    { version: 1, session, history: [initial], preferences: {} });
+  await page.goto('relay.html');
+  await ready(page);
+  const restored = await saved(page);
+  await page.click('#meanings-open');
+  await expect(page.locator('#action-help')).toHaveText('Shortage Keycard in Clubs');
+  await page.check('#show-hints');
+  await expect(page.locator('#response-ladders > p')).toHaveText('3♦ · Shortage Keycard in Clubs');
+  await closeSheets(page);
+  await page.locator(`#auction [data-call-index="${session.auction.length}"]`).click();
+  await expect(page.locator('#bid-meaning-text')).toHaveText('Shortage Keycard in Clubs');
+  expect((await saved(page)).session).toEqual(restored.session);
+});

@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PRACTICE_PROFILES, applyBid, revealPractice } from './core.js';
+import { PRACTICE_PROFILES, applyBid, revealPractice, availableActions } from './core.js';
 import { createTrainingPractice, applyPracticeBid, practiceView } from './practice.js';
 import { auctionCallDetails } from './auction-study.js';
+import { shortBidDescription } from './bid-descriptions.js';
 
 const publicLadder = ladder => {
   const bids = new Map();
@@ -76,4 +77,48 @@ test('fixed opening sequences and undiscussed questions do not invent alternativ
   const passed = applyPracticeBid(beforePass, 'Pass');
   assert.equal(passed.finished, true);
   assert.deepEqual(auctionCallDetails(passed, [beforePass], 3).alternatives, [], 'A final Pass needs no further partner response');
+});
+
+test('July heart-support continuation names the agreed suit on every keycard step', () => {
+  const initial = createTrainingPractice({ profileId: 'minor-c-h-s', seed: 'keycard-suit-3' });
+  const before = applyPracticeBid(initial, '2D');
+  assert.equal(before.auction.at(-1).bid, '3C');
+  assert.match(before.auction.at(-1).meaning, /4315/);
+  // July E4/E6: opening minor, opener's second suit, responder's supported
+  // hearts, then the surprise other minor; 3NT stays available to play.
+  for (const [bid, trump, suit] of [['3D', 'C', 'Clubs'], ['3H', 'S', 'Spades'], ['3S', 'H', 'Hearts'], ['4C', 'D', 'Diamonds']]) {
+    const action = availableActions(before).find(action => action.bid === bid);
+    assert.equal(action.trump, trump);
+    assert.equal(shortBidDescription(action.label), `Shortage Keycard in ${suit}`);
+    const after = applyPracticeBid(before, bid);
+    assert.equal(after.trump, trump);
+    const questionIndex = before.auction.length;
+    for (const index of [questionIndex, questionIndex + 1]) {
+      const detail = auctionCallDetails(after, [initial, before], index);
+      assert.equal(detail.question.meaning, `Shortage Keycard in ${suit}`);
+      assert.deepEqual(detail.alternatives.map(answer => answer.bid), action.responseLadder.map(answer => answer.bid));
+    }
+  }
+  assert.equal(availableActions(before).find(action => action.bid === '3NT').kind, 'signoff');
+});
+
+test('saved generic keycard meanings recover the historical suit without changing progress or reading hands', () => {
+  const initial = createTrainingPractice({ profileId: 'minor-c-h-s', seed: 'keycard-suit-3' });
+  const before = applyPracticeBid(initial, '2D');
+  const legacy = JSON.parse(JSON.stringify(applyPracticeBid(before, '3D')));
+  const index = before.auction.length;
+  legacy.auction[index].meaning = 'Ask Shortage Keycard';
+  const progress = JSON.stringify(legacy);
+  // A different current trump must never relabel an earlier question.
+  const hidden = { ...legacy, trump: 'S', major: 'S', playerHand: ['hidden'], partnerHand: ['hidden'] };
+  const publicBefore = { ...before, playerHand: ['hidden'], partnerHand: ['hidden'] };
+  for (const selected of [index, index + 1]) {
+    const detail = auctionCallDetails(hidden, [publicBefore], selected);
+    assert.equal(detail.question.meaning, 'Shortage Keycard in Clubs');
+    if (selected === index) assert.equal(detail.call.meaning, 'Shortage Keycard in Clubs');
+  }
+  assert.equal(JSON.stringify(legacy), progress);
+  assert.equal(auctionCallDetails(hidden, [], index).question.meaning, 'Ask Shortage Keycard', 'Do not guess a missing historical suit');
+  assert.equal(shortBidDescription('Agree spades and ask shortage keycard'), 'Shortage Keycard in Spades');
+  assert.equal(shortBidDescription('Agree hearts and ask shortage keycard'), 'Shortage Keycard in Hearts');
 });

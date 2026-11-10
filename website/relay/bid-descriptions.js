@@ -1,10 +1,15 @@
 const singularSuit = suit => ({ clubs: 'Club', diamonds: 'Diamond', hearts: 'Heart', spades: 'Spade' })[suit.toLowerCase()];
+const suitNames = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
 const counts = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7 };
 
 // Display copy only: keep source meanings and saved auctions intact. In
 // particular, never shorten away negatives, alternatives or hand restrictions.
-export function shortBidDescription(value) {
+export function shortBidDescription(value, trump) {
   let text = String(value ?? '').trim();
+  // Older saves omitted the agreed suit on the default keycard step. The
+  // caller may supply its public trump context at the time of the question.
+  if (suitNames[trump]) text = text.replace(/^Ask (Shortage Keycard|keycards)$/i,
+    (_, kind) => `${kind.toLowerCase() === 'keycards' ? 'Keycards' : 'Shortage Keycard'} in ${suitNames[trump]}`);
   text = text
     .replace(/\b(?:Low|Middle|High) shortage:\s*(clubs|diamonds|hearts|spades)(?: singleton or void)?\b/gi,
       (_, suit) => `${singularSuit(suit)} shortage`)
@@ -33,8 +38,14 @@ export function shortBidDescription(value) {
   text = phrases[text] ?? text;
   text = text
     .replace(/^Ask about (clubs|diamonds|hearts|spades)$/i, (_, suit) => `${singularSuit(suit)} ask`)
-    .replace(/^(?:Ask )?Shortage Keycard in (clubs|diamonds|hearts|spades)$/i, (_, suit) => `${singularSuit(suit)} SKC`)
-    .replace(/^Ask keycards in (clubs|diamonds|hearts|spades)$/i, (_, suit) => `${singularSuit(suit)} keycards`)
+    .replace(/^Agree (clubs|diamonds|hearts|spades) and ask shortage keycard$/i,
+      (_, suit) => `Shortage Keycard in ${singularSuit(suit)}s`)
+    .replace(/^(?:Ask )?Shortage Keycard in (clubs|diamonds|hearts|spades)$/i,
+      (_, suit) => `Shortage Keycard in ${singularSuit(suit)}s`)
+    .replace(/^Agree (clubs|diamonds|hearts|spades) and ask keycards$/i,
+      (_, suit) => `Keycards in ${singularSuit(suit)}s`)
+    .replace(/^(?:Ask )?keycards in (clubs|diamonds|hearts|spades)$/i,
+      (_, suit) => `Keycards in ${singularSuit(suit)}s`)
     .replace(/^Kickback in (clubs|diamonds|hearts|spades)(.*)$/i, (_, suit, rest) => `${singularSuit(suit)} Kickback${rest}`)
     .replace(/^Ask shape, agreeing (clubs|diamonds|hearts|spades)$/i, (_, suit) => `${singularSuit(suit)} fit; shape ask`)
     .replace(/^Agree (clubs|diamonds|hearts|spades)(?: instead)? and ask shortage$/i, (_, suit) => `${singularSuit(suit)} fit; shortage ask`)

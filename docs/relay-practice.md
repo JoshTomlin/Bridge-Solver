@@ -75,6 +75,12 @@ for example, **Club shortage 12-14**. The same display format applies to saved
 auctions; source definitions and stored bidding progress retain their original
 meanings.
 
+Keycard questions name the agreed trump suit, for example **Shortage Keycard
+in Clubs**. In `1C–1D–1S–2D–3C` (4315 with heart support), 3D is SKC in clubs,
+3H in spades and 3S in hearts; 3NT remains to play. The bid's strain need not
+be the agreed trump. Existing saved questions recover omitted suit names from
+their original auction context without changing the hand or bidding history.
+
 **Meanings** shows the available
 questions or answers; **Show response steps** expands the ladders without
 selecting the correct answer. The “i” beside a name opens that hand's details:
