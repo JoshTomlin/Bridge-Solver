@@ -34,8 +34,27 @@ test('HTML and the complete runtime graph share a content version', t => {
     assert.deepEqual(fs.readFileSync(path.join(destination, first.assetPrefix, file)), fs.readFileSync(path.join(destination, file)));
   }
   assert.equal(build().version, first.version, 'Identical builds keep their version');
+  const manifest = JSON.parse(fs.readFileSync(path.join(destination, 'relay.webmanifest'), 'utf8'));
+  const manifestUrl = 'https://example.test/Bridge-Solver/relay.webmanifest';
+  assert.equal(new URL(manifest.start_url, manifestUrl).href, 'https://example.test/Bridge-Solver/relay.html');
+  assert.equal(new URL(manifest.id, manifestUrl).href, 'https://example.test/Bridge-Solver/relay.html');
+  assert.equal(new URL(manifest.scope, manifestUrl).href, 'https://example.test/Bridge-Solver/');
+  assert.equal(manifest.display, 'standalone');
+  for (const icon of manifest.icons) {
+    const png = fs.readFileSync(path.join(destination, icon.src));
+    assert.equal(png.subarray(1, 4).toString(), 'PNG');
+    assert.equal(`${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`, icon.sizes);
+  }
+  const worker = fs.readFileSync(path.join(destination, 'relay-sw.js'), 'utf8');
+  assert.ok(!worker.includes('__RELAY_VERSION__') && !worker.includes('__RELAY_FILES__'));
+  const offlineFiles = JSON.parse(worker.match(/const FILES = (\[.*\]);/)[1]);
+  for (const file of offlineFiles) assert.ok(fs.existsSync(path.join(destination, file)), file);
+  for (const required of ['relay/app.js', 'relay/install.js', 'relay/sampling-worker.js', 'relay/evaluation-worker.js', 'engine/bridge_engine.wasm']) {
+    assert.ok(offlineFiles.includes(`${first.assetPrefix}/${required}`), `${required} works offline`);
+  }
+  assert.deepEqual(fs.readFileSync(path.join(destination, first.assetPrefix, 'relay.html')), fs.readFileSync(path.join(destination, 'relay.html')));
   let previous = first.version;
-  for (const file of ['relay/families.js', 'relay/sampling-worker.js', 'relay/evaluation-worker.js', 'relay/relay.css']) {
+  for (const file of ['relay/families.js', 'relay/sampling-worker.js', 'relay/evaluation-worker.js', 'relay/relay.css', 'relay-sw.js', 'relay.webmanifest']) {
     fs.appendFileSync(path.join(sourceRoot, file), '\n/* changed */\n');
     const next = build();
     assert.notEqual(next.version, previous, `${file} invalidates every runtime URL`);

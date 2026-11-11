@@ -7,6 +7,7 @@ import { AUCTION_SEATS, auctionRounds } from './table-ui.js';
 import { auctionCallDetails } from './auction-study.js';
 import { attachBidPreview } from './bid-preview.js';
 import { shortBidDescription } from './bid-descriptions.js';
+import { setupInstall } from './install.js';
 
 const byId = (id) => document.getElementById(id);
 const symbols = { S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' };
@@ -641,3 +642,4 @@ async function startPractice() {
 
 startPractice();
 probeDds();
+setupInstall();

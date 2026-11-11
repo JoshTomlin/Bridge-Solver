@@ -13,6 +13,27 @@ Both hands use short cards to leave more room for the auction. Partner's 13
 cards sit above the auction, face down during bidding and face up at completion.
 Undoing completion hides them again.
 
+## Install on your phone
+
+Open `relay.html` in Chrome, then use **⋮ → Install and create shortcut →
+Install** (some Chrome versions say **Add to Home screen**). The installed
+**Relay** icon opens directly into bidding in its own window. The Practice
+menu's **Install app** section also offers an install button when Chrome makes
+one available. On iPhone, use Safari's **Share → Add to Home Screen** and
+enable **Open as Web App** when offered.
+
+In Practice → Install app, wait for **Ready for offline practice** before
+going offline. This downloads the relay interface, all practice rules and the
+DDS engine. Subsequent launches can resume saved hands, deal new hands and
+analyse contracts without a connection. A complete new release downloads
+before replacing the previous offline release, and updates do not force a
+reload during bidding. Reopen online periodically to receive updates.
+
+Installation uses the same site and browser storage on Android Chrome; it
+does not upload or synchronise auctions. Other browsers/devices may keep a
+separate save. Native installation prompts and home-screen launching should
+also be checked on the user's physical phone.
+
 For a mix of everything, open **Practice settings → Practice mode → Just bid ·
 All families**. Each new hand picks a family with equal probability, a random
 branch within that family, and an independently random asker/teller role.

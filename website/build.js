@@ -7,7 +7,14 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 export const staticFiles = [
   "index.html",
   "relay.html",
+  "relay.webmanifest",
+  "relay-sw.js",
+  "icons/relay.svg",
+  "icons/relay-180.png",
+  "icons/relay-192.png",
+  "icons/relay-512.png",
   "relay/app.js",
+  "relay/install.js",
   "relay/table-ui.js",
   "relay/auction-study.js",
   "relay/bid-preview.js",
@@ -59,14 +66,25 @@ export function buildWebsite({ sourceRoot = root, destination = path.join(root, 
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, contents);
   };
+  const offlineFiles = [`${assetPrefix}/relay.html`, 'relay.webmanifest',
+    ...[...files.keys()].filter(file => file.startsWith('icons/')),
+    ...[...files.keys()].filter(file => /^(relay|engine)\//.test(file)).map(file => `${assetPrefix}/${file}`)];
   for (const [file, contents] of files) {
     if (file.endsWith('.html')) {
-      write(file, contents.toString().replace(/\b(src|href)="\.\/([^"\s]+\.(?:css|js))"/g,
-        (_, attribute, asset) => `${attribute}="./${assetPrefix}/${asset}"`));
+      let html = contents.toString().replace(/\b(src|href)="\.\/([^"\s]+\.(?:css|js))"/g,
+        (_, attribute, asset) => `${attribute}="./${assetPrefix}/${asset}"`);
+      if (file === 'relay.html') {
+        html = html.replace('</head>', `<meta name="relay-build" content="${version}">\n  </head>`);
+        // Fetched as an immutable offline shell, served at the original URL.
+        write(`${assetPrefix}/${file}`, html);
+      }
+      write(file, html);
     } else {
-      write(`${assetPrefix}/${file}`, contents);
+      const output = file === 'relay-sw.js' ? contents.toString()
+        .replace('__RELAY_VERSION__', version).replace('__RELAY_FILES__', JSON.stringify(offlineFiles)) : contents;
+      write(`${assetPrefix}/${file}`, output);
       // Keep the original paths for Node engine tests and command-line tools.
-      write(file, contents);
+      write(file, output);
     }
   }
   write('.nojekyll', '');

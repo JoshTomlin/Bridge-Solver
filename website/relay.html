@@ -4,6 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="theme-color" content="#151c27">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Relay">
+    <link rel="manifest" href="./relay.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/relay-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/relay-180.png">
     <title>Relay · Bridge Lab</title>
     <link rel="stylesheet" href="./relay/relay.css">
   </head>
@@ -63,6 +68,7 @@
         <p id="practice-scope" class="muted">Random branch</p><details id="study-menu" class="menu-section"><summary id="study-menu-title">Study a particular branch</summary><label id="study-branch-field">Branch<select id="profile"></select></label><p id="active-branch" class="muted"></p><details class="replay-options"><summary>Hand seed and replay</summary><label>Hand seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false"></label><button type="button" id="replay-deal" class="button secondary">Replay this branch</button></details></details>
         <button type="button" class="button secondary typed-menu-button" data-open="typed-dialog" id="type-bid-open"><svg><use href="#icon-keyboard"/></svg>Type a bid</button>
         <details class="menu-section"><summary>System notes</summary><ul id="system-assumptions" class="constraint-list"></ul></details>
+        <details id="install-menu" class="menu-section"><summary id="install-title">Install app</summary><p id="install-help" class="muted"></p><button type="button" id="install-app" class="button primary" hidden>Install Relay</button><p id="offline-status" class="muted" role="status" aria-live="polite">Preparing offline practice…</p></details>
         <p id="save-status" class="muted" role="status" aria-live="polite"></p><a class="quiet-link" href="./index.html">Back to play lab ↗</a>
       </div>
     </dialog>

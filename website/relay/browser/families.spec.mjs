@@ -66,7 +66,7 @@ test('new page bypasses cached legacy module URLs', async ({ page }) => {
   const stale = [];
   await page.context().route('**/*.js', route => {
     const url = new URL(route.request().url());
-    if (url.pathname.includes('/assets/')) return route.continue();
+    if (url.pathname.includes('/assets/') || url.pathname.endsWith('/relay-sw.js')) return route.continue();
     stale.push(url.pathname);
     return route.fulfill({ contentType: 'text/javascript', body: 'throw new Error("Cached pre-family application");' });
   });
