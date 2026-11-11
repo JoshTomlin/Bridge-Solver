@@ -277,8 +277,10 @@ function familyActions(session) {
     for (let bid = nextBid(lastBid(session)); bid; bid = nextBid(bid)) contracts.add(bid);
   }
   const assigned = new Set(actions.map(action => action.bid));
-  if ((session.weakExitAllowed || contracts.has(lastBid(session))) && session.auction.at(-1).seat === session.partnerSeat
-      && (lastBid(session) !== '3NT' || session.threeNTToPlay !== false)) {
+  // The asking hand controls the final contract. An artificial answer is
+  // still passable; source-defined strength escapes move beyond the normal
+  // response ladder when the lower game answer must be avoided (R0105–R0108).
+  if (session.auction.at(-1).seat === session.partnerSeat) {
     actions.push({ bid: 'Pass', label: `Play ${lastBid(session)}`, kind: 'signoff' });
   }
   for (const bid of [...contracts].sort(compareBids)) {
@@ -400,7 +402,7 @@ export function availableActions(session) {
   } else {
     actions.push(...postRangeActions(session));
   }
-  if (session.phase !== 'raise' && session.phase !== 'range' && session.auction.at(-1).seat === 'North' && finalContracts.includes(lastBid(session))) {
+  if (session.phase !== 'raise' && session.auction.at(-1).seat === 'North') {
     actions.push({ bid: 'Pass', label: `Play ${lastBid(session)}`, kind: 'signoff' });
   }
   const relayBids = new Set(actions.map(action => action.bid));
@@ -437,7 +439,7 @@ export function applyBid(session, bid) {
   if (action.kind === 'signoff') {
     const contractBid = bid === 'Pass' ? lastBid(session) : bid;
     const match = /^([1-7])(C|D|H|S|NT)$/.exec(contractBid);
-    next.contract = { bid: contractBid, level: Number(match[1]), strain: match[2], declarer: match[2] === 'NT' ? 'South' : 'North' };
+    next.contract = { bid: contractBid, level: Number(match[1]), strain: match[2], declarer: declarerFor(next.auction, match[2]) };
     if (bid !== 'Pass') next.auction.push({ seat: 'North', bid: 'Pass', meaning: 'Partner accepts your selected final contract; opponents pass throughout' });
     next.phase = 'finished';
     next.finished = true;

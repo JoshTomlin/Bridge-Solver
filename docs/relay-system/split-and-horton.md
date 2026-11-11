@@ -68,7 +68,9 @@ The notes leave slam judgement to the player. The bot uses this disclosed
 | Five-plus, a suitable outside control | Cheapest serious cue: 3NT spades, 4C clubs, 4D diamonds | Cheapest serious cue: 4C clubs, 4D diamonds, 4H hearts |
 | Five-plus but no permitted cheaper control | 4H | 4S |
 
-Artificial non-serious/cue answers at 3NT cannot be passed as a natural offer.
+Artificial non-serious/cue answers at 3NT keep their artificial meaning.
+The asking hand may nevertheless choose Pass to play 3NT; that decision does
+not turn the original answer into a natural offer.
 
 ### Agree a suit after a shortage/shape description
 

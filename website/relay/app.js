@@ -478,7 +478,7 @@ async function probeDds() {
   ddsReady = false;
   byId('dds-status').textContent = 'DDS: checking…';
   byId('dds-status').classList.remove('is-ready');
-  render();
+  byId('evaluate').disabled = true;
   try {
     await activeEvaluator.request({ type: 'probe' });
     if (activeEvaluator !== evaluator) return;
@@ -492,7 +492,9 @@ async function probeDds() {
     byId('dds-status').title = error.message;
     byId('evaluate').title = 'Double-dummy evaluation needs a build with the DDS engine.';
   }
-  render();
+  // Engine readiness affects assessment only. Replacing the bidding box here
+  // can swallow a level tap that began while the worker was loading.
+  byId('evaluate').disabled = busy || !ddsReady;
 }
 
 document.addEventListener('click', event => {

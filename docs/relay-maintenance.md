@@ -71,7 +71,7 @@ JavaScript objects plus functions of public auction state.
 | Action `kind: 'keycard'` | Use the shared exact-call keycard helper without inserting a second relay step |
 | Action `playerConstraints` | Validate a prerequisite such as five diamonds; do not choose the public ladder from actual user cards |
 | `agreementOptions`, `naturalMinorKeycardSuits` | Public alternative trump agreements, closed after the first KC question |
-| `relayPolicy`, `threeNTToPlay` | Asking reservations and whether a 3NT answer is passable; replies need their own counting rules |
+| `relayPolicy`, `threeNTToPlay` | Asking reservations and legacy metadata about natural 3NT offers; neither makes a relay reply unpassable. Replies need their own counting rules. |
 | `strengthSplit`, `strengthKnown` | Reordered single-suit range boundary and whether further game-escape replies are required |
 | `signoffs`, `requireAgreement` | Branch-specific final contracts and obligation to establish a fit |
 | `assumptions`, `limitations` | Visible training restrictions and named excluded continuations |
@@ -110,7 +110,10 @@ lowest-available signoff is a recall policy, not optimal bidding judgement.
 6. Reaching a source boundary ends with an explanation or final-contract
    choices; never invent an answer or offer a partial ladder above 7NT.
 7. Partner Pass ends the partscore with the correct last contract/declarer.
-   Ordinary artificial 3NT answers cannot be passed unless the branch permits it.
+   The asker may pass any relay answer, including artificial 3NT. Do not use
+   an answer's artificial meaning or legacy `threeNTToPlay` flag to prohibit
+   that choice. Source-defined teller strength escapes move beyond the normal
+   response ladder when the lower game answer must be avoided (R0105–R0108).
 8. Sampling reads public constraints plus the user's known cards, never the
    original hidden hand. Uniform hand probability requires shape weights by
    card combinations, not equal probability for each shape.

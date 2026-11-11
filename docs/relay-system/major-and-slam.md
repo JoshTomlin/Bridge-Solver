@@ -42,6 +42,14 @@ judgements, two shortages and a five-card side suit are excluded.
 
 ## Keycards
 
+The asker controls the final contract and may pass a relay answer, including
+an artificial 3NT or a reply below game. Its original meaning and disclosed
+facts remain unchanged. The asker can also select a different available final
+contract. Reordered strength escapes are the teller's source-defined way to
+avoid landing on a lower playable game (R0105–R0108); these do not impose a
+blanket forcing rule on artificial answers. Josh confirmed this principle
+after the Q1 example in [questions for Markey](questions-for-markey.md).
+
 Keycards are **all four aces plus the agreed trump king**. A known shortage
 does not remove its ace from this count. Source: P1456/P1462, with the user's
 ordinary balanced-keycard and five-keycard clarifications.

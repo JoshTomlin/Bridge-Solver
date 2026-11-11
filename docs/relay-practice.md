@@ -103,7 +103,9 @@ without pinning future random-family hands to that branch.
 In teller practice, partner follows supported questions in source order,
 checking any action prerequisites against the asker's own hand. It never
 chooses a question by inspecting the teller's undisclosed cards. At the source
-boundary it takes the lowest available final-contract action. This is a
+boundary it accepts a normal contract already reached or chooses a source
+signoff, game or slam, so the teller can practise the final Pass. A human
+asker can also stop on an intervening side-suit reply. This is a
 deterministic recall coach, not an optimal bidding policy. A wrong response
 leaves the question, deal and constraints unchanged so you can try again.
 Choose a level, then tap a suit or **PASS** to bid. The level starts at the next
@@ -125,6 +127,14 @@ hidden while an undiscussed continuation is paused. Undo resumes the previous
 question. If the call is Pass, the actual last contract and its first-strain
 declarer are retained, and partner's hand is revealed at completion. These states autosave
 and restore like supported auctions.
+
+Asker control also applies to agreed relay replies: **Pass** is an ordinary
+final-contract choice after any reply, even an artificial 3NT or a reply below
+game. Passing preserves the reply's original meaning and public facts. The
+teller's source-defined strength escapes go beyond the normal response ladder
+to avoid landing on a lower playable game; they do not prohibit the asker
+from choosing to stop. This supersedes the earlier documentation's incorrect
+assumption that artificial 3NT answers must be forcing.
 
 Tap a call in the auction for its meaning. Below it, **Alternatives** shows
 the auction through that question and all its agreed response steps, marking

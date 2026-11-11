@@ -1,6 +1,7 @@
 # Partnership questions for Markey
 
-Recorded 11 November 2026. Updated with Josh's partial response; see below.
+Recorded 11 November 2026. Q1 is resolved by Josh; balanced strong-club details
+and the separate Baron scope remain open.
 
 Open questions are recorded without changing the retained source notes. Later
 answers should record the date, scope and affected source examples, then update
@@ -10,11 +11,24 @@ rules, readable tables and independent expected-auction tests together.
 
 | ID | Question | Source / conflict | Current treatment |
 |---|---|---|---|
-| Q1 | After an artificial opener 3NT reply showing shape or keycards, may the asker pass to play 3NT, or is it forcing except where the sequence explicitly permits Pass? | Example sent: `1D–1S–2C–2H–2NT–3C–3NT`; the final North 3NT is 2/5 diamond keycards without the queen. May South pass? The maintenance invariant says artificial replies are forcing; some current continuations offer Pass. Explicit reordered strength escapes must be retained. | Josh requested an example; example supplied, answer pending. Existing relay behaviour retained. |
+| Q1 — resolved | May the asker pass an artificial relay answer? | Example discussed: `1D–1S–2C–2H–2NT–3C–3NT`; the final North 3NT is 2/5 diamond keycards without the queen. R0105–R0108 explains the teller's strength escape beyond the normal response ladder. | Josh confirmed the asker is in charge and may pass. The earlier maintenance invariant saying artificial answers were forcing was incorrect. All relay answers are passable by the asker; original meanings, facts and source-specific strength escapes remain intact. |
 | Q2 | Does 16+ unbalanced apply to the 1C–1S–2C rebid generally, including Baron, or only to the 2D resolver? | P0382/P0402/P0412–P0414 retain 17+. Josh's latest response explicitly describes `1C–1S–2C–2D`: all unbalanced replies are 16+; 2NT and 3NT are balanced exceptions. | Resolver scope reconfirmed. Application to the separate 2S Baron continuation remains open. |
 | Q2a | What exact balanced hands bid 2NT after `1C–1S–2C–2D`? | Josh suggests a supermaximum, perhaps 20 balanced, and describes 3NT as standard 16–19 balanced. P0421 instead says the supermaximum is 19/20. An earlier user clarification removed the 2NT exception entirely. | Markey confirmation needed. Current resolver still sends 16–20 balanced to 3NT under that earlier clarification. No uncertain 2NT threshold has been invented. The new whole-auction slice is capped at 19 and does not enter this resolver. |
 
 ### Josh's latest clarification
+
+The asker is in charge and can choose the final contract, including passing
+an artificial relay answer. A teller who needs to prevent stopping at the
+lower contract uses the appropriate source-defined response beyond the
+normal relay ladder. R0105–R0108 supplies the reordered strength distinction:
+an ordinary game reply is lower range; the first impossible response carries
+that answer at the upper range. R0192 separately permits an undisclosed
+maximum to continue after responder's signoff. Do not extrapolate the numeric
+14–16/17–19 split to unrelated families without their source rules.
+
+This resolves the artificial-3NT concern previously labelled A2 in the local
+22 October audit. Passing that answer was not an implementation discrepancy;
+the contrary documentation was the error.
 
 After `1C–1S–2C–2D`, Josh believes 16+ unbalanced applies to all the
 unbalanced replies. He identifies 2NT and 3NT as balanced exceptions, suggests

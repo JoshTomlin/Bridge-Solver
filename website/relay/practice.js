@@ -1,7 +1,7 @@
 // The source interpreter keeps its original seats: player = asker, partner =
 // teller. This controller changes the human's view without rewriting source
 // definitions or letting the hidden teller hand influence the next question.
-import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex } from './core.js';
+import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex, getPracticeProfile, practiceNode } from './core.js';
 import { declarerFor } from './profile-utils.js';
 import { createOpeningPractice, openingActions, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
 
@@ -22,13 +22,25 @@ export function practiceView(session) {
 
 /** Ask through supported questions in source order, using only public facts
  * and the asker's own cards for action prerequisites. This is a recall coach,
- * not a model of optimal bidding. At the boundary take the lowest signoff. */
+ * not a model of optimal bidding. At the boundary choose a normal final
+ * contract; a human asker can also stop on any intervening reply. */
 export function advanceAsker(session) {
   if (session.finished || session.revealed) return session;
   const actions = availableActions(session).filter(action => !action.playerConstraints
     || matchesConstraints(session.playerHand, action.playerConstraints, action.trump ?? session.trump));
+  const trump = session.trump ?? session.major;
+  const last = session.auction.findLast(call => call.bid !== 'Pass')?.bid;
+  const usualContracts = new Set(['3NT', '6NT', '7NT', ...[4, 5, 6, 7]
+    .filter(level => level >= (['C', 'D'].includes(trump) ? 5 : 4)).map(level => `${level}${trump}`)]);
+  if (session.familyId && !session.familyId.startsWith('major-')) {
+    for (const bid of [...(getPracticeProfile(session.familyId).signoffs ?? []), ...(practiceNode(session)?.signoffs ?? [])]) usualContracts.add(bid);
+  }
+  // Human control does not require the recall coach to park on a side-suit
+  // answer when its questions end. Offer a normal contract and final Pass.
+  const signoffs = actions.filter(action => action.kind === 'signoff');
   const action = actions.find(action => action.kind === 'relay')
-    ?? actions.find(action => action.kind === 'signoff');
+    ?? signoffs.find(action => action.bid !== 'Pass' || session.weakExitAllowed || usualContracts.has(last))
+    ?? signoffs[0];
   if (!action) return Object.freeze({ ...session, pendingAsk: null, finished: true,
     unsupportedReason: session.unsupportedReason ?? 'No further supported question or final contract is available in this exercise.' });
   // Passing a teller's playable answer already completes the auction.

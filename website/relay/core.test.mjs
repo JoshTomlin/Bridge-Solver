@@ -202,7 +202,7 @@ test('invalid actions do not mutate; initial 3NT cannot be used as a false signo
   assert.throws(() => applyBid(revealed, '7H'), /not an available action/);
 });
 
-test('a range answer at game can be passed; shortage 3NT is not an offer to play', () => {
+test('the asker may pass a range or shortage answer without changing its artificial meaning', () => {
   const range = rangeResponse(example('H', 'high', 3));
   assert.deepEqual(availableActions(range).find(action => action.bid === 'Pass'), { bid: 'Pass', label: 'Play 4H', kind: 'signoff' });
   const finished = applyBid(range, 'Pass');
@@ -215,7 +215,10 @@ test('a range answer at game can be passed; shortage 3NT is not an offer to play
   assert.equal(applyBid(balanced, 'Pass').contract.declarer, 'South');
   const low = applyBid(example('S', 'low', 1), '2NT');
   assert.equal(low.auction.at(-1).bid, '3NT');
-  assert.equal(availableActions(low).some(action => action.bid === 'Pass'), false);
+  assert.equal(availableActions(low).some(action => action.bid === 'Pass'), true);
+  const passed = applyBid(low, 'Pass');
+  assert.equal(passed.contract.bid, '3NT');
+  assert.deepEqual(passed.constraints, low.constraints);
 });
 
 test('generated deals and continuation facts stay compatible with the fixed hidden hand', () => {

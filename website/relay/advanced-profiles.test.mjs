@@ -106,7 +106,10 @@ test('balanced split raises retain game, non-serious and serious cue responses u
     const next = applyBid({ ...initial, partnerHand: hand }, major === 'H' ? '2S' : '2NT');
     assert.equal(next.auction.at(-1).bid, major === 'H' ? heartReply : spadeReply);
     assert.equal(matchesConstraints(hand, next.constraints, major), true);
-    if (next.auction.at(-1).bid === '3NT') assert.equal(availableActions(next).some(action => action.bid === 'Pass'), false);
+    if (next.auction.at(-1).bid === '3NT') {
+      assert.equal(availableActions(next).some(action => action.bid === 'Pass'), true, 'Asker may stop on an artificial cue answer');
+      assert.equal(applyBid(next, 'Pass').contract.bid, '3NT');
+    }
   }
 });
 
