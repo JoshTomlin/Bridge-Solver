@@ -276,6 +276,31 @@ try {
   assert.match(await returning.locator('#status').textContent(), /could not be restored/);
   assert.equal(await returning.locator('#auction .bid').count(), 1);
   console.log('Browser persistence checks passed: reload both roles, preferences, completed auction, undo, full browser restart and corrupt-save recovery.');
+
+  await selectSetting(returning, '#practice-mode', 'mixed');
+  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled
+    && JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).preferences.practiceMode === 'mixed');
+  const mixedInitial = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).session);
+  const mixedBid = mixedInitial.practiceRole === 'teller'
+    ? applyBid(mixedInitial, mixedInitial.pendingAsk.bid).auction[mixedInitial.auction.length + 1].bid
+    : availablePracticeActions(mixedInitial).find(action => action.kind === 'relay').bid;
+  await clickUiBid(returning, mixedBid);
+  const mixedProgress = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
+  assert.ok(mixedProgress.session.auction.length > mixedInitial.auction.length);
+  await persistent.close();
+  persistent = await chromium.launchPersistentContext(browserProfile, { headless: true });
+  returning = persistent.pages()[0];
+  await returning.goto(url);
+  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled && document.querySelectorAll('#player-hand .playing-card').length === 13);
+  assert.deepEqual(await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1'))), mixedProgress);
+  assert.equal(await returning.locator('#practice-mode').inputValue(), 'mixed');
+  await newHand(returning);
+  await returning.waitForFunction(seed => !document.getElementById('new-deal').disabled
+    && JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).session.seed !== seed, mixedProgress.session.seed);
+  const mixedNext = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
+  assert.equal(mixedNext.preferences.practiceMode, 'mixed');
+  assert.equal(mixedNext.preferences.studyProfileId, '');
+  console.log('Just bid persistence passed: full browser restart retains the exact auction and random mode for subsequent hands.');
 } finally {
   await persistent?.close();
   if (browserProfile) await rm(browserProfile, { recursive: true, force: true });

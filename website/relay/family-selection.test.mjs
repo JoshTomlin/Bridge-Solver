@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PRACTICE_PROFILES } from './profiles.js';
-import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile } from './families.js';
+import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile, selectMixedPractice } from './families.js';
 import { createTrainingPractice, practiceView } from './practice.js';
 
 test('broad auction families cover every exercise exactly once with the intended entry boundaries', () => {
@@ -57,4 +57,26 @@ test('random family entries produce usable asker and teller sessions with fixed 
     assert.equal(session.revealed, false);
     if (role === 'teller') assert.ok(session.pendingAsk);
   }
+});
+
+test('Just bid reaches every branch in both roles with equal family weighting and reproducible draws', () => {
+  const reached = new Set();
+  const families = new Map(AUCTION_FAMILIES.map(family => [family.id, 0]));
+  const roles = { asker: 0, teller: 0 };
+  const draws = 8192;
+  for (let i = 0; i < draws; i++) {
+    const seed = `mixed-selection-${i}`;
+    const selected = selectMixedPractice(seed);
+    assert.deepEqual(selected, selectMixedPractice(seed));
+    const family = auctionFamilyForProfile(selected.profileId);
+    assert.ok(['asker', 'teller'].includes(selected.role));
+    families.set(family.id, families.get(family.id) + 1);
+    roles[selected.role]++;
+    reached.add(`${selected.profileId}:${selected.role}`);
+  }
+  assert.deepEqual([...reached].sort(), PRACTICE_PROFILES.flatMap(profile => ['asker', 'teller'].map(role => `${profile.id}:${role}`)).sort());
+  // A fixed broad seed set detects accidental weighting by number of branches
+  // and biased roles without making a statistical assertion about live hands.
+  for (const count of families.values()) assert.ok(count > draws / families.size * 0.8 && count < draws / families.size * 1.2);
+  assert.ok(roles.asker > draws * 0.45 && roles.asker < draws * 0.55);
 });

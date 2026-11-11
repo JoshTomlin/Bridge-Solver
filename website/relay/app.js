@@ -2,7 +2,7 @@ import { revealPractice, handFeatures, SUITS, RANKS, getPracticeProfile, practic
 import { availablePracticeActions, practiceCalls, applyPracticeBid, practiceView } from './practice.js';
 import { createEvaluationDeals, fillOpponentHands, defaultContracts } from './evaluation.js';
 import { loadPracticeProgress, savePracticeProgress } from './progress.js';
-import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile } from './families.js';
+import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile, selectMixedPractice } from './families.js';
 import { AUCTION_SEATS, auctionRounds } from './table-ui.js';
 import { auctionCallDetails } from './auction-study.js';
 import { attachBidPreview } from './bid-preview.js';
@@ -20,6 +20,7 @@ let busy = false;
 let ddsReady = false;
 let job = 0;
 let committedStudyProfileId = '';
+let committedPracticeMode = 'focused';
 let selectedLevel = null;
 let lastAuctionKey = '';
 let auctionRowLimit = 4;
@@ -82,7 +83,8 @@ function persistProgress() {
     analysisBasis: byId('analysis-basis').value,
     assessedContract: byId('assessed-contract').value,
     bidInput: byId('bid-input').value,
-    studyProfileId: byId('profile').value,
+    studyProfileId: committedStudyProfileId,
+    practiceMode: committedPracticeMode,
   } });
   byId('save-status').classList.toggle('is-error', !saved.ok);
   byId('save-status').textContent = saved.ok ? 'Progress saved in this browser.'
@@ -93,7 +95,7 @@ function persistProgress() {
 
 function renderSaveBadge() {
   const badge = byId('role-badge');
-  const text = `${session.practiceRole === 'teller' ? 'Teller' : 'Asker'}${saveFailed ? ' · Not saved' : ''}`;
+  const text = `${session.practiceRole === 'teller' ? 'Teller' : 'Asker'}${committedPracticeMode === 'mixed' ? ' · Just bid' : ''}${saveFailed ? ' · Not saved' : ''}`;
   if (badge.textContent !== text) badge.textContent = text;
   badge.classList.toggle('is-error', saveFailed);
   badge.title = saveFailed ? 'Progress is not being saved. Open settings for details.' : '';
@@ -109,7 +111,7 @@ function handRecord(cards) {
 
 function setBusy(value) {
   busy = value;
-  for (const id of ['practice-role', 'auction-family', 'profile', 'seed', 'new-deal', 'replay-deal', 'sample-count', 'analysis-basis', 'assessed-contract']) byId(id).disabled = busy;
+  for (const id of ['practice-mode', 'practice-role', 'auction-family', 'profile', 'seed', 'new-deal', 'replay-deal', 'sample-count', 'analysis-basis', 'assessed-contract']) byId(id).disabled = busy;
   byId('stop-analysis').hidden = !busy;
   byId('stop-deal').hidden = !busy;
   render();
@@ -213,8 +215,14 @@ function render() {
   const actions = availablePracticeActions(session);
   byId('practice-badge').textContent = bidLabel(auctionFamilyForProfile(session.familyId).name);
   renderSaveBadge();
-  const studying = Boolean(byId('profile').value);
-  byId('practice-scope').textContent = studying ? 'Branch study' : 'Random branch';
+  const mixed = byId('practice-mode').value === 'mixed';
+  byId('family-settings').hidden = mixed;
+  byId('study-branch-field').hidden = mixed;
+  byId('study-menu-title').textContent = mixed ? 'Current hand and replay' : 'Study a particular branch';
+  for (const id of ['auction-family', 'practice-role', 'profile']) byId(id).disabled = busy || mixed;
+  const studying = Boolean(committedStudyProfileId);
+  byId('practice-scope').textContent = committedPracticeMode === 'mixed'
+    ? 'Random family, branch and role each hand.' : studying ? 'Branch study' : 'Random branch';
   byId('new-deal').setAttribute('aria-label', studying ? 'Next study hand' : 'New hand');
   byId('active-branch').textContent = `Current branch: ${bidLabel(profile.name)}`;
   byId('system-assumptions').innerHTML = [...(profile.assumptions ?? []), ...(profile.limitations ?? [])].map(text => `<li>${escapeHtml(bidLabel(text))}</li>`).join('');
@@ -323,6 +331,7 @@ function randomSeed() {
 
 function restoreDealControls() {
   if (!session) return;
+  byId('practice-mode').value = committedPracticeMode;
   byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
   byId('practice-role').value = session.practiceRole;
   populateStudyProfiles(committedStudyProfileId);
@@ -331,25 +340,34 @@ function restoreDealControls() {
 
 async function dealHand({ replay = false } = {}) {
   if (busy) return;
+  const mode = byId('practice-mode').value;
   const currentJob = ++job;
   setBusy(true);
   status('Dealing a fixed partner hand and a matching practice hand…');
   try {
     const seed = replay ? byId('seed').value.trim() || session?.seed || randomSeed() : randomSeed();
-    const familyId = byId('auction-family').value;
-    const replayProfile = replay && session && auctionFamilyForProfile(session.familyId).id === familyId ? session.familyId : '';
-    const profile = selectFamilyProfile({ familyId, profileId: byId('profile').value || replayProfile, seed });
-    const next = await sampler.request({ command: 'deal', payload: { role: byId('practice-role').value, profileId: profile.id, seed } });
+    let selection;
+    if (mode === 'mixed') {
+      selection = replay && session ? { profileId: session.familyId, role: session.practiceRole } : selectMixedPractice(seed);
+    } else {
+      const familyId = byId('auction-family').value;
+      const replayProfile = replay && session && auctionFamilyForProfile(session.familyId).id === familyId ? session.familyId : '';
+      selection = { profileId: selectFamilyProfile({ familyId, profileId: byId('profile').value || replayProfile, seed }).id,
+        role: byId('practice-role').value };
+    }
+    const next = await sampler.request({ command: 'deal', payload: { ...selection, seed } });
     if (currentJob !== job) return;
     session = next;
-    committedStudyProfileId = byId('profile').value;
+    committedPracticeMode = mode;
+    committedStudyProfileId = mode === 'mixed' ? '' : byId('profile').value;
     history = [];
-    byId('seed').value = session.seed;
+    restoreDealControls();
     byId('bid-input').value = '';
     byId('assessed-contract').replaceChildren();
     invalidateAnalysis();
     status(session.practiceRole === 'teller' ? 'Partner has asked a question. Choose the response that describes your hand.'
       : 'Practice auction ready. Your partner’s hand will stay fixed throughout the auction.');
+    return true;
   } catch (error) {
     if (currentJob === job) {
       restoreDealControls();
@@ -522,6 +540,10 @@ new ResizeObserver(fitAuction).observe(document.querySelector('.auction-area'));
 
 byId('auction-family').innerHTML = AUCTION_FAMILIES.map(family => `<option value="${escapeHtml(family.id)}">${escapeHtml(bidLabel(family.name))}</option>`).join('');
 populateStudyProfiles();
+byId('practice-mode').addEventListener('change', async () => {
+  const dealt = await dealHand();
+  if (dealt && committedPracticeMode === 'mixed') byId('settings-dialog').close();
+});
 byId('auction-family').addEventListener('change', () => { populateStudyProfiles(); dealHand(); });
 byId('profile').addEventListener('change', () => dealHand());
 byId('practice-role').addEventListener('change', () => dealHand());
@@ -591,6 +613,8 @@ async function startPractice() {
     ({ session, history } = saved.progress);
     const preferences = saved.progress.preferences;
     committedStudyProfileId = preferences.studyProfileId;
+    committedPracticeMode = preferences.practiceMode;
+    byId('practice-mode').value = committedPracticeMode;
     byId('practice-role').value = session.practiceRole;
     byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
     populateStudyProfiles(preferences.studyProfileId);

@@ -123,6 +123,7 @@ summary { font-weight: 500; min-height: 28px; }.replay-options { margin-top: 20p
 .table-title > span.is-error { color: var(--red); }
 @media (hover: none), (pointer: coarse) { .preview-tip { display: inline; } }
 .typed-menu-button { margin-top: 18px; width: 100%; }.typed-menu-button svg { width: 18px; height: 18px; }
+.practice-mode-field { margin-bottom: 14px; }
 .context-toggle { display: flex; align-items: center; min-height: 40px; padding: 4px 0; background: none; color: var(--accent); font-size: 12px; }
 .context-toggle::before { content: '+'; width: 20px; font-size: 16px; }.context-toggle[aria-expanded=true]::before { content: '−'; }
 @media (max-width: 420px) { .hand-lines { grid-template-columns: 1fr; } }

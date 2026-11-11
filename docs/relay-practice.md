@@ -13,6 +13,19 @@ Both hands use short cards to leave more room for the auction. Partner's 13
 cards sit above the auction, face down during bidding and face up at completion.
 Undoing completion hides them again.
 
+For a mix of everything, open **Practice settings → Practice mode → Just bid ·
+All families**. Each new hand picks a family with equal probability, a random
+branch within that family, and an independently random asker/teller role.
+The menu closes after dealing; the table shows the actual family and role,
+with **Just bid** beside the role. Use the next-hand arrow or **Next hand**
+after completion to keep going. Random selections can repeat.
+
+Just bid remembers its mode and resumes the same saved auction when you return.
+**Current hand and replay → Hand seed and replay** replays the current branch
+and role; the next new hand draws from everything again. Choose **Choose family
+and role** to return to focused practice. Existing saves retain their current
+family, role and study selection until you choose Just bid.
+
 Choose **Asker · Ask and interpret** or **Teller · Answer the questions** in
 the top-right **Practice settings** menu. The asker chooses relay questions, interprets the replies and
 selects the final contract. The teller sees the describing hand and answers

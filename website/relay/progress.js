@@ -46,15 +46,17 @@ function validateSession(session) {
 }
 
 function preferencesFor(preferences = {}, session) {
+  const practiceMode = preferences.practiceMode === 'mixed' ? 'mixed' : 'focused';
   let assessedContract = '';
   try { bidIndex(preferences.assessedContract); assessedContract = preferences.assessedContract; } catch { /* Use the default contract. */ }
   return {
+    practiceMode,
     showHints: preferences.showHints === true,
     sampleCount: ['100', '500', '1000'].includes(String(preferences.sampleCount)) ? String(preferences.sampleCount) : '100',
     analysisBasis: session.revealed && preferences.analysisBasis === 'revealed' ? 'revealed' : 'auction',
     assessedContract,
     bidInput: typeof preferences.bidInput === 'string' ? preferences.bidInput.slice(0, 12) : '',
-    studyProfileId: preferences.studyProfileId === session.familyId ? session.familyId : '',
+    studyProfileId: practiceMode === 'focused' && preferences.studyProfileId === session.familyId ? session.familyId : '',
   };
 }
 

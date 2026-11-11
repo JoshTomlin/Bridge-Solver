@@ -20,7 +20,7 @@ test('asker progress restores the exact auction, fixed cards, preferences and us
   const action = availablePracticeActions(first).find(action => action.kind === 'relay');
   const session = applyPracticeBid(first, action.bid);
   const history = [initial, first];
-  const preferences = { showHints: true, sampleCount: '500', analysisBasis: 'auction', assessedContract: '6H', bidInput: '5NT', studyProfileId: '' };
+  const preferences = { practiceMode: 'focused', showHints: true, sampleCount: '500', analysisBasis: 'auction', assessedContract: '6H', bidInput: '5NT', studyProfileId: '' };
   assert.equal(savePracticeProgress({ session, history, preferences }, storage).ok, true);
   const restored = loadPracticeProgress(storage);
   assert.equal(restored.error, undefined);
@@ -115,10 +115,31 @@ test('old progress resumes in family mode while an explicitly studied branch sta
   const session = applyPracticeBid(createTrainingPractice({ seed: 'family-migration' }), '2NT');
   savePracticeProgress({ session, history: [] }, storage);
   const legacy = loadPracticeProgress(storage).progress;
+  assert.equal(legacy.preferences.practiceMode, 'focused');
   assert.deepEqual(legacy.session, jsonValue(session));
   assert.equal(legacy.preferences.studyProfileId, '', 'Restoring a specific dealt branch must not pin future hands');
   savePracticeProgress({ session, history: [], preferences: { studyProfileId: session.familyId } }, storage);
   assert.equal(loadPracticeProgress(storage).progress.preferences.studyProfileId, session.familyId);
   savePracticeProgress({ session, history: [], preferences: { studyProfileId: 'horton-d' } }, storage);
   assert.equal(loadPracticeProgress(storage).progress.preferences.studyProfileId, '');
+});
+
+test('Just bid restores its mode and exact hand without carrying over a pinned study branch', () => {
+  const storage = memoryStorage();
+  for (const role of ['asker', 'teller']) {
+    const initial = createTrainingPractice({ profileId: 'dappleton-h-d-four-major', role, seed: 'mixed-save' });
+    const session = role === 'teller'
+      ? applyPracticeBid(initial, applyBid(initial, initial.pendingAsk.bid).auction[initial.auction.length + 1].bid)
+      : applyPracticeBid(initial, availablePracticeActions(initial).find(action => action.kind === 'relay').bid);
+    savePracticeProgress({ session, history: [initial], preferences: { practiceMode: 'mixed', studyProfileId: session.familyId } }, storage);
+    const restored = loadPracticeProgress(storage).progress;
+    assert.equal(restored.preferences.practiceMode, 'mixed');
+    assert.equal(restored.preferences.studyProfileId, '');
+    assert.deepEqual(restored.session, jsonValue(session));
+    assert.deepEqual(restored.history, jsonValue([initial]));
+    savePracticeProgress({ session, history: [], preferences: { practiceMode: 'unknown', studyProfileId: session.familyId } }, storage);
+    const fallback = loadPracticeProgress(storage).progress;
+    assert.equal(fallback.preferences.practiceMode, 'focused');
+    assert.equal(fallback.preferences.studyProfileId, session.familyId);
+  }
 });

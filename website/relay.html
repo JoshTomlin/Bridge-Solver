@@ -21,7 +21,7 @@
     <main class="relay-main" aria-label="Relay bidding practice">
       <header class="table-header">
         <a class="brand" href="./index.html" aria-label="Bridge Lab"><span>♠</span></a>
-        <button type="button" class="table-title" data-open="settings-dialog" aria-label="Choose auction family and role"><strong id="practice-badge">Relay</strong><span id="role-badge" aria-live="polite" aria-atomic="true">Asker</span></button>
+        <button type="button" class="table-title" data-open="settings-dialog" aria-label="Choose practice mode, auction family and role"><strong id="practice-badge">Relay</strong><span id="role-badge" aria-live="polite" aria-atomic="true">Asker</span></button>
         <form id="deal-form"><button class="icon-button" type="submit" id="new-deal" aria-label="New hand" title="New hand"><svg><use href="#icon-next"/></svg></button></form>
         <button type="button" id="settings-open" class="icon-button" data-open="settings-dialog" aria-label="Practice settings" title="Settings"><svg><use href="#icon-menu"/></svg></button>
       </header>
@@ -58,8 +58,9 @@
     <dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
       <header class="sheet-heading"><h2 id="settings-title">Practice</h2><button type="button" class="icon-button" data-close aria-label="Close settings"><svg><use href="#icon-close"/></svg></button></header>
       <div class="sheet-body">
-        <div class="settings-fields"><label>Which auction family?<select id="auction-family"></select></label><label>Your role<select id="practice-role"><option value="asker">Asker · Ask and interpret</option><option value="teller">Teller · Answer the questions</option></select></label></div>
-        <p id="practice-scope" class="muted">Random branch</p><details id="study-menu" class="menu-section"><summary>Study a particular branch</summary><label>Branch<select id="profile"></select></label><p id="active-branch" class="muted"></p><details class="replay-options"><summary>Hand seed and replay</summary><label>Hand seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false"></label><button type="button" id="replay-deal" class="button secondary">Replay this branch</button></details></details>
+        <label class="practice-mode-field">Practice mode<select id="practice-mode"><option value="focused">Choose family and role</option><option value="mixed">Just bid · All families</option></select></label>
+        <div id="family-settings" class="settings-fields"><label>Which auction family?<select id="auction-family"></select></label><label>Your role<select id="practice-role"><option value="asker">Asker · Ask and interpret</option><option value="teller">Teller · Answer the questions</option></select></label></div>
+        <p id="practice-scope" class="muted">Random branch</p><details id="study-menu" class="menu-section"><summary id="study-menu-title">Study a particular branch</summary><label id="study-branch-field">Branch<select id="profile"></select></label><p id="active-branch" class="muted"></p><details class="replay-options"><summary>Hand seed and replay</summary><label>Hand seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false"></label><button type="button" id="replay-deal" class="button secondary">Replay this branch</button></details></details>
         <button type="button" class="button secondary typed-menu-button" data-open="typed-dialog" id="type-bid-open"><svg><use href="#icon-keyboard"/></svg>Type a bid</button>
         <details class="menu-section"><summary>System notes</summary><ul id="system-assumptions" class="constraint-list"></ul></details>
         <p id="save-status" class="muted" role="status" aria-live="polite"></p><a class="quiet-link" href="./index.html">Back to play lab ↗</a>

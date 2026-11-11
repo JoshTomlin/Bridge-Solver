@@ -43,3 +43,16 @@ export function selectFamilyProfile({ familyId, profileId = '', seed }) {
   const rng = makeRng(`relay-family:${familyId}:${seed}`);
   return getPracticeProfile(selected.profileIds[Math.floor(rng() * selected.profileIds.length)]);
 }
+
+/** Choose the family uniformly before its branch, so larger families do not
+ * dominate. Independent seed streams keep the role unrelated to either draw
+ * or either hand; the same seed remains reproducible. */
+export function selectMixedPractice(seed) {
+  const familyRng = makeRng(`relay-mixed-family:${seed}`);
+  const roleRng = makeRng(`relay-mixed-role:${seed}`);
+  const family = AUCTION_FAMILIES[Math.floor(familyRng() * AUCTION_FAMILIES.length)];
+  return {
+    profileId: selectFamilyProfile({ familyId: family.id, seed }).id,
+    role: roleRng() < 0.5 ? 'asker' : 'teller',
+  };
+}
