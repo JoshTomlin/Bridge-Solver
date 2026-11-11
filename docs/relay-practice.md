@@ -135,6 +135,8 @@ teller's source-defined strength escapes go beyond the normal response ladder
 to avoid landing on a lower playable game; they do not prohibit the asker
 from choosing to stop. This supersedes the earlier documentation's incorrect
 assumption that artificial 3NT answers must be forcing.
+This also applies when responder is temporarily asking an early Baron enquiry
+in whole-auction practice: responder can pass opener's Baron answer.
 
 Tap a call in the auction for its meaning. Below it, **Alternatives** shows
 the auction through that question and all its agreed response steps, marking

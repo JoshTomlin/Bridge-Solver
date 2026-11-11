@@ -33,6 +33,23 @@ test('a legacy artificial-3NT flag cannot block the asker or change a teller res
   assert.equal(availablePracticeActions(teller).some(action => action.bid === 'Pass'), false);
 });
 
+test('the responder controls the early Baron enquiry in whole-auction practice and may pass its answer', () => {
+  let session = createTrainingPractice({ auctionMode: true, humanSeat: 'South', seed: 'baron-control' });
+  session = { ...session,
+    playerHand: 'SK SQ S2 HK H3 DA D9 D8 D4 CA CQ C8 C7'.split(' '),
+    partnerHand: 'SA S5 HA HQ HJ H7 H2 DJ DT CJ C6 C5 C4'.split(' ') };
+  assert.equal(new Set([...session.playerHand, ...session.partnerHand]).size, 26);
+  for (const bid of ['1D', '2C', '2S']) session = applyPracticeBid(session, bid);
+  assert.equal(session.opening.node, 'agree-minor');
+  assert.equal(session.auction.at(-1).bid, '2NT');
+  assert.equal(practiceCalls(session).find(call => call.bid === 'Pass').discussed, true);
+  const passed = applyPracticeBid(session, 'Pass');
+  assert.equal(passed.contract.bid, '2NT');
+  assert.equal(passed.contract.declarer, 'North');
+  assert.deepEqual(passed.auction.slice(0, -1), session.auction);
+  assert.deepEqual(passed.constraints, session.constraints);
+});
+
 test('R0174: minimum answers 3NT; maximum carries the same keycards beyond the normal ladder at 4D', () => {
   const cards = holdings => holdings.split(' ').flatMap((holding, index) => [...holding].map(rank => 'SHDC'[index] + rank));
   for (const [holdings, points, expected] of [['A2 K2 KJ9876 QJ8', 14, '3NT'], ['AK K2 KJ9876 QJ8', 17, '4D']]) {

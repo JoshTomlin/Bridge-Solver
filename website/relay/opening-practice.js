@@ -81,7 +81,8 @@ export function openingActions(session) {
       call('3D', 'No four-card minor', 'P0506')];
     case 'agree-minor': {
       const shown = session.auction.at(-1).bid === '2NT' ? 'C' : session.auction.at(-1).bid === '3C' ? 'D' : null;
-      return [...(shown ? [call(`3${shown}`, `Agree ${names[shown]}`, 'P0509')] : []),
+      return [call('Pass', `Play ${session.auction.at(-1).bid}`, 'Partnership clarification: asker controls the contract'),
+        ...(shown ? [call(`3${shown}`, `Agree ${names[shown]}`, 'P0509')] : []),
         call('3NT', 'Quantitative invitation', 'P0415/P0515')];
     }
     case 'continue': case 'after-puppet': {
@@ -169,6 +170,7 @@ export function applyOpeningCall(session, bid) {
       : f.lengths.C < 4 && f.lengths.D < 4, 'This Baron response does not match your minor-suit lengths.');
     fact(action.label); next.opening.node = 'agree-minor';
   } else if (node === 'agree-minor') {
+    if (bid === 'Pass') return finish(next);
     if (bid === '3NT') return boundary(next); // Quant acceptance needs agreed policy.
     const minor = bid.slice(1);
     require(f.lengths[minor] >= 4, `Agreeing ${names[minor]} requires four-plus cards in that suit.`);

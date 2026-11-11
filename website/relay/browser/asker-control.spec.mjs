@@ -63,3 +63,28 @@ test('an asker may pass a saved artificial 3NT reply as an agreed signoff, revea
   await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(13);
   await fitsScreen(page);
 });
+
+test('the whole-auction responder may pass an early Baron answer and restore that choice', async ({ page }) => {
+  let session = createTrainingPractice({ auctionMode: true, humanSeat: 'South', seed: 'baron-control' });
+  session = { ...session,
+    playerHand: 'SK SQ S2 HK H3 DA D9 D8 D4 CA CQ C8 C7'.split(' '),
+    partnerHand: 'SA S5 HA HQ HJ H7 H2 DJ DT CJ C6 C5 C4'.split(' ') };
+  const history = [];
+  for (const bid of ['1D', '2C', '2S']) { history.push(session); session = applyPracticeBid(session, bid); }
+  await page.addInitScript(progress => {
+    if (!localStorage.getItem('bridge-lab.relay-progress.v1')) localStorage.setItem('bridge-lab.relay-progress.v1', JSON.stringify(progress));
+  }, { version: 1, session, history, preferences: { practiceMode: 'auction' } });
+  await page.goto('relay.html');
+  await expect(page.locator('#new-deal')).toBeEnabled();
+  await expect(page.locator('[data-bid="Pass"]')).toHaveAttribute('data-discussed', 'true');
+  await clickBid(page, 'Pass');
+  const result = await page.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
+  expect(result.session.contract.bid).toBe('2NT');
+  expect(result.session.undiscussedBid).toBeUndefined();
+  await expect(page.locator('#partner-cards [data-card]')).toHaveCount(13);
+  await page.reload();
+  await expect(page.locator('#new-deal')).toBeEnabled();
+  await expect(page.locator('#action-title')).toHaveText('2NT · North');
+  await page.click('#undo-bid');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).session)).toEqual(JSON.parse(JSON.stringify(session)));
+});
