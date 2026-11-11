@@ -34,6 +34,38 @@ does not upload or synchronise auctions. Other browsers/devices may keep a
 separate save. Native installation prompts and home-screen launching should
 also be checked on the user's physical phone.
 
+## Whole-auction practice: first release
+
+Choose **Practice mode → Whole auction · 1♣** to play all your calls, starting
+with the opening if you are North, or the response to 1C if you are South.
+Each new hand randomly assigns opener/responder. Your seat and both hands stay
+fixed, and partner chooses calls from their own cards and the public auction.
+
+The first slice covers balanced 14–19 club openings with two/three in each
+major (no six-card minor), opposite one four/five-card major. Responder is
+clearly weak, 3–6, or has 12–19 and a four/five-card minor. Supported routes
+include the 1D/1H transfers, 14–17 transfer acceptance versus the 18/19 1NT
+rebid, weak signoffs, the 2C puppet, five-card-minor transfers and the
+five-major/four-minor Baron agreements. These lead into the existing shortage
+and keycard exercises using the actual opening auction, preserving declarer.
+
+For example, after `1C` you choose `1D`; after partner's `1NT` you choose
+`3C` to show exactly five diamonds and four hearts. The trainer then continues
+with the shortage questions. It does not supply those first two bids for you.
+
+Meanings describe all offered agreements without selecting the correct one
+from your cards. A bid that contradicts an implemented definition leaves the
+hand unchanged for retry. A continuation outside this first release shows
+**Not implemented**, keeps partner hidden and offers **Undo and continue**.
+This is a growing part of the system, not unrestricted opening or judgement
+coverage. Invitations, quant acceptance, broader Baron alternatives, two-major
+hands and balanced four-card-major rebids are subsequent work. Open decisions
+are recorded in [questions for Markey](relay-system/questions-for-markey.md).
+
+Full-auction saves include their rules revision and restore the same seat,
+auction and undo history across the transition into a relay family. Replay
+preserves the original seat and deal; New hand draws a new one.
+
 For a mix of everything, open **Practice settings → Practice mode → Just bid ·
 All families**. Each new hand picks a family with equal probability, a random
 branch within that family, and an independently random asker/teller role.

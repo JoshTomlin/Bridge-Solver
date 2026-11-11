@@ -3,6 +3,7 @@
 // definitions or letting the hidden teller hand influence the next question.
 import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex } from './core.js';
 import { declarerFor } from './profile-utils.js';
+import { createOpeningPractice, openingActions, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
 
 export function practiceView(session) {
   const teller = session.practiceRole === 'teller';
@@ -42,7 +43,8 @@ export function advanceAsker(session) {
   }) });
 }
 
-export function createTrainingPractice({ role = 'asker', ...options } = {}) {
+export function createTrainingPractice({ role = 'asker', auctionMode = false, ...options } = {}) {
+  if (auctionMode) return createOpeningPractice(options);
   if (!['asker', 'teller'].includes(role)) throw new Error('Choose asker or teller practice.');
   const session = Object.freeze({ ...createPractice(options), practiceRole: role, pendingAsk: null });
   return role === 'teller' ? advanceAsker(session) : session;
@@ -50,6 +52,7 @@ export function createTrainingPractice({ role = 'asker', ...options } = {}) {
 
 export function availablePracticeActions(session) {
   if (session.finished || session.revealed) return [];
+  if (session.opening) return openingActions(session);
   if (session.practiceRole !== 'teller') return availableActions(session);
   // Some source predicates share a call. Show all meanings of that call;
   // never identify the correct response by examining the human's cards.
@@ -79,6 +82,10 @@ export function practiceCalls(session) {
 export function applyPracticeBid(session, bid) {
   const call = practiceCalls(session).find(call => call.bid === bid);
   if (!call) throw new Error(`${bid} is not an available response or legal call at this point in the auction.`);
+  if (session.opening) {
+    const next = advanceOpeningPartner(applyOpeningCall(session, bid));
+    return !next.opening && next.practiceRole === 'teller' ? advanceAsker(next) : next;
+  }
   if (!call.discussed) {
     const view = practiceView(session);
     const auction = Object.freeze([...view.auction, Object.freeze({ seat: view.playerSeat, bid, meaning: call.label })]);

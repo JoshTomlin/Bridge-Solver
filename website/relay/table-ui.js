@@ -6,6 +6,7 @@ export function auctionRounds(calls, finished = false) {
   const rounds = [];
   let row;
   let previous = 3;
+  if (!calls.length && !finished) return [[{ kind: 'pending' }, null, null, null]];
   for (const [index, call] of calls.entries()) {
     const column = AUCTION_SEATS.indexOf(call.seat);
     if (column !== 0 && column !== 2) throw new Error('Expected a partnership call.');

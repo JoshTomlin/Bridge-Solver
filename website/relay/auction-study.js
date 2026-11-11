@@ -14,6 +14,7 @@ export function auctionCallDetails(session, history, index) {
     if (!question || question.seat !== session.playerSeat) return null;
     const before = [session, ...history].find(previous => previous.auction.length === at
       && previous.auction.every((entry, i) => entry.bid === auction[i].bid && entry.seat === auction[i].seat));
+    if (before?.opening) return null; // Opening choices have no relay-answer ladder.
     if (before && /^Ask (Shortage Keycard|keycards)$/i.test(question.meaning ?? '')) {
       // Use the original question's suit, never the current or bid strain.
       question = { ...question, meaning: shortBidDescription(question.meaning, before.trump ?? before.major) };

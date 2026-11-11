@@ -1,12 +1,15 @@
 import { getPracticeProfile, handFeatures, matchesConstraints, bidIndex, practiceNode } from './core.js';
 import { availablePracticeActions } from './practice.js';
+import { validateOpeningSession } from './opening-practice.js';
 
 export const PROGRESS_KEY = 'bridge-lab.relay-progress.v1';
 const VERSION = 1;
 
 function validateSession(session) {
   if (!session || typeof session !== 'object') throw new Error('Saved practice session is missing.');
-  const profile = getPracticeProfile(session.familyId);
+  if (session.wholeAuction) validateOpeningSession(session);
+  const profile = session.wholeAuction && session.familyId === 'opening-club'
+    ? { playerSeat: 'North', partnerSeat: 'South' } : getPracticeProfile(session.familyId);
   if (!['asker', 'teller'].includes(session.practiceRole)
       || session.playerSeat !== profile.playerSeat || session.partnerSeat !== profile.partnerSeat
       || typeof session.seed !== 'string' || typeof session.phase !== 'string'
@@ -19,7 +22,7 @@ function validateSession(session) {
       || !matchesConstraints(session.partnerHand, session.constraints, session.trump)) {
     throw new Error('Saved hands do not match the auction constraints.');
   }
-  if (!Array.isArray(session.auction) || !session.auction.length) throw new Error('Saved auction is missing.');
+  if (!Array.isArray(session.auction) || !session.auction.length && !(session.opening?.node === 'open' && session.wholeAuction?.humanSeat === 'North')) throw new Error('Saved auction is missing.');
   for (const call of session.auction) {
     if (!call || !['North', 'South'].includes(call.seat)) throw new Error('Saved auction seat is invalid.');
     if (call.bid !== 'Pass') bidIndex(call.bid);
@@ -35,7 +38,7 @@ function validateSession(session) {
     for (const answer of session.pendingAsk.responseLadder) {
       if (answer.bid !== 'Pass') bidIndex(answer.bid);
     }
-  } else if (session.practiceRole === 'teller' && !session.finished && !session.revealed) {
+  } else if (session.practiceRole === 'teller' && !session.opening && !session.finished && !session.revealed) {
     throw new Error('Saved teller question is missing.');
   }
   if (session.contract) {
@@ -46,7 +49,7 @@ function validateSession(session) {
 }
 
 function preferencesFor(preferences = {}, session) {
-  const practiceMode = preferences.practiceMode === 'mixed' ? 'mixed' : 'focused';
+  const practiceMode = session.wholeAuction ? 'auction' : preferences.practiceMode === 'mixed' ? 'mixed' : 'focused';
   let assessedContract = '';
   try { bidIndex(preferences.assessedContract); assessedContract = preferences.assessedContract; } catch { /* Use the default contract. */ }
   return {
@@ -83,7 +86,9 @@ export function loadPracticeProgress(storage) {
     if (!Array.isArray(saved.history) || saved.history.length > 100) throw new Error('Saved undo history is invalid.');
     for (const previous of saved.history) {
       validateSession(previous);
-      if (previous.familyId !== saved.session.familyId || previous.seed !== saved.session.seed
+      if ((!saved.session.wholeAuction && previous.familyId !== saved.session.familyId)
+          || JSON.stringify(previous.wholeAuction) !== JSON.stringify(saved.session.wholeAuction)
+          || previous.seed !== saved.session.seed
           || previous.practiceRole !== saved.session.practiceRole
           || previous.playerHand.join() !== saved.session.playerHand.join()
           || previous.partnerHand.join() !== saved.session.partnerHand.join()) {

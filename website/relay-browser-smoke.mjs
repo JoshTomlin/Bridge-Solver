@@ -7,6 +7,7 @@ import path from 'node:path';
 import { selectSetting, closeSheets, newHand, clickBid as clickUiBid } from './relay/browser/helpers.mjs';
 import { createTrainingPractice, applyPracticeBid, availablePracticeActions } from './dist/relay/practice.js';
 import { applyBid } from './dist/relay/core.js';
+import { openingPartnerBid } from './dist/relay/opening-practice.js';
 import { AUCTION_FAMILIES, auctionFamilyForProfile } from './dist/relay/families.js';
 
 const { chromium } = await import(process.env.BRIDGE_PLAYWRIGHT_MODULE || 'playwright');
@@ -301,6 +302,25 @@ try {
   assert.equal(mixedNext.preferences.practiceMode, 'mixed');
   assert.equal(mixedNext.preferences.studyProfileId, '');
   console.log('Just bid persistence passed: full browser restart retains the exact auction and random mode for subsequent hands.');
+
+  await selectSetting(returning, '#practice-mode', 'auction');
+  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled
+    && JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).preferences.practiceMode === 'auction');
+  const opening = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).session);
+  const openingBid = openingPartnerBid({ ...opening.opening, auction: opening.auction,
+    hand: opening.wholeAuction.humanSeat === 'North' ? opening.playerHand : opening.partnerHand });
+  await clickUiBid(returning, openingBid);
+  const openingProgress = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
+  await persistent.close();
+  persistent = await chromium.launchPersistentContext(browserProfile, { headless: true });
+  returning = persistent.pages()[0];
+  await returning.goto(url);
+  await returning.waitForFunction(() => !document.getElementById('new-deal').disabled && document.querySelectorAll('#player-hand .playing-card').length === 13);
+  assert.deepEqual(await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1'))), openingProgress);
+  assert.equal(await returning.locator('#practice-mode').inputValue(), 'auction');
+  await returning.click('#undo-bid');
+  assert.deepEqual(await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).session), opening);
+  console.log('Whole-auction persistence passed: first bids, fixed seat, full browser restart and undo.');
 } finally {
   await persistent?.close();
   if (browserProfile) await rm(browserProfile, { recursive: true, force: true });
