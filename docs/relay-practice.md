@@ -142,9 +142,13 @@ Tap a call in the auction for its meaning. Below it, **Alternatives** shows
 the auction through that question and all its agreed response steps, marking
 the response actually played. Tap either a question or its answer, including
 older calls in **Full auction**. This is a read-only study view: later bids,
-hands and undo history stay unchanged. Fixed opening sequences without a
-recorded response ladder say so; no alternatives are invented. Older saved
-major auctions recover their ladders from the saved undo states.
+hands and undo history stay unchanged. Prefilled bids describe their promised
+suits, support and range using the complete auction context. **Calls at this
+turn** shows their documented alternatives, including branches outside the
+random deal's narrower exercise. Opening bids show their meaning alone.
+Old saves with generic entry labels recover the public description for display;
+the saved cards, auction and undo states are not rewritten. Older saved major
+auctions recover their response ladders from the saved undo states.
 Long contexts show the latest two rounds first; **Show earlier rounds** expands
 the complete auction through that question without changing practice progress.
 
@@ -168,9 +172,11 @@ contract comparisons in asker mode. **Type a bid** in settings opens optional
 keyboard entry. A paused undiscussed continuation offers **Undo and continue**.
 
 North/East/South/West columns include the opponents' automatic passes. A dealer
-dot and **You** mark the seats. The table retains as many recent rounds as fit
-the screen, with no fixed six-round limit; **Full auction** opens the complete history, including meanings
-for earlier calls. Opening or closing a sheet does not change bidding progress.
+dot and **You** mark the seats. The auction panel retains every row: swipe or
+scroll within it to reach earlier bids, while headings, hands and bidding
+controls stay on screen. New bids return to the latest row; opening a meaning
+or resizing while reading earlier bids preserves your position. **Full auction**
+also opens the complete history. These views do not change bidding progress.
 
 Choose a first/second-seat, uncontested practice family: **1M–2NT**, the revised
 **minor-opening relays**, selected **1C–1S** continuations, or **Dappleton** after

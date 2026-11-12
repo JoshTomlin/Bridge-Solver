@@ -51,6 +51,43 @@ test('an unanswered teller question shows every public step without consulting e
   assert.deepEqual(detail.auction, practiceView(session).auction);
 });
 
+test('1C–1S–1NT shows the full source continuations and the bot’s Baron choices in both roles', () => {
+  const expected = ['2C', '2D', '2H', '2S', '2NT', '3C', '3D', '3H', '3S', '3NT'];
+  for (const role of ['asker', 'teller']) {
+    const initial = createTrainingPractice({ profileId: 'club-1s-1nt-baron', role, seed: 'source-alternatives' });
+    const session = role === 'asker' ? applyPracticeBid(initial, '2S') : initial;
+    const saved = JSON.parse(JSON.stringify({ session, history: [initial] }));
+    const before = JSON.stringify(saved);
+    const hidden = { ...saved.session, playerHand: ['hidden'], partnerHand: ['hidden'] };
+    const context = auctionCallDetails(hidden, [], 2);
+    assert.deepEqual(context.alternatives.map(option => option.bid), expected);
+    assert.deepEqual(context.auction.map(call => call.bid), ['1C', '1S', '1NT']);
+    assert.equal(context.playedBid, '2S');
+    assert.match(context.alternatives.find(option => option.bid === '2NT').label, /Five clubs and four diamonds/);
+    assert.match(context.alternatives.find(option => option.bid === '3C').label, /Five diamonds and four clubs/);
+    assert.match(context.alternatives.find(option => option.bid === '3D').label, /heart shortage/);
+    assert.match(context.alternatives.find(option => option.bid === '3H').label, /spade shortage/);
+    assert.match(context.alternatives.find(option => option.bid === '3S').label, /diamond shortage/);
+    const baron = auctionCallDetails(hidden, [], 3);
+    assert.deepEqual(baron.callAlternatives.map(option => option.bid).filter(bid => expected.includes(bid)), expected);
+    assert.deepEqual(baron.alternatives.map(option => option.bid), ['2NT', '3C', '3D', '3NT']);
+    assert.equal(JSON.stringify(saved), before);
+    const otherAuction = { ...hidden, auction: hidden.auction.map((call, index) => index === 1 ? { ...call, bid: '1H' } : call) };
+    assert.match(auctionCallDetails(otherAuction, [], 2).alternatives.find(option => option.bid === '2NT').label, /Exactly five clubs.*four spades/, 'A major transfer uses its own Dappleton table');
+  }
+});
+
+test('a bot’s relay question offers its other public asking calls without consulting either hand', () => {
+  const session = createTrainingPractice({ profileId: 'major-S', role: 'teller', seed: 'bot-choices' });
+  const hidden = { ...session, playerHand: ['hidden'], partnerHand: ['hidden'] };
+  const detail = auctionCallDetails(hidden, [], 1);
+  assert.equal(detail.call.bid, '2NT');
+  assert.deepEqual(detail.callAlternatives.map(option => option.bid), availableActions(hidden).map(option => option.bid));
+  assert.match(detail.callAlternatives.find(option => option.bid === '2NT').label, /Four-plus spades; game-forcing/);
+  assert.ok(detail.callAlternatives.some(option => option.bid === '6S'));
+  assert.ok(detail.alternatives.some(option => option.bid === '3C'));
+});
+
 test('older major auctions recover ladders from their saved undo states, including both asker calls and responses', () => {
   const original = createTrainingPractice({ profileId: 'major-S', seed: 'old-study' });
   const next = applyPracticeBid(original, '2NT');
@@ -77,6 +114,22 @@ test('fixed opening sequences and undiscussed questions do not invent alternativ
   const passed = applyPracticeBid(beforePass, 'Pass');
   assert.equal(passed.finished, true);
   assert.deepEqual(auctionCallDetails(passed, [beforePass], 3).alternatives, [], 'A final Pass needs no further partner response');
+});
+
+test('saved splinter entry popups recover the named shortage without reading cards or rewriting the auction', () => {
+  for (const profile of PRACTICE_PROFILES.filter(profile => profile.id.startsWith('rebid-splinter'))) {
+    const session = createTrainingPractice({ profileId: profile.id, seed: 'saved-splinter-label' });
+    const legacy = JSON.parse(JSON.stringify(session));
+    legacy.auction.forEach(call => { call.meaning = 'Source-defined relay entry'; });
+    const before = JSON.stringify(legacy);
+    const hidden = { ...legacy, playerHand: ['unknown'], partnerHand: ['unknown'] };
+    const detail = auctionCallDetails(hidden, [], 2);
+    assert.equal(detail.call.meaning, profile.initialAuction[2].meaning);
+    assert.deepEqual(detail.alternatives, [], 'A fixed entry is not an answer to a relay question');
+    assert.equal(JSON.stringify(legacy), before);
+    const unrelated = { ...hidden, auction: legacy.auction.map((call, i) => i === 0 ? { ...call, bid: '1S' } : call) };
+    assert.equal(auctionCallDetails(unrelated, [], 2).call.meaning, 'Source-defined relay entry', 'Do not relabel a different auction');
+  }
 });
 
 test('July heart-support continuation names the agreed suit on every keycard step', () => {

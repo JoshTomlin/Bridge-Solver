@@ -29,7 +29,9 @@ svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width:
 .info-button::after { content: ''; position: absolute; width: 17px; height: 17px; border: 1px solid currentColor; border-radius: 50%; opacity: .7; }
 .history-button { width: auto; min-width: 36px; height: 36px; gap: 3px; color: #9eb7be; font-size: 10px; }
 .history-button svg { width: 18px; height: 18px; }
-.auction-area { width: min(100%, 400px); align-self: stretch; justify-self: center; min-height: 0; display: grid; align-content: center; }
+.auction-area { width: min(100%, 400px); align-self: stretch; justify-self: center; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior-y: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: #75978e transparent; }
+.auction-area .auction-table { flex-shrink: 0; margin-block: auto; }
+.auction-area th { position: sticky; top: 0; z-index: 1; background: var(--felt-deep); }
 .auction-table { width: 100%; border-collapse: separate; border-spacing: 4px 3px; table-layout: fixed; }
 .auction-table th { height: 25px; padding: 0 0 4px; color: #8ca9b1; font-size: 11px; font-weight: 500; letter-spacing: .04em; }
 .auction-table th.is-you { color: var(--accent); }
@@ -114,7 +116,7 @@ summary { font-weight: 500; min-height: 28px; }.replay-options { margin-top: 20p
 #partner-hcp { font-size: 10px; color: var(--muted); white-space: nowrap; }
 .bid-alternatives { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 18px; }.bid-alternatives h3 { font-size: 15px; font-weight: 550; margin: 0; }.bid-alternatives .muted { margin: 8px 0 12px; }
 .study-auction { margin: 10px 0 20px; }.study-auction td, .study-auction .bid, .study-auction .awaiting-bid { height: 30px; }.study-auction .bid { font-size: 16px; }
-#bid-alternatives { gap: 0 14px; }#bid-alternatives dt, #bid-alternatives dd { padding: 10px 0; border-bottom: 1px solid var(--line); }#bid-alternatives .is-played { color: var(--ink); }.played-label { display: inline-block; margin-left: 8px; color: var(--accent); font-size: 10px; white-space: nowrap; }
+#call-alternatives, #bid-alternatives { gap: 0 14px; }#call-alternatives dt, #call-alternatives dd, #bid-alternatives dt, #bid-alternatives dd { padding: 10px 0; border-bottom: 1px solid var(--line); }#call-alternatives .is-played, #bid-alternatives .is-played { color: var(--ink); }.played-label { display: inline-block; margin-left: 8px; color: var(--accent); font-size: 10px; white-space: nowrap; }
 @media (max-height: 680px) { .partner-cards .card-corner { padding-top: 1px; }.partner-cards .card-corner b { font-size: 16px; }.partner-cards .card-corner i { font-size: 13px; } }
 @media (orientation: landscape) and (max-height: 520px) { .partner-cards { height: 32px; }.partner-cards .card-corner { padding-top: 1px; }.partner-cards .card-corner b { font-size: 16px; }.partner-cards .card-corner i { font-size: 13px; } }
 

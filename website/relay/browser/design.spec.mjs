@@ -51,14 +51,11 @@ test('a long study auction shows alternatives immediately and expands its full c
   await closeSheets(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.locator('#auction tr').count()).toBeGreaterThan(6);
-  const space = await page.locator('.auction-area').evaluate(area => {
-    const table = area.querySelector('table');
-    return { unused: area.clientHeight - table.getBoundingClientRect().height,
-      nextRow: table.tBodies[0].rows[0].getBoundingClientRect().height
-        + parseFloat(getComputedStyle(table).borderSpacing.split(' ').at(-1)) };
-  });
-  expect(space.unused).toBeGreaterThanOrEqual(-1);
-  expect(space.unused).toBeLessThan(space.nextRow);
+  const space = await page.locator('.auction-area').evaluate(area => ({
+    height: area.clientHeight, content: area.scrollHeight, bottom: area.scrollHeight - area.scrollTop - area.clientHeight,
+  }));
+  expect(space.content).toBeGreaterThanOrEqual(space.height);
+  expect(space.bottom).toBeLessThanOrEqual(2);
   await fitsScreen(page);
 });
 

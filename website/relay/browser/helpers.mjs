@@ -71,11 +71,9 @@ export async function fitsScreen(page) {
     expect(card.right).toBeLessThanOrEqual(dimensions.width + 1);
     expect(card.bottom).toBeLessThanOrEqual(dimensions.height + 1);
   }
-  const visibleCalls = await page.locator('#auction .bid').all();
+  const area = await page.locator('.auction-area').boundingBox();
   const table = await page.locator('.practice-table').boundingBox();
-  for (const call of visibleCalls) {
-    const bounds = await call.boundingBox();
-    expect(bounds.y).toBeGreaterThanOrEqual(table.y);
-    expect(bounds.y + bounds.height).toBeLessThanOrEqual(table.y + table.height);
-  }
+  expect(area.y).toBeGreaterThanOrEqual(table.y);
+  expect(area.y + area.height).toBeLessThanOrEqual(table.y + table.height);
+  expect(await page.locator('.auction-area').evaluate(node => getComputedStyle(node).overflowY)).toBe('auto');
 }

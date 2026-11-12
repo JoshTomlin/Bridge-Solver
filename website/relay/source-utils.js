@@ -1,5 +1,6 @@
 // Reusable declarative facts for the source-based relay families.
 import { SUITS, SUIT_NAMES, length, shapes, anyOf, nextBid, bidIndex } from './profile-utils.js';
+import { describeEntryAuction } from './bid-reference.js';
 import { keycardAction } from './continuations.js';
 
 export const SHAPES = [];
@@ -15,7 +16,7 @@ export const game = trump => `${['C', 'D'].includes(trump) ? 5 : 4}${trump}`;
 export const kickback = trump => ({ C: '4D', D: '4H', H: '4S', S: '4NT' })[trump];
 export const fit = (trump, extra = {}) => ({ trump, major: trump, agreementOptions: [],
   relayPolicy: { skip3NT: true, skipMajorGame: ['H', 'S'].includes(trump) }, ...extra });
-export const prefix = bids => bids.map((bid, i) => ({ seat: i % 2 ? 'South' : 'North', bid, meaning: 'Source-defined relay entry' }));
+export const prefix = bids => describeEntryAuction(bids.map((bid, i) => ({ seat: i % 2 ? 'South' : 'North', bid })));
 export const name = suit => SUIT_NAMES[suit].toLowerCase();
 
 /** NHL/HL is relative to the two suits that have not already been shown. */

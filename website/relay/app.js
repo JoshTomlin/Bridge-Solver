@@ -25,7 +25,8 @@ let committedStudyProfileId = '';
 let committedPracticeMode = 'focused';
 let selectedLevel = null;
 let lastAuctionKey = '';
-let auctionRowLimit = 4;
+let renderedAuctionKey = '';
+let auctionPinned = true;
 let bidPreview = null;
 let saveFailed = false;
 let studyContext = null;
@@ -142,11 +143,13 @@ function renderAuction() {
   if (!session) return;
   const view = practiceView(session);
   const rounds = auctionRounds(view.auction, session.finished || session.revealed);
-  byId('auction').innerHTML = auctionMarkup(rounds.slice(-auctionRowLimit));
+  const area = document.querySelector('.auction-area');
+  const previousTop = area.scrollTop;
+  const key = `${session.seed}:${JSON.stringify(rounds)}`;
+  const changed = key !== renderedAuctionKey;
+  byId('auction').innerHTML = auctionMarkup(rounds);
   byId('auction-history').innerHTML = auctionMarkup(rounds);
-  const earlier = Math.max(0, rounds.length - auctionRowLimit);
-  byId('earlier-count').textContent = earlier ? `+${earlier}` : '';
-  byId('earlier-count').hidden = !earlier;
+  renderedAuctionKey = key;
   for (const seat of AUCTION_SEATS) {
     const heading = byId(`${seat.toLowerCase()}-heading`);
     heading.textContent = seat[0] + (seat === view.playerSeat ? ' · You' : '');
@@ -154,7 +157,14 @@ function renderAuction() {
     heading.classList.toggle('is-you', seat === view.playerSeat);
     heading.classList.toggle('is-dealer', seat === view.auction[0]?.seat);
   }
+  if (changed) auctionPinned = true;
   fitAuction();
+  if (!auctionPinned) area.scrollTop = previousTop;
+  if (changed) requestAnimationFrame(() => {
+    // Bidding/review controls finish changing the panel height later in render.
+    auctionPinned = true;
+    fitAuction();
+  });
 }
 
 function fitAuction() {
@@ -164,11 +174,13 @@ function fitAuction() {
   const body = table.tBodies[0];
   const rowHeight = body.rows[0]?.getBoundingClientRect().height;
   if (!rowHeight) return;
-  // WebKit includes spacing in row-group bounds differently. Start from the
-  // whole rendered table so header spacing is never counted twice.
+  // Keep every row in the scroll panel. Only the counter needs a row estimate.
   const spare = area.clientHeight - table.getBoundingClientRect().height;
   const rows = Math.max(1, body.rows.length + Math.floor(spare / (rowHeight + spacing)));
-  if (rows !== auctionRowLimit) { auctionRowLimit = rows; renderAuction(); }
+  const earlier = Math.max(0, body.rows.length - rows);
+  byId('earlier-count').textContent = earlier ? `+${earlier}` : '';
+  byId('earlier-count').hidden = !earlier;
+  if (auctionPinned) area.scrollTop = area.scrollHeight;
 }
 
 function cardMarkup(cards) {
@@ -513,11 +525,15 @@ document.addEventListener('click', event => {
     const { call } = detail;
     byId('bid-meaning-title').textContent = `${bidLabel(call.bid)} · ${call.seat}`;
     byId('bid-meaning-text').textContent = describeBid(call.meaning || 'No further meaning is recorded for this call.');
+    byId('bid-meaning-dialog').querySelector('.bid-alternatives').hidden = Boolean(detail.isOpening || detail.auction?.length === 1 && !detail.question);
+    const choices = detail.callAlternatives ?? [];
+    byId('call-alternatives-section').hidden = !choices.length;
+    byId('call-alternatives').innerHTML = choices.map(option => `<dt class="${option.bid === call.bid ? 'is-played' : ''}">${escapeHtml(bidLabel(option.bid))}</dt><dd class="${option.bid === call.bid ? 'is-played' : ''}">${escapeHtml(describeBid(option.label))}${option.bid === call.bid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
     byId('alternatives-question').textContent = detail.question ? `Responses to ${bidLabel(detail.question.bid)} · ${describeBid(detail.question.meaning)}` : '';
     studyContext = { rows: auctionRounds(detail.auction, !detail.question), expanded: false };
     renderStudyContext();
     byId('bid-alternatives').innerHTML = detail.alternatives.map(answer => `<dt class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.bid))}</dt><dd class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(describeBid(answer.label))}${answer.bid === detail.playedBid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
-    byId('alternatives-empty').hidden = detail.alternatives.length > 0;
+    byId('alternatives-empty').hidden = detail.alternatives.length > 0 || choices.length > 0;
     byId('alternatives-empty').textContent = call.meaning?.includes('Undiscussed')
       ? 'This call is undiscussed in this exercise.'
       : 'No response alternatives are recorded for this call.';
@@ -545,6 +561,10 @@ byId('bid-levels').addEventListener('click', event => {
   }
 });
 byId('stop-deal').addEventListener('click', () => byId('stop-analysis').click());
+document.querySelector('.auction-area').addEventListener('scroll', event => {
+  const area = event.currentTarget;
+  auctionPinned = area.scrollHeight - area.clientHeight - area.scrollTop < 8;
+}, { passive: true });
 new ResizeObserver(fitAuction).observe(document.querySelector('.auction-area'));
 
 byId('auction-family').innerHTML = AUCTION_FAMILIES.map(family => `<option value="${escapeHtml(family.id)}">${escapeHtml(bidLabel(family.name))}</option>`).join('');

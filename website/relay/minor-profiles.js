@@ -1,3 +1,4 @@
+import { describeEntryAuction } from './bid-reference.js';
 // Revised 30 July email; see docs/relay-minor-email.md for literal source,
 // inferred step maps and the explicitly restricted training universes below.
 import { SUITS, SUIT_NAMES, nextBid, relayStep, lastBid, hcp, shapes, anyOf, length } from './profile-utils.js';
@@ -113,8 +114,8 @@ function expandedProfile(config) {
   return {
     id: config.id, name: config.name, family: 'Revised minor relays', source: '30 July email E3–E6',
     defaultTrump: config.minor, playerSeat: 'South', partnerSeat: 'North',
-    initialAuction: config.prefix.map((bid, index) => ({ seat: index % 2 ? 'South' : 'North', bid,
-      meaning: index === 1 ? `Response showing ${SUIT_NAMES[config.responderSuit].toLowerCase()}` : 'Source entry to the revised minor relay' })),
+    initialAuction: describeEntryAuction(config.prefix.map((bid, index) => ({ seat: index % 2 ? 'South' : 'North', bid,
+      meaning: index === 1 ? `Response showing ${SUIT_NAMES[config.responderSuit].toLowerCase()}` : 'Source entry to the revised minor relay' }))),
     partnerConstraints: [{ ...anyOf([shapeFact(weakShapes), hcp(9, 10)], ...normalOptions),
       label: `Opener: 9–${maxHcp} HCP in the listed shape families; named support shapes retain their source strength limits`,
     }],
