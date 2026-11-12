@@ -41,7 +41,9 @@ for (const humanSeat of ['South', 'North']) {
       await clickBid(page, '1D');
       expect((await saved(page)).session.auction.map(call => call.bid)).toEqual(['1C', '1D', '1NT']);
       await page.locator('#auction [data-call-index="0"]').click();
-      await expect(page.locator('#bid-meaning-text')).toContainText('Club opening');
+      await expect(page.locator('#bid-meaning-text')).toContainText('14+ balanced');
+      await expect(page.locator('#bid-meaning-text')).toContainText('clubs');
+      await expect(page.locator('#bid-meaning-dialog .bid-alternatives')).toBeHidden();
       await closeSheets(page);
       await clickBid(page, '3C');
       expect((await saved(page)).session.familyId).toBe('dappleton-h-d-four-major');
