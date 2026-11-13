@@ -162,7 +162,7 @@ export function systemOpeningPartnerBid({ system, node, major, auction, hand }) 
   if (node === 'puppet-nt') return '3NT';
   if (node === 'shown-five') return f.lengths[major] >= 3 ? `4${major}` : 'Pass';
   if (node === 'transfer') return f.lengths[major] >= 4 ? (major === 'H' ? '3S' : '4C') : `3${major}`;
-  if (node === 'after-transfer') return `4${major}`;
+  if (node === 'after-transfer') return f.lengths[major]>=6 ? `4${major}` : '3NT';
   if (node === 'pick-game') return f.lengths[major] >= 3 ? `4${major}` : 'Pass';
   if (node === 'super-fit') return major === 'H' ? '4D' : '4H';
   if (node === 'retransfer') return `4${major}`;
@@ -293,7 +293,7 @@ function openingActionsTable(session) {
     case 'super-fit': return calls([[major === 'H' ? '4D' : '4H',`Re-transfer to ${names[major]}`,'P1370'],[`4${major}`,`Play 4${major}`],['4NT','Slam continuation; not yet implemented']]);
     case 'retransfer': return calls([[`4${major}`,`Accept re-transfer to ${names[major]}`,'P1370']]);
     case 'minor-stayman': return calls([['3NT','No four/five-card minor, or unsuitable hand','P1396'],['4C','Four clubs','P1397'],['4D','Four diamonds','P1398'],['4H','Five clubs','P1399'],['4S','Five diamonds','P1399']]);
-    case 'shown-minor': return calls(major ? [[`5${major}`,`Play 5${major}`], [major === 'C' ? '4D' : '4H',`Keycards in ${names[major]}; later continuation`]] : [['Pass','Play 3NT'],['4C','Five-plus clubs; slam try'],['4D','Five-plus diamonds; slam try'],['4NT','Quantitative invitation']]);
+    case 'shown-minor': return calls(major ? [[`5${major}`,`Play 5${major}`], [['4H','4S'].includes(session.auction.at(-1).bid) ? '4NT' : major === 'C' ? '4D' : '4H',`Keycards in ${names[major]}; later continuation`]] : [['Pass','Play 3NT'],['4C','Five-plus clubs; slam try'],['4D','Five-plus diamonds; slam try'],['4NT','Quantitative invitation']]);
     case 'final': return calls([['Pass','Accept final contract'],...games.filter(([bid]) => bidIndex(bid)>bidIndex(session.auction.findLast(call=>call.bid!=='Pass').bid))]);
     default: throw new Error('Unknown opening-practice node.');
   }

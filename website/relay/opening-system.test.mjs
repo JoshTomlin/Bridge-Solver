@@ -192,8 +192,17 @@ test('strong 2NT minor Stayman distinguishes the artificial five-club and five-d
     session=applyPracticeBid(session,'3S');
     assert.equal(session.auction.at(-1).bid,answer);
     assert.equal(session.opening.major,trump);
+    assert.match(availablePracticeActions(session).find(action=>action.bid==='4NT').label,new RegExp(`Keycards in ${trump==='C'?'Clubs':'Diamonds'}`));
     session=applyPracticeBid(session,`5${trump}`);
     assert.equal(session.contract.bid,`5${trump}`);
     assert.equal(session.contract.declarer,'South','Artificial 4H/4S did not bid the minor');
   }
+});
+
+
+test('with exactly five transferred major cards, the partner offers a notrump/game choice using only its own hand', () => {
+  const input={system:'2NT',node:'after-transfer',major:'H',auction:[],hand:'SJ S9 S7 HQ HJ HT H9 H8 DA D8 D6 CQ C2'.split(' ')};
+  assert.equal(openingPartnerBid(input),'3NT');
+  assert.equal(openingPartnerBid({...input,hand:'SJ S9 S7 HQ HJ HT H9 H8 H5 DA D8 CQ C2'.split(' ')}),'4H');
+  assert.equal(openingPartnerBid({...input,partnerHand:['hidden'],targetProfile:'wrong'}),'3NT');
 });

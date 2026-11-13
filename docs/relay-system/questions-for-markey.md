@@ -74,3 +74,13 @@ major choices and ordinary invitations remain subsequent increments.
 See [opening-auction coverage](opening-auctions.md) for the playable increment,
 explicit hand restrictions and the 2NT bot's game-first practice policy. These
 questions do not block the implemented mechanical response tables.
+
+### Q8 — five-heart Muppet game and declarer
+
+After `2NT–3C–3NT` (five hearts), does `4D` re-transfer to hearts, or is it a
+diamond cue agreeing hearts as P1354 describes for 4m? The transfer re-transfer
+rule in P1370 follows the separate major-transfer section. Asked Josh with the
+concrete auction; Markey confirmation is welcome. Until clarified, retain the
+printed cue meaning and allow a direct 4H final contract with responder as the
+first actual heart bidder. Do not silently turn the cue into a transfer or
+assign opener as declarer without a heart bid.
