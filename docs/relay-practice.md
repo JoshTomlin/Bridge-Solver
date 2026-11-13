@@ -34,14 +34,19 @@ does not upload or synchronise auctions. Other browsers/devices may keep a
 separate save. Native installation prompts and home-screen launching should
 also be checked on the user's physical phone.
 
-## Whole-auction practice: first release
+## Whole-auction practice
 
-Choose **Practice mode → Whole auction · 1♣** to play all your calls, starting
-with the opening if you are North, or the response to 1C if you are South.
+Choose **Practice mode → Whole auction**, then **Opening family**: 1C, 1D,
+majors, 2NT or **Mix all openings**. You play every call for your seat,
+starting with the opening as opener or the first response as responder.
+See [opening-family coverage](relay-system/opening-auctions.md) for the new
+routes and their explicit limits.
 Each new hand randomly assigns opener/responder. Your seat and both hands stay
 fixed, and partner chooses calls from their own cards and the public auction.
 
-The first slice covers balanced 14–19 club openings with two/three in each
+### Existing 1C routes
+
+The original slice covers balanced 14–19 club openings with two/three in each
 major (no six-card minor), opposite one four/five-card major. Responder is
 clearly weak, 3–6, or has 12–19 and a four/five-card minor. Supported routes
 include the 1D/1H transfers, 14–17 transfer acceptance versus the 18/19 1NT
@@ -55,7 +60,7 @@ with the shortage questions. It does not supply those first two bids for you.
 
 Meanings describe all offered agreements without selecting the correct one
 from your cards. A bid that contradicts an implemented definition leaves the
-hand unchanged for retry. A continuation outside this first release shows
+hand unchanged for retry. A continuation outside the implemented routes shows
 **Not implemented**, keeps partner hidden and offers **Undo and continue**.
 This is a growing part of the system, not unrestricted opening or judgement
 coverage. Invitations, quant acceptance, broader Baron alternatives, two-major

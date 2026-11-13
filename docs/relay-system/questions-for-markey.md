@@ -45,10 +45,10 @@ Baron scope from this resolver sequence.
 | Q4 | Which hands are too weak/strong for an invitation, and how should a quant invitation be accepted? P0049–P0059/P0483–P0517 include judgement and vulnerability. | Define examples and accept multiple reasonable choices; do not impose an invented unique HCP threshold. The first slice includes only clear 3–6 weak exits and 12–19 slam-interest responses. |
 | Q5 | Exact poor-hand and minimum criteria in Horton; the conflicting Horton 3NT shortage enquiry; weak-screen compression and the general grand-try reply alphabet. | Carry forward the detailed questions in audit-2026-10-22.md; resolve before those branches become normal full-auction choices. |
 
-## First implementation scope
+## Original 1C implementation scope
 
-Whole auction starts from the 1C opening, with a randomly chosen human opener
-or responder. It currently generates first/second-seat uncontested balanced
+The first whole-auction release started from the 1C opening, with a randomly chosen human opener
+or responder. That 1C subset generates first/second-seat uncontested balanced
 14–19 openers (two/three in each major, no six-card minor) opposite one
 four/five-card major. Responders are either clearly weak (3–6), or 12–19 with
 a four/five-card minor. These are disclosed training restrictions.
