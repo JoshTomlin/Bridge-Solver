@@ -611,3 +611,17 @@ agreement markers in all 63 initial branches and both roles, undiscussed
 recording/restoration/undo, hover and keyboard previews, held/dragged/cancelled
 pointer gestures, Android native touch compatibility clicks, and normal taps
 after a preview. Real-DDS assessment and full browser-restart checks also pass.
+
+
+## Opening-family expansion — 13 November 2026
+
+**Whole auction** now has an **Opening family** selector: 1C, 1D, majors,
+2NT or **Mix all openings**. The new 1D and major routes let the human make
+the opening, response and opener rebid before entering supported relay
+practice. New 2NT routes include Muppet, transfers/re-transfers, basic minor
+Stayman and game choices. All played calls remain in the auction.
+
+This is an implementation increment, not full coverage of every opening.
+Read [opening-auction coverage](relay-system/opening-auctions.md) for the
+admitted hands, source references, judgement questions and remaining routes.
+Existing saved 1C auctions retain their rules and can be continued.

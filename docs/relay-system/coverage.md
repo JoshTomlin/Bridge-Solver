@@ -18,7 +18,8 @@ publicly disclosed practice subset, not every source-note continuation.
 | Horton | 3 | Main/minimum enquiries, shape, shortage, zero/one/two KC and queen rule | Minimum threshold provisional; Last Train/cue and competitive replies incomplete |
 | Reordered opener rebids | 13 | Five no-support single-suiters, four three-card-support entries, four reverses, strength escapes | Some natural continuations and discretionary bidding over a final contract excluded |
 | Reordered mini–mega | 10 | New high/low bid positions, partscore escape, non-serious/control route | Opener-takes-control keycard, Exclusion and extreme-shape upgrades excluded |
-| **Total** | **63** | See the generated catalogue for exact selectable prefixes | No unrestricted opening-auction engine yet |
+| Whole-auction openings | Separate mode | 1C plus first 1D/1M/2NT opening routes, stable-seat relay handovers and mixed openings | See [opening coverage](opening-auctions.md); ordinary three-way/quantitative/advanced slam continuations remain incomplete |
+| **Total relay entries** | **63** | See the generated catalogue for exact selectable prefixes | Opening mode has explicit source-backed subsets |
 
 ## Application and analysis work completed
 

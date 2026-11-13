@@ -72,3 +72,5 @@ blank-paragraph numbering. The detailed [source review](../relay-source-review.m
 [club map](../relay-club-source.md), [advanced map](../relay-advanced-source.md)
 and [rebid map](../relay-reordering-source.md) retain interpretation details
 and source conflicts. Consult those or the originals before changing a rule.
+
+[Whole-auction opening families and current limits](opening-auctions.md)

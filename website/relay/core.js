@@ -205,20 +205,36 @@ export function practiceNode(session) {
   return typeof node === 'function' ? node(publicSession(session)) : node;
 }
 
+/** Public starting facts for a source exercise, without drawing or reading cards. */
+export function practiceStartState({ profileId, major = 'S', seed = '' } = {}) {
+  const profile = getPracticeProfile(profileId ?? `major-${major}`);
+  const trump = profile.defaultTrump;
+  if (profile.id.startsWith('major-')) return {
+    systemId: SYSTEM.id, familyId: profile.id, playerSeat: 'South', partnerSeat: 'North',
+    trump, major: trump, seed: String(seed),
+    auction: [{ seat: 'North', bid: `1${trump}`, meaning: `Five-plus ${SUIT_NAMES[trump].toLowerCase()}; ${SYSTEM.opening.minHcp}–${SYSTEM.opening.maxHcp} in this practice subset` }],
+    constraints: openingConstraints(trump), training: SYSTEM.training,
+    balanced: null, shortageSuit: null, rangeIndex: null, phase: 'raise',
+    revealed: false, finished: false, contract: null, unsupportedReason: null,
+  };
+  return {
+    systemId: SYSTEM.id, familyId: profile.id, playerSeat: profile.playerSeat ?? 'South',
+    partnerSeat: profile.partnerSeat ?? 'North', trump, major: trump, seed: String(seed),
+    auction: profile.initialAuction.map(call => ({ ...call })),
+    constraints: profile.partnerConstraints.map(constraint => ({ ...constraint, label: constraintLabel(constraint) })),
+    balanced: null, shortageSuit: null, relayPolicy: { skip3NT: true, skipMajorGame: false },
+    phase: 'family', nodeId: profile.startNode, revealed: false, finished: false,
+    contract: null, unsupportedReason: null, ...profile.initialState,
+  };
+}
+
 function createFamilyPractice(profile, seed) {
   const trump = profile.defaultTrump;
   validateTrump(trump);
   const seedValue = String(seed);
   const rng = makeRng(`${profile.id}:${seedValue}`);
-  const constraints = profile.partnerConstraints.map(constraint => ({ ...constraint, label: constraintLabel(constraint) }));
-  const base = {
-    systemId: SYSTEM.id, familyId: profile.id, playerSeat: profile.playerSeat ?? 'South',
-    partnerSeat: profile.partnerSeat ?? 'North', trump, major: trump, seed: seedValue,
-    auction: profile.initialAuction.map(call => ({ ...call })), constraints,
-    balanced: null, shortageSuit: null, relayPolicy: { skip3NT: true, skipMajorGame: false },
-    phase: 'family', nodeId: profile.startNode, revealed: false, finished: false,
-    contract: null, unsupportedReason: null, ...profile.initialState,
-  };
+  const base = practiceStartState({ profileId: profile.id, seed: seedValue });
+  const constraints = base.constraints;
   const proposal = shapeWeights(base, DECK);
   if (!proposal.totalWeight) throw new Error(`No legal practice shapes for ${profile.name}.`);
   const pools = Object.fromEntries(SUITS.map(suit => [suit, DECK.filter(card => card[0] === suit)]));

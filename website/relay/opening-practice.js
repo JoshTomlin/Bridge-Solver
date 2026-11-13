@@ -3,6 +3,9 @@
 // the auction controller chooses a route from calls and the acting hand only.
 import { DECK, makeRng, handFeatures, bidIndex, getPracticeProfile } from './core.js';
 import { declarerFor } from './profile-utils.js';
+import { chooseOpeningFamily, createSystemOpeningPractice, systemOpeningActions,
+  systemOpeningPartnerBid, applySystemOpeningCall, validateSystemOpeningSession } from './opening-system.js';
+export { OPENING_FAMILIES, SYSTEM_OPENING_NOTES, openingBidFor, openingTitle, isOpeningFamily } from './opening-system.js';
 
 export const OPENING_RULES_VERSION = 1;
 const names = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
@@ -23,8 +26,10 @@ export const OPENING_NOTES = [
   'Supported alternatives determine the route. A documented continuation outside this release pauses for review; it is not graded as a system error.',
 ];
 
-export function createOpeningPractice({ seed, humanSeat } = {}) {
+export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C' } = {}) {
   seed = String(seed);
+  const selected = chooseOpeningFamily(openingFamily, seed);
+  if (selected !== 'C') return advanceOpeningPartner(createSystemOpeningPractice({ seed, humanSeat, openingBid: selected === 'NT' ? '2NT' : `1${selected}` }));
   const rng = makeRng(`whole-club:${seed}`);
   const randomSeat = rng() < 0.5 ? 'North' : 'South';
   humanSeat ??= randomSeat;
@@ -61,10 +66,12 @@ export function createOpeningPractice({ seed, humanSeat } = {}) {
 }
 
 export function openingSeat(session) {
+  if (session.opening.system) return session.opening.seat;
   return ['open', 'rebid', 'puppet', 'baron'].includes(session.opening.node) ? 'North' : 'South';
 }
 
 export function openingActions(session) {
+  if (session.opening.system) return systemOpeningActions(session);
   const major = session.opening.major;
   const transfer = major === 'H' ? '1D' : '1H';
   switch (session.opening.node) {
@@ -128,6 +135,7 @@ function bridge(session, minor, baron = false) {
 
 /** Apply one call. Only the acting hand is read; partner's policy is separate. */
 export function applyOpeningCall(session, bid) {
+  if (session.opening.system) return applySystemOpeningCall(session, bid);
   const action = openingActions(session).find(action => action.bid === bid);
   if (!action) return boundary({ ...session, auction: [...session.auction,
     { seat: openingSeat(session), bid, meaning: 'Not implemented in full-auction practice' }] });
@@ -210,7 +218,8 @@ export function applyOpeningCall(session, bid) {
 
 /** Own cards and auction only. No completed deal, target profile or secret
  * recipe is passed to the bot's selection function. */
-export function openingPartnerBid({ node, major, puppet, auction, hand }) {
+export function openingPartnerBid({ system, node, major, puppet, auction, hand }) {
+  if (system) return systemOpeningPartnerBid({ system, node, major, auction, hand });
   const f = feature(hand);
   if (node === 'open') return '1C';
   if (node === 'respond') return f.lengths.H >= 4 ? '1D' : f.lengths.S >= 4 ? '1H' : f.hcp >= 8 ? '1S' : '1NT';
@@ -233,13 +242,14 @@ export function advanceOpeningPartner(session) {
   while (session.opening && !session.finished && openingSeat(session) !== session.wholeAuction.humanSeat) {
     const seat = openingSeat(session);
     const bid = openingPartnerBid({ ...session.opening, auction: session.auction,
-      hand: seat === 'North' ? session.playerHand : session.partnerHand });
+      hand: seat === session.playerSeat ? session.playerHand : session.partnerHand });
     session = applyOpeningCall(session, bid);
   }
   return session;
 }
 
 export function validateOpeningSession(session) {
+  if (session.wholeAuction?.openingBid && session.wholeAuction.openingBid !== '1C') return validateSystemOpeningSession(session);
   if (session.wholeAuction?.rulesVersion !== OPENING_RULES_VERSION
       || !['North', 'South'].includes(session.wholeAuction?.humanSeat)
       || session.practiceRole !== (session.wholeAuction.humanSeat === 'North' ? 'asker' : 'teller')

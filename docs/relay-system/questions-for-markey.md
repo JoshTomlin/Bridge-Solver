@@ -63,3 +63,14 @@ human's seat fixed, and selects partner calls from that hand and the auction.
 Unsupported routes pause with “Not implemented” and allow Undo. Quantitative
 acceptance, broader Baron alternatives, two-major routes, balanced four-card
 major choices and ordinary invitations remain subsequent increments.
+
+## Opening-family increment — 13 November 2026
+
+| ID | Question | Current treatment |
+|---|---|---|
+| Q6 | After a 20–22 **2NT opening**, what agreed examples or criteria distinguish poor/decent/great super-accepts, including the three-card-support 3NT super-accept? How should quantitative invitations be accepted? P1364–P1369 and P1322/P1342 use judgement. | Asked Josh whether to accept alternatives or use agreed examples. No HCP cutoff is invented. Generated transfers avoid the subjective cases; human responses are checked for lengths/controls without grading quality. Quantitative acceptance pauses. |
+| Q7 | After **1M–2C**, what makes opener accept/decline the limit raise, and how should borderline responder types be admitted? P1479–P1485 supplies examples and exceptions without a complete numeric decision rule. | Asked together with Q6. The three-way response meaning is visible; its remaining continuation is not fabricated. Existing Jacoby, weak raise and reordered routes are playable from the opening. |
+
+See [opening-auction coverage](opening-auctions.md) for the playable increment,
+explicit hand restrictions and the 2NT bot's game-first practice policy. These
+questions do not block the implemented mechanical response tables.

@@ -9,6 +9,7 @@ function table(prefix, rows) {
 const openings = {
   '1C': '14+ balanced, or clubs (usually unbalanced)',
   '1D': 'Diamonds; usually a shortage, or specified six/seven-card no-shortage exceptions',
+  '2NT': '20–22 balanced',
   '1H': 'Five-plus hearts', '1S': 'Five-plus spades',
   '2D': 'Horton: four/five spades and four-plus diamonds; weak',
   '2H': 'Horton: four/five spades and four-plus hearts; weak',
@@ -105,6 +106,16 @@ for (const major of ['H','S']) {
     table(`${prefix} 2S 3C`, [['3D', 'Agree diamonds'], ['3H', 'Six clubs and four diamonds'], ['3S', 'Six diamonds and four clubs']]);
   }
 }
+
+// Strong 2NT opening (P1311–P1429), separate from the Horton enquiry.
+table('2NT', [['Pass','Play 2NT'],['3C','Muppet Stayman'],['3D','Five-plus hearts; transfer'],['3H','Five-plus spades; transfer'],['3S','Minor-suit Stayman'],['3NT','To play'],['4C','Diamond slam try'],['4D','Club slam try'],['4H','Transfer to 4S'],['4S','To play'],['4NT','Quantitative invitation']]);
+table('2NT 3C', [['3D','One/both four-card majors'],['3H','No four/five-card major'],['3S','Five spades'],['3NT','Five hearts']]);
+table('2NT 3C 3D', [['3H','Four spades'],['3S','Four hearts'],['3NT','To play'],['4C','4/4 majors; slam interest'],['4D','4/4 majors; game choice']]);
+table('2NT 3C 3H', [['3S','Puppet to 3NT; denies five spades/four hearts'],['3NT','Five spades/four hearts; game choice'],['4C','Five-plus clubs; slam try'],['4D','Five-plus diamonds; slam try'],['4H','Five spades/four hearts; non-forcing slam try'],['4S','Five spades/four hearts; slam force'],['4NT','Quantitative invitation']]);
+table('2NT 3D', [['3H','Transfer acceptance; at most three hearts'],['3S','Four/five hearts; decent/good for slam'],['3NT','Three hearts; great for slam'],['4C','Four/five hearts; club control'],['4D','Four/five hearts; diamond control'],['4H','Four/five hearts; game choice']]);
+table('2NT 3H', [['3S','Transfer acceptance; at most three spades'],['3NT','Three spades; great for slam'],['4C','Four/five spades; decent/good for slam'],['4D','Four/five spades; diamond control'],['4H','Four/five spades; heart control'],['4S','Four/five spades; game choice']]);
+table('2NT 3S', [['3NT','No four/five-card minor, or unsuitable hand'],['4C','Four clubs'],['4D','Four diamonds'],['4H','Five clubs'],['4S','Five diamonds']]);
+table('2NT 4H', [['4S','Accept the transfer to spades']]);
 
 function key(auction) {
   if (!auction.length || auction.some((call,index) => call.seat !== (index % 2 ? 'South' : 'North'))) return null;

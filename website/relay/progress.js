@@ -1,6 +1,6 @@
 import { getPracticeProfile, handFeatures, matchesConstraints, bidIndex, practiceNode } from './core.js';
-import { availablePracticeActions } from './practice.js';
-import { validateOpeningSession } from './opening-practice.js';
+import { availablePracticeActions, practiceView } from './practice.js';
+import { validateOpeningSession, isOpeningFamily, OPENING_FAMILIES } from './opening-practice.js';
 
 export const PROGRESS_KEY = 'bridge-lab.relay-progress.v1';
 const VERSION = 1;
@@ -8,8 +8,8 @@ const VERSION = 1;
 function validateSession(session) {
   if (!session || typeof session !== 'object') throw new Error('Saved practice session is missing.');
   if (session.wholeAuction) validateOpeningSession(session);
-  const profile = session.wholeAuction && session.familyId === 'opening-club'
-    ? { playerSeat: 'North', partnerSeat: 'South' } : getPracticeProfile(session.familyId);
+  const profile = session.wholeAuction && isOpeningFamily(session)
+    ? session.wholeAuction.openingBid === '2NT' ? { playerSeat: 'South', partnerSeat: 'North' } : { playerSeat: 'North', partnerSeat: 'South' } : getPracticeProfile(session.familyId);
   if (!['asker', 'teller'].includes(session.practiceRole)
       || session.playerSeat !== profile.playerSeat || session.partnerSeat !== profile.partnerSeat
       || typeof session.seed !== 'string' || typeof session.phase !== 'string'
@@ -54,6 +54,8 @@ function preferencesFor(preferences = {}, session) {
   try { bidIndex(preferences.assessedContract); assessedContract = preferences.assessedContract; } catch { /* Use the default contract. */ }
   return {
     practiceMode,
+    ...(practiceMode === 'auction' ? { openingFamily: OPENING_FAMILIES.includes(preferences.openingFamily) ? preferences.openingFamily
+      : ({ '1D': 'D', '1H': 'M', '1S': 'M', '2NT': 'NT' })[session.wholeAuction?.openingBid] ?? 'C' } : {}),
     showHints: preferences.showHints === true,
     sampleCount: ['100', '500', '1000'].includes(String(preferences.sampleCount)) ? String(preferences.sampleCount) : '100',
     analysisBasis: session.revealed && preferences.analysisBasis === 'revealed' ? 'revealed' : 'auction',
@@ -89,9 +91,9 @@ export function loadPracticeProgress(storage) {
       if ((!saved.session.wholeAuction && previous.familyId !== saved.session.familyId)
           || JSON.stringify(previous.wholeAuction) !== JSON.stringify(saved.session.wholeAuction)
           || previous.seed !== saved.session.seed
-          || previous.practiceRole !== saved.session.practiceRole
-          || previous.playerHand.join() !== saved.session.playerHand.join()
-          || previous.partnerHand.join() !== saved.session.partnerHand.join()) {
+          || practiceView(previous).playerSeat !== practiceView(saved.session).playerSeat
+          || practiceView(previous).playerHand.join() !== practiceView(saved.session).playerHand.join()
+          || practiceView(previous).partnerHand.join() !== practiceView(saved.session).partnerHand.join()) {
         throw new Error('Saved undo history belongs to a different deal.');
       }
     }

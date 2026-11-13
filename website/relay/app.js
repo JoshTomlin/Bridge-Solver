@@ -8,7 +8,7 @@ import { auctionCallDetails } from './auction-study.js';
 import { attachBidPreview } from './bid-preview.js';
 import { shortBidDescription } from './bid-descriptions.js';
 import { setupInstall } from './install.js';
-import { OPENING_NOTES } from './opening-practice.js';
+import { OPENING_NOTES, SYSTEM_OPENING_NOTES, openingTitle, openingBidFor, isOpeningFamily } from './opening-practice.js';
 
 const byId = (id) => document.getElementById(id);
 const symbols = { S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' };
@@ -23,6 +23,7 @@ let ddsReady = false;
 let job = 0;
 let committedStudyProfileId = '';
 let committedPracticeMode = 'focused';
+let committedOpeningFamily = 'C';
 let selectedLevel = null;
 let lastAuctionKey = '';
 let renderedAuctionKey = '';
@@ -88,6 +89,7 @@ function persistProgress() {
     bidInput: byId('bid-input').value,
     studyProfileId: committedStudyProfileId,
     practiceMode: committedPracticeMode,
+    openingFamily: committedOpeningFamily,
   } });
   byId('save-status').classList.toggle('is-error', !saved.ok);
   byId('save-status').textContent = saved.ok ? 'Progress saved in this browser.'
@@ -115,7 +117,7 @@ function handRecord(cards) {
 
 function setBusy(value) {
   busy = value;
-  for (const id of ['practice-mode', 'practice-role', 'auction-family', 'profile', 'seed', 'new-deal', 'replay-deal', 'sample-count', 'analysis-basis', 'assessed-contract']) byId(id).disabled = busy;
+  for (const id of ['practice-mode', 'opening-family', 'practice-role', 'auction-family', 'profile', 'seed', 'new-deal', 'replay-deal', 'sample-count', 'analysis-basis', 'assessed-contract']) byId(id).disabled = busy;
   byId('stop-analysis').hidden = !busy;
   byId('stop-deal').hidden = !busy;
   render();
@@ -224,19 +226,20 @@ function render() {
   const hints = byId('show-hints').checked;
   const view = practiceView(session);
   const teller = view.role === 'teller';
-  const profile = session.wholeAuction ? { name: '1C opening', assumptions: OPENING_NOTES } : getPracticeProfile(session.familyId);
+  const profile = session.wholeAuction ? { name: openingTitle(session), assumptions: openingBidFor(session)==='1C'?OPENING_NOTES:SYSTEM_OPENING_NOTES } : getPracticeProfile(session.familyId);
   const stopped = session.finished || session.revealed;
   const paused = stopped && !session.revealed && Boolean(session.undiscussedBid);
   const actions = availablePracticeActions(session);
-  byId('practice-badge').textContent = session.wholeAuction ? '1♣ · Whole auction' : bidLabel(auctionFamilyForProfile(session.familyId).name);
+  byId('practice-badge').textContent = session.wholeAuction ? bidLabel(openingTitle(session)) : bidLabel(auctionFamilyForProfile(session.familyId).name);
   renderSaveBadge();
   const mixed = byId('practice-mode').value !== 'focused';
   byId('family-settings').hidden = mixed;
+  byId('opening-family-field').hidden = byId('practice-mode').value !== 'auction';
   byId('study-branch-field').hidden = mixed;
   byId('study-menu-title').textContent = mixed ? 'Current hand and replay' : 'Study a particular branch';
   for (const id of ['auction-family', 'practice-role', 'profile']) byId(id).disabled = busy || mixed;
   const studying = Boolean(committedStudyProfileId);
-  byId('practice-scope').textContent = committedPracticeMode === 'auction' ? 'Bid from the beginning · Balanced 1♣ routes · Random opener/responder.'
+  byId('practice-scope').textContent = committedPracticeMode === 'auction' ? 'Bid from the opening · Random opener/responder · Coverage in System notes.'
     : committedPracticeMode === 'mixed' ? 'Random family, branch and role each hand.' : studying ? 'Branch study' : 'Random branch';
   byId('new-deal').setAttribute('aria-label', studying ? 'Next study hand' : 'New hand');
   byId('active-branch').textContent = `Current branch: ${bidLabel(profile.name)}`;
@@ -349,7 +352,8 @@ function randomSeed() {
 function restoreDealControls() {
   if (!session) return;
   byId('practice-mode').value = committedPracticeMode;
-  if (session.familyId !== 'opening-club') byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
+  byId('opening-family').value = committedOpeningFamily;
+  if (!isOpeningFamily(session)) byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
   byId('practice-role').value = session.practiceRole;
   populateStudyProfiles(committedStudyProfileId);
   byId('seed').value = session.seed;
@@ -365,7 +369,7 @@ async function dealHand({ replay = false } = {}) {
     const seed = replay ? byId('seed').value.trim() || session?.seed || randomSeed() : randomSeed();
     let selection;
     if (mode === 'auction') {
-      selection = { auctionMode: true, ...(replay && session?.wholeAuction ? { humanSeat: session.wholeAuction.humanSeat } : {}) };
+      selection = { auctionMode: true, openingFamily: replay ? committedOpeningFamily : byId('opening-family').value, ...(replay && session?.wholeAuction ? { humanSeat: session.wholeAuction.humanSeat } : {}) };
     } else if (mode === 'mixed') {
       selection = replay && session ? { profileId: session.familyId, role: session.practiceRole } : selectMixedPractice(seed);
     } else {
@@ -378,6 +382,7 @@ async function dealHand({ replay = false } = {}) {
     if (currentJob !== job) return;
     session = next;
     committedPracticeMode = mode;
+    if (mode === 'auction') committedOpeningFamily = selection.openingFamily;
     committedStudyProfileId = mode !== 'focused' ? '' : byId('profile').value;
     history = [];
     restoreDealControls();
@@ -573,6 +578,7 @@ byId('practice-mode').addEventListener('change', async () => {
   const dealt = await dealHand();
   if (dealt && committedPracticeMode !== 'focused') byId('settings-dialog').close();
 });
+byId('opening-family').addEventListener('change', () => dealHand());
 byId('auction-family').addEventListener('change', () => { populateStudyProfiles(); dealHand(); });
 byId('profile').addEventListener('change', () => dealHand());
 byId('practice-role').addEventListener('change', () => dealHand());
@@ -643,9 +649,11 @@ async function startPractice() {
     const preferences = saved.progress.preferences;
     committedStudyProfileId = preferences.studyProfileId;
     committedPracticeMode = preferences.practiceMode;
+    committedOpeningFamily = preferences.openingFamily ?? 'C';
     byId('practice-mode').value = committedPracticeMode;
+  byId('opening-family').value = committedOpeningFamily;
     byId('practice-role').value = session.practiceRole;
-    if (session.familyId !== 'opening-club') byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
+    if (!isOpeningFamily(session)) byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
     populateStudyProfiles(preferences.studyProfileId);
     byId('study-menu').open = Boolean(preferences.studyProfileId);
     byId('seed').value = session.seed;
