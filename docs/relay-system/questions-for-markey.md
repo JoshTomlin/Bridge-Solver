@@ -84,3 +84,26 @@ concrete auction; Markey confirmation is welcome. Until clarified, retain the
 printed cue meaning and allow a direct 4H final contract with responder as the
 first actual heart bidder. Do not silently turn the cue into a transfer or
 assign opener as declarer without a heart bid.
+
+
+## Ordinary-major increment — 15 November 2026
+
+**Q9 — 1M–1NT continuation table.** P0889 specifies 5–9 or 10/11 with
+four/five clubs, denying three-card support. No corresponding opener rebid
+table was found in the retained main notes or reordering document. Asked Josh
+whether 1NT is non-forcing with natural rebids or has special agreements.
+Until answered, the response has its stated meaning but continuation pauses.
+
+**Q7 remains open.** Asked about using clear examples while leaving borderline
+limit-raise acceptance as judgement. No reply has been assumed. The ordinary
+major bot discloses a provisional 9–11 decline / 12+ accept practice policy;
+human acceptance and decline are not graded against it. This policy can be
+replaced with agreed hand examples without changing the mechanical response
+tables. The rare balanced under-strength and 4333 four-card-support exceptions
+in P1480 still need guidance for the subsequent choice of contract.
+
+**Literal limits retained:** P1027 describes a minimum diamond raise as three
+or four diamonds. Five-card support is excluded from generated minimum hands
+until its treatment is confirmed. P1036/P1043 explicitly allow six diamonds
+and three-card major support despite P0891's general denial of support; this
+specific exception is accepted when the user chooses the natural 2D route.

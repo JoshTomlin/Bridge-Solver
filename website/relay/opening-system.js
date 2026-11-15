@@ -6,6 +6,7 @@ import { DECK, PRACTICE_PROFILES, createPractice, practiceStartState, availableA
   handFeatures, makeRng, matchesConstraints, bidIndex } from './core.js';
 import { declarerFor } from './profile-utils.js';
 import { entryContinuations } from './bid-reference.js';
+import { MAJOR_NODES, MAJOR_NORTH_NODES, isMajorBalanced, majorResponseFacts, ordinaryMajorOptions, ordinaryMajorCheck, ordinaryMajorPartnerBid } from './major-opening.js';
 
 const names = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
 const other = major => major === 'H' ? 'S' : 'H';
@@ -26,7 +27,8 @@ export const isOpeningFamily = session => session.familyId?.startsWith('opening-
 export const SYSTEM_OPENING_NOTES = [
   'Whole auction: first/second-seat, uncontested. Both hands are fixed before the opening; your physical seat stays fixed when the asker changes.',
   '1D uses 9–19 openers with either a weak 5–8 diamond raise or a clear 14–19 response. It connects the two 1NT range entries, July minor rebids, support enquiries and reordered rebids. Borderline response values and routes outside the current tables pause for review.',
-  '1M generates weak three-card raises, game-forcing four-card raises, or a supported 1H–1S route. It initially connects Jacoby 2NT and the reordered 1H–1S branches. Other documented responses are visible; their remaining continuations pause rather than being invented.',
+  '1M includes three-way 2C, natural 2D and 1S–2H responses, their documented rebids and shape enquiries, plus Jacoby, weak raises and selected 1H–1S routes. The 1NT continuation table remains unconfirmed.',
+  'Ordinary major practice uses a game-first partner. For limit-raise judgement it declines with 9–11 and accepts with 12+; this is a practice policy, not a partnership rule. Human acceptance alternatives are not graded by that cutoff.',
   '2NT is 20–22 in 4333/4432/5332 shapes. Muppet, major transfers, minor Stayman and game choices are playable. Generated transfer hands avoid subjective super-accepts; quality is not graded when studying those alternatives.',
   'The automated partner uses a game-first practice policy after 2NT. Quantitative acceptance and advanced slam follow-ups remain outside this increment.',
 ];
@@ -119,8 +121,9 @@ function majorResponse(major, f) {
   if (f.lengths[major] >= 4 && f.hcp >= 12) return '2NT';
   if (major === 'H' && f.lengths.S >= 4 && f.lengths.H <= 2
       && !(f.balanced && f.hcp >= 12) && !(f.lengths.S >= 6 && f.hcp <= 7)) return '1S';
+  if (f.lengths[major] >= 4 && f.hcp >= 10) return `3${major}`;
   if (f.lengths[major] >= 3) return f.hcp <= 9 ? `2${major}` : '2C';
-  if (f.hcp >= 12 && (f.balanced || f.lengths.C >= 5)) return '2C';
+  if (f.hcp >= 12 && (f.lengths[major]===2 && isMajorBalanced(f) || f.lengths.C >= 5)) return '2C';
   if (f.lengths.D >= 5 && f.hcp >= 10) return '2D';
   if (major === 'S' && f.lengths.H >= 5 && f.hcp >= 10) return '2H';
   return '1NT';
@@ -140,7 +143,8 @@ function majorRebid(f) {
 export function systemOpeningPartnerBid({ system, node, major, auction, hand }) {
   const f = features(hand);
   if (node === 'open') return system;
-  if (node === 'weak-raise') return 'Pass';
+  if (node === 'weak-raise' || node === 'final') return 'Pass';
+  if (MAJOR_NODES.includes(node)) return ordinaryMajorPartnerBid({system,node,major,auction},hand);
   if (system === '1D') {
     if (node === 'respond') {
       if (f.hcp<=9 && f.lengths.H<=3 && f.lengths.S<=3) return f.lengths.D>=3?'2D':'2C';
@@ -178,7 +182,7 @@ function drawJoint(rng, accepts) {
     const cards = [...DECK];
     for (let i = 0; i < 26; i++) { const j = i + Math.floor(rng() * (52-i)); [cards[i],cards[j]] = [cards[j],cards[i]]; }
     const north = cards.slice(0,13), south = cards.slice(13,26);
-    if (accepts(features(north),features(south))) return { North: north, South: south };
+    if (accepts(features(north),features(south),north,south)) return { North: north, South: south };
   }
   throw new Error('No deal found for this opening subset. Try another seed.');
 }
@@ -196,6 +200,21 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
     const transfer = Math.max(s.lengths.H,s.lengths.S) >= 5 ? (s.lengths.S > s.lengths.H ? 'S' : 'H') : null;
     return !transfer || n.lengths[transfer] <= 2;
   });
+  else if (['1H','1S'].includes(openingBid) && makeRng(`ordinary-major:${seed}`)() < 0.6) {
+    const major=openingBid.slice(1);
+    const targets=major==='H'?['2C','2D']:['2C','2D','2H'];
+    const target=targets[Math.floor(rng()*targets.length)];
+    hands=drawJoint(rng,(n,s,north)=>{
+      if(n.hcp<9||n.hcp>19||n.lengths[major]<5||n.lengths[other(major)]>4||n.balanced&&n.hcp<12||s.hcp<10||s.hcp>19) return false;
+      if(majorResponse(major,s)!==target) return false;
+      if(target==='2D' && s.lengths.D>=6 && s.hcp<12) return false;
+      // Restrict generation to complete mechanical routes, including each NT enquiry.
+      const node=target==='2C'?'major-club-rebid':target==='2D'?'major-diamond-rebid':'major-heart-rebid';
+      const context={system:openingBid,node,auction:[{bid:openingBid},{bid:target}]};
+      const rebid=ordinaryMajorPartnerBid(context, north);
+      return !!rebid;
+    });
+  }
   else if (rng() < 0.2) hands = drawJoint(rng, (n,s) => {
     const major = openingBid.slice(1);
     if (n.hcp < 9 || n.hcp > 11 || n.balanced || s.hcp < 5 || s.hcp > 8) return false;
@@ -233,9 +252,9 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
   const hcp=(min,max)=>({type:'hcp',min,max}), length=(suit,min,max)=>({type:'length',suit,min,max});
   const m=openingBid.slice(1);
   const southRestriction=openingBid==='2NT'?{type:'hcp',min:6,max:10,label:'Responder: 6–10 in this practice subset'}
-    : {type:'anyOf',label:'Responder: weak raise or clear game force in this practice subset',options:openingBid==='1D'
+    : {type:'anyOf',label:openingBid==='1D'?'Responder: weak raise or clear game force in this practice subset':'Responder: weak raise or 10–19 in this practice subset',options:openingBid==='1D'
       ?[[hcp(5,8),length('D',4,13),length('H',0,3),length('S',0,3)],[hcp(14,19)]]
-      :[[hcp(5,8),length(m,3,3),length(other(m),0,3)],[hcp(14,19),length(m,4,13)],
+      :[[hcp(5,8),length(m,3,3),length(other(m),0,3)],[hcp(14,19),length(m,4,13)],[hcp(10,19)],
         ...(m==='H'?[[hcp(14,19),length('S',4,13),length('H',0,2),{type:'balanced',value:false}]]:[])]};
   return freezeOpening({ familyId: `opening-${openingBid}`, systemId: 'outback-acol', seed,
     playerSeat: openingBid==='2NT'?'South':'North', partnerSeat: openingBid==='2NT'?'North':'South',
@@ -250,6 +269,8 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
 
 function openingActionsTable(session) {
   const { system, node, major } = session.opening;
+  const ordinary=ordinaryMajorOptions({...session.opening,auction:session.auction});
+  if(ordinary) return ordinary.map(({bid,label,source})=>action(bid,label,source));
   const calls = rows => rows.map(([bid,label,source]) => action(bid,label,source));
   const games = [['3NT','Play 3NT'], ...(major ? [[`4${major}`,`Play 4${major}`]] : [])];
   if (node === 'open') return calls([[system, system === '2NT' ? '20–22 balanced' : system === '1D' ? 'Diamond opening' : `Five-plus ${names[major]}; 9+`, system === '2NT' ? 'P1312' : system === '1D' ? 'P0631–P0636' : 'P0886']]);
@@ -259,7 +280,7 @@ function openingActionsTable(session) {
       ...(major==='H' ? [['1S','Four-plus spades; source exclusions apply']] : []),
       ['1NT','5–9, or 10/11 with clubs; denies three-card support','P0889'],
       ['2C','Three-way: invitational-plus raise, balanced game force, or game-forcing clubs','P1479'],
-      ['2D','Five-plus diamonds; 10+, denies three-card support','P0891'],
+      ['2D','Five-plus diamonds; 10+, usually fewer than three in the major','P0891/P1019/P1036'],
       ...(major==='S' ? [['2H','Five-plus hearts; 10+','P0894']] : []),
       [`2${major}`,'Three-plus support; 5–9','P0892'],['2NT','Four-plus support; game-forcing','P0895'],
       [`3${major}`,'Four-plus support; 8–12','P0899'], ['3NT','Five-plus/six-plus minors; 9–13','P0900'],
@@ -302,7 +323,7 @@ function openingActionsTable(session) {
 export function systemOpeningActions(session) {
   const choices=openingActionsTable(session);
   const last=session.auction.findLast(call=>call.bid!=='Pass');
-  if (session.opening.system==='2NT' && session.opening.seat==='South' && last?.seat==='North') {
+  if ((session.opening.system==='2NT' || MAJOR_NODES.includes(session.opening.node)) && session.opening.seat==='South' && last?.seat==='North') {
     // The asking hand controls the contract, including artificial answers.
     if (!choices.some(call=>call.bid==='Pass')) choices.push(action('Pass',`Play ${last.bid}`));
     for (const level of [6,7]) for (const strain of ['C','D','H','S','NT']) {
@@ -324,6 +345,8 @@ function openingFactsForCall(session,bid) {
     if (bid==='1NT') return [{type:'anyOf',options:[[points(10),length('H',0,3),length('S',0,3)],[points(14),length('H',0,4),length('S',0,4)]]}];
     if (bid==='2D') return [points(5,9),length('D',3)];
   }
+  if (['1H','1S'].includes(system) && node==='respond' && ['1NT','2C','2D','2H'].includes(bid)) return majorResponseFacts(major,bid);
+  if(MAJOR_NODES.includes(node)) return ordinaryMajorOptions({...session.opening,auction:session.auction}).find(row=>row.bid===bid)?.facts ?? [];
   if (system!=='2NT' && node==='respond') {
     if (bid==='2NT') return [points(12),length(major,4)];
     if (bid===`2${major}`) return [points(5,9),length(major,3)];
@@ -368,7 +391,15 @@ export function applySystemOpeningCall(session,bid) {
     else require(f.hcp>=9 && f.lengths[major]>=5 && (!f.balanced || f.hcp>=12),'A major opening requires five-plus cards and opening values; weak balanced hands open 1NT.');
     return move('respond');
   }
-  if (option.kind==='opening-final') return move('final',{major:bid.slice(1)==='NT'?major:bid.slice(1)});
+  if(option.kind==='opening-final') return move('final');
+  if(MAJOR_NODES.includes(node)) {
+    if(bid==='Pass') return finishOpening(next);
+    const row=ordinaryMajorCheck({...session.opening,auction:session.auction},bid,physicalHands(session)[seat]);
+    if(!row || row.next==='boundary') return openingBoundary(next);
+    if(row.next==='finish') return finishOpening(next);
+    return move(row.next);
+  }
+
   if (node === 'weak-raise' || node === 'final') return bid === 'Pass' ? finishOpening(next) : move('final');
   if (system === '1D' && node === 'respond') {
     if (bid === '1H' || bid === '1S') {
@@ -391,8 +422,12 @@ export function applySystemOpeningCall(session,bid) {
       require(!(f.balanced && f.hcp>=12),'A game-forcing balanced hand uses the three-way 2C response.');
       return move('rebid');
     }
-    if (bid === '1NT') require(f.lengths[major]<=2 && f.hcp>=5 && f.hcp<=11,'The 1NT response denies three-card support and shows 5–9, or the source club invitation.');
-    if (bid === '2D') require(f.lengths.D>=5 && f.hcp>=10 && f.lengths[major]<=2,'The 2D response shows five-plus diamonds, 10+, without three-card major support.');
+    if (['1NT','2C','2D','2H'].includes(bid)) {
+      require(matchesConstraints(physicalHands(session)[seat],majorResponseFacts(major,bid),major),`This response shows ${option.label.toLowerCase()}.`);
+      if(bid==='2C') return move('major-club-rebid');
+      if(bid==='2D') return move('major-diamond-rebid');
+      if(bid==='2H' && major==='S') return move('major-heart-rebid');
+    }
     return openingBoundary(next);
   }
   if (system !== '2NT') {
@@ -476,9 +511,9 @@ export function validateSystemOpeningSession(session) {
   if (session.opening) {
     const { system,node,seat }=session.opening;
     if (system!==whole.openingBid || !['North','South'].includes(seat) || typeof node!=='string') throw new Error('Saved opening node is invalid.');
-    const nodes=system==='2NT'?['open','respond','muppet','four-major','fit-major','both-majors','no-major','puppet-nt','shown-five','transfer','after-transfer','pick-game','super-fit','retransfer','minor-stayman','shown-minor','final']:['open','respond','rebid','weak-raise','final'];
+    const nodes=system==='2NT'?['open','respond','muppet','four-major','fit-major','both-majors','no-major','puppet-nt','shown-five','transfer','after-transfer','pick-game','super-fit','retransfer','minor-stayman','shown-minor','final']:[ 'open','respond','rebid','weak-raise','final',...(['1H','1S'].includes(system)?MAJOR_NODES:[]) ];
     if (!nodes.includes(node)) throw new Error('Saved opening node is invalid.');
-    const northNodes=['open','rebid','weak-raise','muppet','fit-major','both-majors','puppet-nt','transfer','pick-game','retransfer','minor-stayman'];
+    const northNodes=[...MAJOR_NORTH_NODES,'open','rebid','weak-raise','muppet','fit-major','both-majors','puppet-nt','transfer','pick-game','retransfer','minor-stayman'];
     if (node!=='final' && seat!==(northNodes.includes(node)?'North':'South')) throw new Error('Saved opening seat is invalid.');
     if (session.opening.major!==null && !Object.hasOwn(names,session.opening.major)) throw new Error('Saved opening suit is invalid.');
     systemOpeningActions(session);

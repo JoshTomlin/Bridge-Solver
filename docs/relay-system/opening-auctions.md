@@ -17,7 +17,7 @@ asker/teller roles may change. Undo and reopening work across this transition.
 |---|---|---|
 | 1C | Existing transfer responses, balanced acceptance/1NT rebid, weak exits, puppet, exact-five-minor and Baron routes into Dappleton | Existing balanced 14–19 subset; unchanged |
 | 1D | Natural 1H/1S or artificial 1NT, then the implemented July minor, 1NT support, direct weak support, reordered single-suit, support-2NT, reverse and mini–mega entries | 9–19 opener; clear 14–19 responder with a supported route, or a weak 5–8 diamond raise. Two-major response priorities and strong reverses after 1D–1NT are not generated |
-| 1H/1S | Weak three-card raise and partscore, Jacoby 2NT from the actual opening, plus supported reordered 1H–1S entries | First increment; ordinary 1NT/2C/2D continuations remain incomplete |
+| 1H/1S | Three-way 2C, natural 2D and 1S–2H responses; documented opener rebids, resolving enquiries and game choices; weak raises, Jacoby and selected reordered 1H–1S entries | Ordinary 1NT rebids, detailed cue/solid-suit continuations and remaining 1H–1S routes are incomplete |
 | 2NT | Muppet Stayman, major transfers, re-transfers, notrump/major game choice, minor-suit Stayman descriptions and minor game choice, passing any reply, final slam choices | 20–22 in 4333/4432/5332; responder 6–10. Generated transfer routes avoid the subjective super-accept cases. Quantitative and advanced slam continuations pause |
 
 The diamond and major opening tables follow P0631–P0691, P0885–P0924,
@@ -62,3 +62,52 @@ both human seats, unchanged cards, historical bid prefixes, every saved turn,
 completed undo history and deterministic explicit-seat replay. Browser tests
 exercise opening selection, mixed openings, old 1C mode, both seats,
 reload/undo, meanings and compact phone layouts.
+
+## Ordinary major responses — 15 November 2026
+
+Whole-auction **1H**, **1S**, **1M** and **Mix all openings** now include:
+
+- **1M–2C:** accept/decline the limit raise, natural other-major acceptance,
+  balanced/diamond 2NT resolution (3C asks; 3D balanced, 3H no shortage,
+  3S high shortage, 3NT low shortage), strong club/long-major descriptions,
+  balanced game-force and club/diamond responder descriptions, and game choices.
+- **1M–2D:** minimum major rebid or diamond support; stronger natural rebids,
+  2NT and its 3C enquiry. Replies distinguish three diamonds, 5422 with clubs,
+  6322 with six of the major, and 14–17 versus 18/19 balanced with two diamonds.
+- **1S–2H:** minimums, heart support, natural stronger rebids, 2NT and the
+  3C enquiry, including the explicit six-spade/two-heart 14–16 category.
+
+These follow P0993–P1052 and P1478–P1522. For these tables, standard balanced
+shapes mean 4333/4432/5332; 5422 and 6322 are admitted only where described.
+The engine's older generic `balanced` flag means no shortage and is too broad
+for these distinctions.
+
+Generation mixes these routes with the previous major exercises. New ordinary
+hands have 9–19 openers and 10–19 responders, with response shape restrictions.
+Five-diamond minimum openers opposite 2D are currently excluded because the
+literal minimum-support row specifies three/four diamonds. An invitational
+six-diamond responder uses the separate jump-response route, so is excluded.
+The generation category is discarded; partner chooses bids using its own hand
+and public auction only.
+
+Partner uses a **game-first practice policy**, not optimal bidding. In the
+ordinary limit-raise/invitation routes it declines with 9–11 and accepts with
+12+ after checking whether a more specific rebid applies. This numeric policy
+is not an agreed partnership rule; Q7 remains open. Human acceptance and
+decline are both available without grading this judgement against the bot's
+cutoff. Solid-suit and great-control quality are described but not given new
+honour-count thresholds for human answers. The bot uses the existing conservative
+AKQJT9-or-better policy when choosing the solid-major rebid. Human responders may pass an artificial reply or
+choose a final slam, as previously clarified by Josh.
+
+Detailed later descriptive rebids, cue-bidding, keycard after these natural
+agreements, and quantitative slam acceptance remain incomplete. The automated
+partner chooses a game or accepts the selected contract. This increment does
+not claim complete ordinary-major or slam coverage. The missing **1M–1NT**
+continuation table is recorded as Q9 rather than filled from generic Acol.
+
+Independent expected-auction tests cover both physical seats, partscore and
+game after the three-way response, diamond/heart enquiry replies, declared
+strain, false descriptions, saved progress and historical alternatives.
+Generated walks retain both hands and save every turn; browser checks exercise
+these routes on desktop and phone layouts, including reload, undo and reveal.

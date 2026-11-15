@@ -66,7 +66,9 @@ export function auctionCallDetails(session, history, index) {
   }
 
   const detail = questionAt(index) ?? questionAt(index - 1);
-  const entryReplies = !detail && entryContinuations(auction.slice(0, index + 1));
+  const afterCall = [session,...history].find(previous=>previous.auction.length===index+1 && previous.auction.every((entry,at)=>entry.bid===auction[at]?.bid && entry.seat===auction[at]?.seat));
+  const openingReplies = session.wholeAuction && (auction[index+1]?.callAlternatives ?? (afterCall?.opening ? openingActions(afterCall) : null));
+  const entryReplies = !detail && (openingReplies ?? entryContinuations(auction.slice(0, index + 1)));
   if (entryReplies) return { call, question: call,
     auction: auction.slice(0, index + 1), alternatives: entryReplies.map(({ bid, label }) => ({ bid, label })),
     playedBid: auction[index + 1]?.bid ?? null, callAlternatives,
