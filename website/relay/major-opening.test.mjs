@@ -141,3 +141,13 @@ test('human alternatives never leave the automatic partner without a continuatio
   assert.equal(applyPracticeBid(opening,'Pass').contract.bid,'2D');
   assert.equal(applyPracticeBid(opening,'6NT').contract.bid,'6NT');
 });
+
+
+test('weak heart raises retain their public strength and support facts',()=>{
+  const n='SK HA HJ H9 H6 H2 DQ D8 D5 D2 C9 C8 C3';
+  const south='SA S8 S5 H8 H5 H4 DJ D7 D4 CJ CT C7 C2';
+  let session=fixture('H',n,south);
+  session=applyPracticeBid(session,'2H');
+  assert.ok(session.openingConstraintsBySeat.South.some(f=>f.type==='hcp'&&f.min===5&&f.max===9));
+  assert.ok(session.openingConstraintsBySeat.South.some(f=>f.type==='length'&&f.suit==='H'&&f.min===3));
+});

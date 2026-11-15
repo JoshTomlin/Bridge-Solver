@@ -61,7 +61,7 @@ export function ordinaryMajorRows({system,node,auction}) {
         r('2NT','Balanced game force; doubleton major, fewer than five diamonds','P1487/P1494/P1502',[P(12),B,L(m,2,2),L('D',0,4)],'major-describe'),
         r('3C','Game force with clubs','P1488/P1495/P1503',[P(12),L('C',5)],'major-describe'),
         r('3D','Five diamonds; doubleton major, balanced game force','P1489/P1496/P1504',[P(12),B,L(m,2,2),L('D',5,5)],'major-describe'),
-        r(`3${m}`,limited?'Three-card raise; 11–14, great controls':'Three-card raise; game force','P1490/P1497/P1505',[L(m,3,3),P(limited?11:15,limited?14:37)],'major-describe'),
+        r(`3${m}`,limited?'Three-card raise; 11–14, great controls':'Three-card raise; game force','P1490/P1497/P1505',[L(m,3,3),P(limited?11:declined?15:12,limited?14:37)],'major-describe'),
         ...(second?[r(`3${om}`,'Agree the second major','P1506',[L(om,4)],'major-describe')]:[]),...games(),
       ];
     }

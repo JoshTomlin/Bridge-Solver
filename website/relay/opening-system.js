@@ -345,7 +345,7 @@ function openingFactsForCall(session,bid) {
     if (bid==='1NT') return [{type:'anyOf',options:[[points(10),length('H',0,3),length('S',0,3)],[points(14),length('H',0,4),length('S',0,4)]]}];
     if (bid==='2D') return [points(5,9),length('D',3)];
   }
-  if (['1H','1S'].includes(system) && node==='respond' && ['1NT','2C','2D','2H'].includes(bid)) return majorResponseFacts(major,bid);
+  if (['1H','1S'].includes(system) && node==='respond' && (['1NT','2C','2D'].includes(bid) || system==='1S'&&bid==='2H')) return majorResponseFacts(major,bid);
   if(MAJOR_NODES.includes(node)) return ordinaryMajorOptions({...session.opening,auction:session.auction}).find(row=>row.bid===bid)?.facts ?? [];
   if (system!=='2NT' && node==='respond') {
     if (bid==='2NT') return [points(12),length(major,4)];
