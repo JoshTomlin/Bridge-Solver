@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { applyBid } from '../core.js';
-import { availablePracticeActions } from '../practice.js';
+import { practiceView } from '../practice.js';
+import { openingPartnerBid } from '../opening-practice.js';
 import { selectSetting, closeSheets, clickBid, newHand, fitsScreen } from './helpers.mjs';
 
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
@@ -37,11 +37,12 @@ test('the home-screen launch resumes offline and deals new mixed hands with the 
   await selectSetting(page, '#practice-mode', 'mixed');
   await ready(page);
   const { session } = await saved(page);
-  const bid = session.practiceRole === 'teller'
-    ? applyBid(session, session.pendingAsk.bid).auction[session.auction.length + 1].bid
-    : availablePracticeActions(session).find(action => action.kind === 'relay').bid;
+  expect(session.wholeAuction).toBeTruthy();
+  expect(session.auction.some(call => call.seat === session.wholeAuction.humanSeat)).toBe(false);
+  const bid = openingPartnerBid({ ...session.opening, auction: session.auction, hand: practiceView(session).playerHand });
   await clickBid(page, bid);
   const progress = await saved(page);
+  expect(progress.session.auction.length).toBeGreaterThan(session.auction.length);
   await context.setOffline(true);
   await page.reload();
   await ready(page);
@@ -51,6 +52,8 @@ test('the home-screen launch resumes offline and deals new mixed hands with the 
   await expect.poll(async () => (await saved(page)).session.seed).not.toBe(progress.session.seed);
   const nextProgress = await saved(page);
   expect(nextProgress.preferences.practiceMode).toBe('mixed');
+  expect(nextProgress.session.wholeAuction).toBeTruthy();
+  expect(nextProgress.session.auction.some(call => call.seat === nextProgress.session.wholeAuction.humanSeat)).toBe(false);
   await page.close();
   const launched = await context.newPage();
   await launched.goto(start + '?from=home-screen');

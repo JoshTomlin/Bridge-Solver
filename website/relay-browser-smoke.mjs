@@ -5,7 +5,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { selectSetting, closeSheets, newHand, clickBid as clickUiBid } from './relay/browser/helpers.mjs';
-import { createTrainingPractice, applyPracticeBid, availablePracticeActions } from './dist/relay/practice.js';
+import { createTrainingPractice, applyPracticeBid, availablePracticeActions, practiceView } from './dist/relay/practice.js';
 import { applyBid } from './dist/relay/core.js';
 import { openingPartnerBid } from './dist/relay/opening-practice.js';
 import { AUCTION_FAMILIES, auctionFamilyForProfile } from './dist/relay/families.js';
@@ -282,9 +282,10 @@ try {
   await returning.waitForFunction(() => !document.getElementById('new-deal').disabled
     && JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).preferences.practiceMode === 'mixed');
   const mixedInitial = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).session);
-  const mixedBid = mixedInitial.practiceRole === 'teller'
-    ? applyBid(mixedInitial, mixedInitial.pendingAsk.bid).auction[mixedInitial.auction.length + 1].bid
-    : availablePracticeActions(mixedInitial).find(action => action.kind === 'relay').bid;
+  assert.ok(mixedInitial.wholeAuction);
+  assert.equal(mixedInitial.auction.some(call => call.seat === mixedInitial.wholeAuction.humanSeat), false);
+  const mixedBid = openingPartnerBid({ ...mixedInitial.opening, auction: mixedInitial.auction,
+    hand: practiceView(mixedInitial).playerHand });
   await clickUiBid(returning, mixedBid);
   const mixedProgress = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
   assert.ok(mixedProgress.session.auction.length > mixedInitial.auction.length);
@@ -301,6 +302,8 @@ try {
   const mixedNext = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
   assert.equal(mixedNext.preferences.practiceMode, 'mixed');
   assert.equal(mixedNext.preferences.studyProfileId, '');
+  assert.ok(mixedNext.session.wholeAuction);
+  assert.equal(mixedNext.session.auction.some(call => call.seat === mixedNext.session.wholeAuction.humanSeat), false);
   console.log('Just bid persistence passed: full browser restart retains the exact auction and random mode for subsequent hands.');
 
   await selectSetting(returning, '#practice-mode', 'auction');
