@@ -19,7 +19,7 @@ test('all legal calls are offered in every family and role with the existing pub
 });
 
 for (const role of ['asker', 'teller']) {
-  test(`an undiscussed ${role} call records the right seat and question without an invented answer or facts`, () => {
+  test(`an undiscussed ${role} call records the right seat and question with a labelled partner Pass and no invented facts`, () => {
     const initial = createTrainingPractice({ profileId: 'major-S', role, seed: 'undiscussed' });
     const before = JSON.stringify(initial);
     const view = practiceView(initial);
@@ -29,10 +29,12 @@ for (const role of ['asker', 'teller']) {
     assert.equal(next.finished, true);
     assert.equal(next.revealed, false);
     assert.equal(next.pendingAsk, null);
-    assert.equal(next.contract, null);
-    assert.equal(next.auction.length, view.auction.length + 1);
-    assert.deepEqual(next.auction.slice(0, -1), view.auction);
-    assert.equal(next.auction.at(-1).seat, view.playerSeat);
+    assert.equal(next.contract.bid,call.bid);
+    assert.equal(next.auction.length, view.auction.length + 2);
+    assert.deepEqual(next.auction.slice(0, -2), view.auction);
+    assert.equal(next.auction.at(-2).seat, view.playerSeat);
+    assert.equal(next.auction.at(-1).bid,'Pass');
+    assert.match(next.auction.at(-1).meaning,/fallback/);
     assert.deepEqual(next.constraints, initial.constraints);
     assert.deepEqual(next.partnerHand, initial.partnerHand);
     assert.deepEqual(next.playerHand, initial.playerHand);

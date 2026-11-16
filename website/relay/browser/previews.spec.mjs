@@ -44,20 +44,21 @@ for (const role of ['asker', 'teller']) {
     await fitsScreen(page);
   });
 
-  test(`an undiscussed ${role} bid pauses, saves and undoes without revealing cards`, async ({ page }) => {
+  test(`an undiscussed ${role} bid is accepted as a contract, saves and undoes`, async ({ page }) => {
     const session = await initial(page, role);
     const call = practiceCalls(session).find(call => !call.discussed && call.bid !== 'Pass');
     const hand = await page.locator('#player-hand').innerHTML();
     await clickBid(page, call.bid);
     const next = (await saved(page)).session;
     expect(next.undiscussedBid).toBe(call.bid);
-    expect(next.revealed).toBe(false);
-    expect(next.auction.slice(0, -1)).toEqual(practiceView(session).auction);
-    expect(next.auction.at(-1).seat).toBe(practiceView(session).playerSeat);
+    expect(next.revealed).toBe(true);
+    expect(next.contract.bid).toBe(call.bid);
+    expect(next.auction.slice(0, -2)).toEqual(practiceView(session).auction);
+    expect(next.auction.at(-2).seat).toBe(practiceView(session).playerSeat);
     expect(next.constraints).toEqual(session.constraints);
-    await expect(page.locator('#table-state')).toHaveText('Undiscussed');
+    await expect(page.locator('#table-state')).toHaveText('Complete');
     await expect(page.locator('#review-actions')).toBeVisible();
-    await expect(page.locator('#partner-hand .card-backs')).toHaveCount(1);
+    await expect(page.locator('#partner-cards [data-card]')).toHaveCount(13);
     expect(await page.locator('#player-hand').innerHTML()).toBe(hand);
     await page.reload();
     await ready(page);

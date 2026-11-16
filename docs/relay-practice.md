@@ -60,8 +60,8 @@ with the shortage questions. It does not supply those first two bids for you.
 
 Meanings describe all offered agreements without selecting the correct one
 from your cards. A bid that contradicts an implemented definition leaves the
-hand unchanged for retry. A continuation outside the implemented routes shows
-**Not implemented**, keeps partner hidden and offers **Undo and continue**.
+hand unchanged for retry. A legal continuation outside the implemented routes is accepted as a contract
+choice with a labelled partner-Pass fallback. Undo restores the previous turn.
 This is a growing part of the system, not unrestricted opening or judgement
 coverage. Invitations, quant acceptance, broader Baron alternatives, two-major
 hands and balanced four-card-major rebids are subsequent work. Open decisions
@@ -71,18 +71,17 @@ Full-auction saves include their rules revision and restore the same seat,
 auction and undo history across the transition into a relay family. Replay
 preserves the original seat and deal; New hand draws a new one.
 
-For a mix of everything, open **Practice settings → Practice mode → Just bid ·
-All families**. Each new hand picks a family with equal probability, a random
-branch within that family, and an independently random asker/teller role.
-The menu closes after dealing; the table shows the actual family and role,
-with **Just bid** beside the role. Use the next-hand arrow or **Next hand**
-after completion to keep going. Random selections can repeat.
+For practice from the first bid, choose **Practice settings → Practice mode →
+Just bid · From the opening**. Each new hand draws a supported opening family
+(1C, 1D, 1M or strong 2NT) and an independent opener/responder seat. No calls
+for your seat are pre-filled. The next-hand arrow keeps this mode active.
+The current opening subset is described in [opening coverage](relay-system/opening-auctions.md).
 
-Just bid remembers its mode and resumes the same saved auction when you return.
-**Current hand and replay → Hand seed and replay** replays the current branch
-and role; the next new hand draws from everything again. Choose **Choose family
-and role** to return to focused practice. Existing saves retain their current
-family, role and study selection until you choose Just bid.
+Just bid resumes the same saved auction after reopening. Old saved relay drills
+are retained, including their undo history; **New hand** starts from the opening.
+Replay retains the current opening and physical seat. **Choose family and role**
+continues to offer all 63 pre-filled relay branches for focused study, including
+Horton and branches not yet supported from the opening.
 
 Choose **Asker · Ask and interpret** or **Teller · Answer the questions** in
 the top-right **Practice settings** menu. The asker chooses relay questions, interprets the replies and
@@ -126,12 +125,12 @@ Dragging away or cancelling the touch also leaves the auction unchanged.
 The preview and agreement markers use public agreements, never the hidden
 hand or knowledge of the correct teller answer.
 
-An undiscussed call is recorded at the correct seat and pauses practice for
-review without inventing a partner answer or adding constraints. Cards stay
-hidden while an undiscussed continuation is paused. Undo resumes the previous
-question. If the call is Pass, the actual last contract and its first-strain
-declarer are retained, and partner's hand is revealed at completion. These states autosave
-and restore like supported auctions.
+Every legal undiscussed call is accepted. The bid stays labelled undiscussed;
+partner passes the selected contract under an explicit fallback policy, without
+inventing relay answers or adding partner constraints. The app reveals partner
+for review and offers Undo. Passing retains the actual last contract and its
+first-strain declarer. These states autosave and restore like supported auctions.
+Known, incorrect teller answers still show feedback and allow a retry.
 
 Asker control also applies to agreed relay replies: **Pass** is an ordinary
 final-contract choice after any reply, even an artificial 3NT or a reply below
@@ -174,7 +173,8 @@ selecting the correct answer. The “i” beside a name opens that hand's detail
 your known cards, or public facts about the describing hand. Partner's cards
 stay hidden until **Reveal partner** or auction completion. **Assess** opens
 contract comparisons in asker mode. **Type a bid** in settings opens optional
-keyboard entry. A paused undiscussed continuation offers **Undo and continue**.
+keyboard entry. Undiscussed contract choices can be reversed with **Undo**. Bidding feedback
+has a dismiss button and clears on undo, a successful bid or a new hand.
 
 North/East/South/West columns include the opponents' automatic passes. A dealer
 dot and **You** mark the seats. The auction panel retains every row: swipe or
@@ -630,3 +630,21 @@ This is an implementation increment, not full coverage of every opening.
 Read [opening-auction coverage](relay-system/opening-auctions.md) for the
 admitted hands, source references, judgement questions and remaining routes.
 Existing saved 1C auctions retain their rules and can be continued.
+
+
+### Corrections from the 16 November phone examples
+
+Generated hands now check their initial natural/transfer response at the actual
+responder's seat, including Dappleton's reversed roles. A six-heart/four-spade
+hand cannot be placed in a pre-filled 1D–1S auction. Diamond responses with
+only four in the major and 14+ instead belong to the 1NT enquiry; 4/4-major
+transfer responses prefer hearts. Equal long-major choices are excluded from
+this clear-response training subset rather than assigned an undocumented rule.
+These restrictions affect new deals; existing saved hands remain intact.
+
+Horton openings expose their documented natural partscore calls: after 2H,
+2S/3C/3D; after 2D, 2H/2S/3C; after 2S, 3C/3D/3H. Pass is also available.
+With 16 opposite the shown 0–8 range, the automated asker takes a partscore
+in the better-supported shown suit using only its own hand. Higher-value
+hands retain the relay practice policy; this is not an optimal game judgement
+model. Source: P1073–P1119.

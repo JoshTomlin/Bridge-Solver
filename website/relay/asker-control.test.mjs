@@ -20,7 +20,7 @@ test('Q1: the asker can pass an artificial 3NT keycard answer without changing i
 });
 
 test('a legacy artificial-3NT flag cannot block the asker or change a teller response ladder', () => {
-  const initial = createTrainingPractice({ profileId: 'rebid-single-h-s', seed: 'asker-control' });
+  const initial = createTrainingPractice({ profileId: 'rebid-single-h-s', seed: 'legal-control-4' });
   const session = applyPracticeBid(initial, '3D');
   assert.equal(session.auction.at(-1).bid, '3NT');
   assert.match(session.auction.at(-1).meaning, /spades shortage/);
@@ -28,7 +28,7 @@ test('a legacy artificial-3NT flag cannot block the asker or change a teller res
   assert.equal(availablePracticeActions(session).find(action => action.bid === 'Pass').kind, 'signoff');
   assert.deepEqual(availableActions({ ...session, playerHand: ['hidden'], partnerHand: ['hidden'] }), availableActions(session));
   assert.deepEqual(applyPracticeBid(session, 'Pass').contract, { bid: '3NT', level: 3, strain: 'NT', declarer: 'North' });
-  const teller = createTrainingPractice({ profileId: 'rebid-single-h-s', seed: 'asker-control', role: 'teller' });
+  const teller = createTrainingPractice({ profileId: 'rebid-single-h-s', seed: 'legal-control-4', role: 'teller' });
   assert.equal(teller.pendingAsk.bid, '3D');
   assert.equal(availablePracticeActions(teller).some(action => action.bid === 'Pass'), false);
 });

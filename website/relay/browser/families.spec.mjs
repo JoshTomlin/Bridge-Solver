@@ -103,6 +103,7 @@ for (const role of ['asker', 'teller']) {
       const before = await page.locator('#auction').innerHTML();
       const hand = await page.locator('#player-hand').innerHTML();
       const session = first.session;
+      if(session.finished) { expect(session.contract).toBeTruthy();continue; }
       const bid = role === 'asker'
         ? availablePracticeActions(session).find(action => action.kind === 'relay')?.bid
         : applyBid(session, session.pendingAsk.bid).auction.slice(session.auction.length).find(call => call.seat === session.partnerSeat)?.bid;

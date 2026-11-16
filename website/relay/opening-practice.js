@@ -23,7 +23,7 @@ export const OPENING_NOTES = [
   'First release: uncontested 1C with a balanced 14–19 opener, two/three cards in each major and no six-card minor.',
   'Responder has one four/five-card major: weak 3–6 hands, or 12–19 with a four/five-card minor. Borderline invitations and two-major hands come later.',
   'Your seat stays fixed. Choose your opening response, rebid and continuation before the existing shortage and keycard enquiries.',
-  'Supported alternatives determine the route. A documented continuation outside this release pauses for review; it is not graded as a system error.',
+  'Supported alternatives determine the route. An unimplemented legal call is accepted as a contract choice with a labelled partner-Pass fallback and Undo.',
 ];
 
 export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C' } = {}) {

@@ -18,7 +18,7 @@ asker/teller roles may change. Undo and reopening work across this transition.
 | 1C | Existing transfer responses, balanced acceptance/1NT rebid, weak exits, puppet, exact-five-minor and Baron routes into Dappleton | Existing balanced 14–19 subset; unchanged |
 | 1D | Natural 1H/1S or artificial 1NT, then the implemented July minor, 1NT support, direct weak support, reordered single-suit, support-2NT, reverse and mini–mega entries | 9–19 opener; clear 14–19 responder with a supported route, or a weak 5–8 diamond raise. Two-major response priorities and strong reverses after 1D–1NT are not generated |
 | 1H/1S | Three-way 2C, natural 2D and 1S–2H responses; documented opener rebids, resolving enquiries and game choices; weak raises, Jacoby and selected reordered 1H–1S entries | Ordinary 1NT rebids, detailed cue/solid-suit continuations and remaining 1H–1S routes are incomplete |
-| 2NT | Muppet Stayman, major transfers, re-transfers, notrump/major game choice, minor-suit Stayman descriptions and minor game choice, passing any reply, final slam choices | 20–22 in 4333/4432/5332; responder 6–10. Generated transfer routes avoid the subjective super-accept cases. Quantitative and advanced slam continuations pause |
+| 2NT | Muppet Stayman, major transfers, re-transfers, notrump/major game choice, minor-suit Stayman descriptions and minor game choice, passing any reply, final slam choices | 20–22 in 4333/4432/5332; responder 6–10. Generated transfer routes avoid the subjective super-accept cases. Quantitative and advanced slam continuations use the contract fallback |
 
 The diamond and major opening tables follow P0631–P0691, P0885–P0924,
 P1478–P1522, the July email and the separate reordering document. The strong
@@ -48,9 +48,9 @@ HCP threshold. These judgement criteria and 1M–2C limit-raise acceptance are
 recorded as Q6/Q7 in [questions for Markey](questions-for-markey.md).
 
 Public menus show documented routes beyond the current playable subset.
-An unimplemented continuation pauses with **Not implemented** and **Undo**;
-it is not graded as a wrong system bid and does not invent partner facts or
-reveal the hidden hand. In particular, the strong-club 2NT rebid question
+An unimplemented legal continuation is accepted as a contract choice, with
+a labelled partner-Pass fallback and Undo. It is not graded as a wrong system
+bid or used to invent partner facts. The finished auction reveals partner. In particular, the strong-club 2NT rebid question
 Q2a remains separate and unresolved.
 
 ## Verification

@@ -132,7 +132,8 @@ test('opening menus and public study choices do not read either hand; unsupporte
     assert.deepEqual(practiceCalls(hidden),practiceCalls(session));
     if(openingFamily==='NT') {
       const before=copy(session),next=applyPracticeBid(session,'4NT');
-      assert.equal(next.coverageBoundary,true);
+      assert.equal(next.coverageBoundary,false);
+      assert.equal(next.contract.bid,'4NT');
       assert.equal(next.revealed,false);
       assert.deepEqual(next.constraints,before.constraints,'A coverage boundary must not invent invitation facts');
       assert.deepEqual(next.partnerHand,before.partnerHand);

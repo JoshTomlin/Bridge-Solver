@@ -51,7 +51,7 @@
           <button type="button" class="tool-button" id="meanings-open" data-open="meanings-dialog"><svg><use href="#icon-hint"/></svg><span>Meanings</span></button>
           <button type="button" class="tool-button" id="assessment-open" data-open="assessment-dialog"><svg><use href="#icon-chart"/></svg><span>Assess</span></button>
         </nav>
-        <p id="bid-feedback" class="feedback" role="status" aria-live="polite"></p><p id="notice" class="feedback" role="status" hidden></p>
+        <div id="bid-feedback-banner" class="feedback bid-feedback-banner" hidden><p id="bid-feedback" role="status" aria-live="polite"></p><button id="dismiss-bid-feedback" type="button" aria-label="Dismiss bidding message">×</button></div><p id="notice" class="feedback" role="status" hidden></p>
       </section>
       <section class="your-hand-block" aria-label="Your hand">
         <div class="hand-heading"><div class="seat-label"><span id="player-seat">South · You</span><button type="button" class="info-button" data-open="player-dialog" aria-label="Your hand information">i</button></div><span id="player-hcp"></span></div>
@@ -63,7 +63,7 @@
     <dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
       <header class="sheet-heading"><h2 id="settings-title">Practice</h2><button type="button" class="icon-button" data-close aria-label="Close settings"><svg><use href="#icon-close"/></svg></button></header>
       <div class="sheet-body">
-        <label class="practice-mode-field">Practice mode<select id="practice-mode"><option value="focused">Choose family and role</option><option value="mixed">Just bid · All families</option><option value="auction">Whole auction</option></select></label>
+        <label class="practice-mode-field">Practice mode<select id="practice-mode"><option value="focused">Choose family and role</option><option value="mixed">Just bid · From the opening</option><option value="auction">Whole auction</option></select></label>
         <label id="opening-family-field" hidden>Opening family<select id="opening-family"><option value="C">1♣</option><option value="D">1♦</option><option value="M">1♥ / 1♠ · Random major</option><option value="H">1♥</option><option value="S">1♠</option><option value="NT">2NT</option><option value="all">Mix all openings</option></select></label>
         <div id="family-settings" class="settings-fields"><label>Which auction family?<select id="auction-family"></select></label><label>Your role<select id="practice-role"><option value="asker">Asker · Ask and interpret</option><option value="teller">Teller · Answer the questions</option></select></label></div>
         <p id="practice-scope" class="muted">Random branch</p><details id="study-menu" class="menu-section"><summary id="study-menu-title">Study a particular branch</summary><label id="study-branch-field">Branch<select id="profile"></select></label><p id="active-branch" class="muted"></p><details class="replay-options"><summary>Hand seed and replay</summary><label>Hand seed<input id="seed" maxlength="80" autocomplete="off" spellcheck="false"></label><button type="button" id="replay-deal" class="button secondary">Replay this branch</button></details></details>

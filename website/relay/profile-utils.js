@@ -39,3 +39,32 @@ export function declarerFor(auction, strain, fallback = 'South') {
   return auction.find(call => ['North', 'South'].includes(call.seat)
     && /^([1-7])(C|D|H|S|NT)$/.exec(call.bid)?.[2] === strain)?.seat ?? fallback;
 }
+
+/** Clear response choices for generated entry auctions. This is an admission
+ * check, not a claim that every borderline/dual-major hand has one right bid.
+ * Check the physical responder even in profiles that swap asker/teller. */
+export function matchesInitialResponse(auction, features, seat) {
+  const [opening, response] = auction ?? [];
+  if (!response || response.seat !== seat) return true;
+  const {lengths:n,hcp:points}=features;
+  let major;
+  if(opening.bid==='1D' && ['1H','1S'].includes(response.bid)) {
+    major=response.bid.slice(1);
+    if(points<5 || n[major]<4 || points>=14 && n[major]===4) return false;
+  } else if(opening.bid==='1C' && ['1D','1H'].includes(response.bid)) {
+    major=response.bid==='1D'?'H':'S';
+    if(n[major]<4) return false;
+  } else if(opening.bid==='1D' && response.bid==='1NT') {
+    return points>=10 && Math.max(n.H,n.S)<5 && (Math.max(n.H,n.S)<4 || points>=14);
+  } else if(opening.bid==='1H' && response.bid==='1S') {
+    // P0905–P0908: ordinary support and balanced game forces go via 2C;
+    // six-spade/three-heart delayed-support exceptions remain admissible.
+    return points>=5 && n.S>=4 && !(n.H>=3 && n.S<6)
+      && !(features.balanced && points>=12) && !(n.S>=6 && points<=7)
+      && n.H<=n.S;
+  } else return true;
+  const other=major==='H'?'S':'H';
+  if(n[other]>n[major]) return false;
+  if(n.H===n.S && n.H>=5) return false; // Keep ambiguous equal long majors out of drills.
+  return !(major==='S' && n.H===4 && n.S===4); // Heart response with 4/4.
+}

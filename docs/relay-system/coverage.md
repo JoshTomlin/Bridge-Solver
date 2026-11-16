@@ -18,7 +18,7 @@ publicly disclosed practice subset, not every source-note continuation.
 | Horton | 3 | Main/minimum enquiries, shape, shortage, zero/one/two KC and queen rule | Minimum threshold provisional; Last Train/cue and competitive replies incomplete |
 | Reordered opener rebids | 13 | Five no-support single-suiters, four three-card-support entries, four reverses, strength escapes | Some natural continuations and discretionary bidding over a final contract excluded |
 | Reordered mini–mega | 10 | New high/low bid positions, partscore escape, non-serious/control route | Opener-takes-control keycard, Exclusion and extreme-shape upgrades excluded |
-| Whole-auction openings | Separate mode | 1C plus first 1D/1M/2NT opening routes, stable-seat relay handovers and mixed openings | See [opening coverage](opening-auctions.md); ordinary 1NT, later cue/quantitative/advanced slam continuations remain incomplete |
+| Whole-auction openings | Whole auction and Just bid | 1C plus first 1D/1M/2NT opening routes, stable-seat relay handovers and mixed openings | See [opening coverage](opening-auctions.md); ordinary 1NT, later cue/quantitative/advanced slam continuations remain incomplete |
 | **Total relay entries** | **63** | See the generated catalogue for exact selectable prefixes | Opening mode has explicit source-backed subsets |
 
 ## Application and analysis work completed
@@ -27,7 +27,7 @@ publicly disclosed practice subset, not every source-note continuation.
 |---|---|---|
 | Fixed practice deals | Both hands exist before the first question; original partner hand never changes; seeded repeats | `core.js`, `sampling-worker.js` |
 | Both auction roles | All 63 entries offer asker or teller; teller answers public automatic questions with retry and fixed-hand undo | `practice.js`, `app.js` |
-| Family-first practice | Eight broad choices draw a random branch and fresh seed; a collapsed study menu retains all 63 exact entries and seed replay | `families.js`, `app.js`, `relay.html` |
+| Family-first practice | Focused study offers eight broad choices draw a random branch and fresh seed; a collapsed study menu retains all 63 exact entries and seed replay | `families.js`, `app.js`, `relay.html` |
 | Saved bidding progress | Autosave and restore cards, auction, role, pending question, chosen contract, undo and preferences across reopening in the same browser/site | `progress.js`, `app.js` |
 | Bidding interpreter | Source actions, exactly one truthful answer, immutable state, public dynamic nodes, terminal partner Pass | `core.js`, family profile modules |
 | Constraint tracker | HCP, controls, lengths, exact SHDC shape sets, unions of conjunctions, keycards/queen/honours | `core.js`, `continuations.js` |

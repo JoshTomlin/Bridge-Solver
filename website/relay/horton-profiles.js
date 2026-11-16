@@ -30,7 +30,7 @@ export function createHortonProfile(opening, policy = HORTON_POLICY) {
   const describe = (type, extra = []) => ({ bid: type.bid, label: type.label, constraints: [type.fact, ...extra],
     nextNode: 'choose-trump', state: state({ balanced: null, shortageSuit: null }) });
   const nodes = {
-    entry: { label: 'Horton 2NT enquiry', help: `Practice minimum is 0–${policy.minimumMaxHcp} HCP. Above that, opener shows the source shape categories.`, actions: [{
+    entry: { signoffs: opening==='D'?['2H','2S','3C']:opening==='H'?['2S','3C','3D']:['3C','3D','3H'], label: 'Horton 2NT enquiry', help: `Practice minimum is 0–${policy.minimumMaxHcp} HCP. Above that, opener shows the source shape categories.`, actions: [{
       bid: '2NT', label: 'Ask minimum or shape', kind: 'relay', responses: [
         { bid: '3C', label: `Minimum (${policy.minimumMaxHcp} HCP or fewer under the practice policy)`, constraints: [hcp(0, policy.minimumMaxHcp)], nextNode: 'minimum', state: state() },
         ...types.map(type => describe(type, [hcp(policy.minimumMaxHcp + 1, policy.maxHcp)])),

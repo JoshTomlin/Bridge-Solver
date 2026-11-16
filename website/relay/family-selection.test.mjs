@@ -55,7 +55,7 @@ test('random family entries produce usable asker and teller sessions with fixed 
     assert.equal(session.seed, seed);
     assert.equal(practiceView(session).playerSeat, role === 'asker' ? profile.playerSeat : profile.partnerSeat);
     assert.equal(session.revealed, false);
-    if (role === 'teller') assert.ok(session.pendingAsk);
+    if (role === 'teller') assert.ok(session.pendingAsk || session.finished && session.contract);
   }
 });
 

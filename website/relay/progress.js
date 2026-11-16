@@ -49,7 +49,7 @@ function validateSession(session) {
 }
 
 function preferencesFor(preferences = {}, session) {
-  const practiceMode = session.wholeAuction ? 'auction' : preferences.practiceMode === 'mixed' ? 'mixed' : 'focused';
+  const practiceMode = preferences.practiceMode === 'mixed' ? 'mixed' : session.wholeAuction ? 'auction' : 'focused';
   let assessedContract = '';
   try { bidIndex(preferences.assessedContract); assessedContract = preferences.assessedContract; } catch { /* Use the default contract. */ }
   return {

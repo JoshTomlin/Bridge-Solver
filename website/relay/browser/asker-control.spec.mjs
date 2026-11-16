@@ -27,7 +27,7 @@ test('engine readiness keeps the bidding controls connected while a level tap is
 });
 
 test('an asker may pass a saved artificial 3NT reply as an agreed signoff, reveal partner and undo', async ({ page }) => {
-  const initial = createTrainingPractice({ profileId: 'rebid-single-h-s', seed: 'asker-control' });
+  const initial = createTrainingPractice({ profileId: 'rebid-single-h-s', seed: 'legal-control-4' });
   const session = applyPracticeBid(initial, '3D');
   expect(session.auction.at(-1).bid).toBe('3NT');
   expect(session.threeNTToPlay).toBe(false);

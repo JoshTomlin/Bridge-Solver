@@ -1,3 +1,4 @@
+import { matchesInitialResponse } from './profile-utils.js';
 import { SYSTEM } from './system.js';
 import { postRangeActions, applyPostRangeBid, classifySuitResponse, publicLengthBounds, keycardAction } from './continuations.js';
 import { getPracticeProfile, PRACTICE_PROFILES } from './profiles.js';
@@ -247,6 +248,8 @@ function createFamilyPractice(profile, seed) {
     const known = new Set(partnerHand);
     const playerHand = drawCards(DECK.filter(card => !known.has(card)), 13, rng, true);
     if (!matchesConstraints(playerHand, profile.playerConstraints ?? [], trump)) continue;
+    if (!matchesInitialResponse(base.auction, handFeatures(playerHand,trump),base.playerSeat)
+        || !matchesInitialResponse(base.auction, handFeatures(partnerHand,trump),base.partnerSeat)) continue;
     return freeze({ ...base, playerHand: sortedHand(playerHand), partnerHand: sortedHand(partnerHand) });
   }
   throw new Error('No practice deal found within the generation limit; choose another seed.');

@@ -2,7 +2,7 @@ import { revealPractice, handFeatures, SUITS, RANKS, getPracticeProfile, practic
 import { availablePracticeActions, practiceCalls, applyPracticeBid, practiceView } from './practice.js';
 import { createEvaluationDeals, fillOpponentHands, defaultContracts } from './evaluation.js';
 import { loadPracticeProgress, savePracticeProgress } from './progress.js';
-import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile, selectMixedPractice } from './families.js';
+import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile } from './families.js';
 import { AUCTION_SEATS, auctionRounds } from './table-ui.js';
 import { auctionCallDetails } from './auction-study.js';
 import { attachBidPreview } from './bid-preview.js';
@@ -240,7 +240,7 @@ function render() {
   for (const id of ['auction-family', 'practice-role', 'profile']) byId(id).disabled = busy || mixed;
   const studying = Boolean(committedStudyProfileId);
   byId('practice-scope').textContent = committedPracticeMode === 'auction' ? 'Bid from the opening · Random opener/responder · Coverage in System notes.'
-    : committedPracticeMode === 'mixed' ? 'Random family, branch and role each hand.' : studying ? 'Branch study' : 'Random branch';
+    : committedPracticeMode === 'mixed' ? 'From the opening · Random supported opening and seat.' : studying ? 'Branch study' : 'Random branch';
   byId('new-deal').setAttribute('aria-label', studying ? 'Next study hand' : 'New hand');
   byId('active-branch').textContent = `Current branch: ${bidLabel(profile.name)}`;
   byId('system-assumptions').innerHTML = [...(profile.assumptions ?? []), ...(profile.limitations ?? [])].map(text => `<li>${escapeHtml(bidLabel(text))}</li>`).join('');
@@ -280,9 +280,9 @@ function render() {
   byId('review-next').classList.toggle('primary', !paused);
   byId('review-next').classList.toggle('secondary', paused);
   byId('phase-label').textContent = stopped ? 'Review' : 'Your turn';
-  byId('action-title').textContent = session.undiscussedBid ? `${bidLabel(session.undiscussedBid)} · ${session.coverageBoundary ? 'Not implemented' : 'Undiscussed'}` : session.contract ? `${bidLabel(session.contract.bid)} · ${session.contract.declarer}`
+  byId('action-title').textContent = session.passedOut ? 'Passed out' : session.contract ? `${bidLabel(session.contract.bid)} · ${session.contract.declarer}${session.undiscussedBid ? ' · Undiscussed' : ''}` : session.undiscussedBid ? `${bidLabel(session.undiscussedBid)} · ${session.coverageBoundary ? 'Not implemented' : 'Undiscussed'}`
     : stopped ? 'Hand revealed' : session.opening ? `${roleName} · Your call` : teller ? `Your response to ${bidLabel(session.pendingAsk?.bid ?? '')}` : 'Your call';
-  byId('table-state').textContent = busy ? 'Working…' : session.undiscussedBid ? 'Undiscussed' : stopped ? 'Complete' : 'Your turn';
+  byId('table-state').textContent = busy ? 'Working…' : session.contract || session.passedOut ? 'Complete' : session.undiscussedBid ? 'Undiscussed' : stopped ? 'Complete' : 'Your turn';
   byId('action-help').textContent = session.unsupportedReason || (session.opening ? 'Choose your call using your hand and the auction.' : teller ? describeBid(session.pendingAsk?.label ?? 'Auction complete.', session.trump ?? session.major)
     : practiceNode(session)?.help ?? 'Choose a relay question or a final contract.');
   byId('bid-meanings').innerHTML = actions.filter(action => action.kind !== 'signoff' || action.bid === 'Pass')
@@ -323,13 +323,19 @@ function render() {
   if (candidate) byId('assessed-contract').value = candidate;
 }
 
+function setBidFeedback(message) {
+  byId('bid-feedback').textContent=message;
+  byId('typed-feedback').textContent=message;
+  byId('bid-feedback-banner').hidden=!message;
+}
+byId('dismiss-bid-feedback').addEventListener('click',()=>setBidFeedback(''));
+
 function invalidateAnalysis() {
   samples = null;
   byId('sample-results').replaceChildren();
   byId('evaluation-results').replaceChildren();
   sampleStatus('Each sample gets one random East/West split. All contracts use the same deals.');
-  byId('bid-feedback').textContent = '';
-  byId('typed-feedback').textContent = '';
+  setBidFeedback('');
 }
 
 function populateStudyProfiles(selectedProfileId = '') {
@@ -371,7 +377,10 @@ async function dealHand({ replay = false } = {}) {
     if (mode === 'auction') {
       selection = { auctionMode: true, openingFamily: replay ? committedOpeningFamily : byId('opening-family').value, ...(replay && session?.wholeAuction ? { humanSeat: session.wholeAuction.humanSeat } : {}) };
     } else if (mode === 'mixed') {
-      selection = replay && session ? { profileId: session.familyId, role: session.practiceRole } : selectMixedPractice(seed);
+      selection = replay && session && !session.wholeAuction
+        ? { profileId: session.familyId, role: session.practiceRole } // Retain old saved drill replays.
+        : { auctionMode:true, openingFamily:replay && session?.wholeAuction ? ({'1C':'C','1D':'D','1H':'H','1S':'S','2NT':'NT'})[openingBidFor(session)] : 'all',
+          ...(replay && session?.wholeAuction ? {humanSeat:session.wholeAuction.humanSeat}: {}) };
     } else {
       const familyId = byId('auction-family').value;
       const replayProfile = replay && session && auctionFamilyForProfile(session.familyId).id === familyId ? session.familyId : '';
@@ -380,7 +389,7 @@ async function dealHand({ replay = false } = {}) {
     }
     const next = await sampler.request({ command: 'deal', payload: { ...selection, seed } });
     if (currentJob !== job) return;
-    session = next;
+    session = next.finished ? revealPractice(next) : next;
     committedPracticeMode = mode;
     if (mode === 'auction') committedOpeningFamily = selection.openingFamily;
     committedStudyProfileId = mode !== 'focused' ? '' : byId('profile').value;
@@ -406,7 +415,7 @@ function chooseBid(bid) {
   try {
     const next = applyPracticeBid(session, bid);
     history.push(session);
-    session = next.finished && (!next.undiscussedBid || next.contract) ? revealPractice(next) : next;
+    session = next.finished && (!next.undiscussedBid || next.contract || next.passedOut) ? revealPractice(next) : next;
     if (session.contract) {
       const option = document.createElement('option');
       option.value = session.contract.bid;
@@ -421,8 +430,7 @@ function chooseBid(bid) {
     persistProgress();
     byId('typed-dialog').close();
   } catch (error) {
-    byId('bid-feedback').textContent = error.message;
-    byId('typed-feedback').textContent = error.message;
+    setBidFeedback(error.message);
   }
 }
 
@@ -596,8 +604,7 @@ byId('bid-form').addEventListener('submit', (event) => {
   if (bid === 'P' || bid === 'PASS') bid = 'Pass';
   if (!bid) {
     const message = 'Enter a bid, for example 4D or 5NT.';
-    byId('bid-feedback').textContent = message;
-    byId('typed-feedback').textContent = message;
+    setBidFeedback(message);
     return;
   }
   chooseBid(bid);

@@ -103,7 +103,7 @@ test('whole-auction selection, replay and new hands retain the selected mode wit
   await expect(page.locator('#family-settings')).toBeVisible();
 });
 
-test('not-implemented continuations pause, keep partner hidden, save and undo', async ({ page }) => {
+test('not-implemented continuations accept the contract, save and undo', async ({ page }) => {
   await page.addInitScript(({ key, session }) => {
     if (!localStorage.getItem(key)) localStorage.setItem(key,
       JSON.stringify({ version: 1, session, history: [], preferences: { practiceMode: 'auction' } }));
@@ -112,11 +112,11 @@ test('not-implemented continuations pause, keep partner hidden, save and undo', 
   await ready(page);
   const initial = await saved(page);
   await clickBid(page, '2D');
-  await expect(page.locator('#action-title')).toContainText('Not implemented');
-  await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(13);
-  expect((await saved(page)).session.coverageBoundary).toBe(true);
+  await expect(page.locator('#action-title')).toContainText('Undiscussed');
+  await expect(page.locator('#partner-cards [data-card]')).toHaveCount(13);
+  expect((await saved(page)).session.coverageBoundary).toBe(false);
   await page.reload();
   await ready(page);
-  await page.click('#resume-bidding');
+  await page.click('#undo-bid');
   expect((await saved(page)).session).toEqual(initial.session);
 });

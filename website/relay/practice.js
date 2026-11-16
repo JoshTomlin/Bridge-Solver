@@ -1,7 +1,7 @@
 // The source interpreter keeps its original seats: player = asker, partner =
 // teller. This controller changes the human's view without rewriting source
 // definitions or letting the hidden teller hand influence the next question.
-import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex, getPracticeProfile, practiceNode } from './core.js';
+import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex, getPracticeProfile, practiceNode, handFeatures } from './core.js';
 import { declarerFor } from './profile-utils.js';
 import { createOpeningPractice, openingActions, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
 
@@ -38,7 +38,18 @@ export function advanceAsker(session) {
   // Human control does not require the recall coach to park on a side-suit
   // answer when its questions end. Offer a normal contract and final Pass.
   const signoffs = actions.filter(action => action.kind === 'signoff');
-  const action = actions.find(action => action.kind === 'relay')
+  // With 16 opposite a public maximum of eight, use a partscore policy.
+  // Only the asker's own hand and the shown Horton suits are consulted.
+  let hortonPartscore;
+  if(session.familyId?.startsWith('horton-') && session.nodeId==='entry' && handFeatures(session.playerHand,trump).hcp<=16) {
+    const n=handFeatures(session.playerHand,trump).lengths;
+    const second=session.hortonSecondSuit;
+    const best=n[second]>n.S?second:'S';
+    const opening=session.auction[0].bid;
+    const bid=opening===`2${best}`?'Pass':best==='S'?'2S':`3${best}`;
+    hortonPartscore=signoffs.find(a=>a.bid===bid) ?? signoffs.find(a=>a.bid==='Pass');
+  }
+  const action = hortonPartscore ?? actions.find(action => action.kind === 'relay')
     ?? signoffs.find(action => action.bid !== 'Pass' || session.weakExitAllowed || usualContracts.has(last))
     ?? signoffs[0];
   if (!action) return Object.freeze({ ...session, pendingAsk: null, finished: true,
@@ -88,27 +99,20 @@ export function practiceCalls(session) {
   bids.push('Pass');
   return Object.freeze(bids.map(bid => Object.freeze(discussed.has(bid)
     ? { ...discussed.get(bid), discussed: true }
-    : { bid, discussed: false, kind: 'undiscussed', label: 'Undiscussed in this exercise. Bidding this call pauses the auction for review.' })));
+    : { bid, discussed: false, kind: 'undiscussed', label: 'Undiscussed. Choose this contract; partner will pass. Undo is available.' })));
 }
 
 export function applyPracticeBid(session, bid) {
   const call = practiceCalls(session).find(call => call.bid === bid);
   if (!call) throw new Error(`${bid} is not an available response or legal call at this point in the auction.`);
+  if (!call.discussed) return acceptUndiscussedContract(session,bid);
   if (session.opening) {
-    const next = advanceOpeningPartner(applyOpeningCall(session, bid));
+    const result=applyOpeningCall(session,bid);
+    // A documented but unimplemented continuation is also playable. Preserve
+    // the public description; the fallback adds no partner response facts.
+    if(result.coverageBoundary) return acceptUndiscussedContract(result,bid,true);
+    const next=advanceOpeningPartner(result);
     return !next.opening && next.practiceRole === 'teller' ? advanceAsker(next) : next;
-  }
-  if (!call.discussed) {
-    const view = practiceView(session);
-    const auction = Object.freeze([...view.auction, Object.freeze({ seat: view.playerSeat, bid, meaning: call.label })]);
-    const last = view.auction.findLast(call => call.bid !== 'Pass');
-    const contract = bid === 'Pass' && last ? Object.freeze({ bid: last.bid, level: Number(last.bid[0]),
-      strain: last.bid.slice(1), declarer: declarerFor(auction, last.bid.slice(1), last.seat) }) : null;
-    return Object.freeze({ ...session, pendingAsk: null, phase: 'undiscussed', finished: true,
-      contract, undiscussedBid: bid,
-      unsupportedReason: 'This call is undiscussed in this exercise. Undo to continue from the previous question.',
-      auction,
-    });
   }
   if (session.practiceRole !== 'teller') return applyBid(session, bid);
   if (!availablePracticeActions(session).some(action => action.bid === bid)) {
@@ -120,4 +124,23 @@ export function applyPracticeBid(session, bid) {
     throw new Error('That response does not match your hand. Try again, or turn on “Show meanings” to review the response steps.');
   }
   return advanceAsker(next);
+}
+
+
+function acceptUndiscussedContract(session,bid,alreadyRecorded=false) {
+  const view=practiceView(session);
+  const auction=[...view.auction];
+  if(!alreadyRecorded) auction.push({seat:view.playerSeat,bid,meaning:'Undiscussed; selected contract'});
+  const last=auction.findLast(call=>call.bid!=='Pass');
+  if(!last) {
+    auction.push({seat:view.partnerSeat,bid:'Pass',meaning:'Pass out the deal (fallback)'});
+    return Object.freeze({...session,auction:Object.freeze(auction.map(c=>Object.freeze(c))),opening:null,pendingAsk:null,
+      phase:'finished',finished:true,passedOut:true,contract:null,coverageBoundary:false,undiscussedBid:bid,
+      unsupportedReason:'Passed out. Undo to return to the opening.'});
+  }
+  if(bid!=='Pass') auction.push({seat:view.partnerSeat,bid:'Pass',meaning:'Accept selected contract (fallback; continuation undiscussed)'});
+  return Object.freeze({...session,auction:Object.freeze(auction.map(c=>Object.freeze(c))),opening:null,pendingAsk:null,
+    phase:'finished',finished:true,coverageBoundary:false,undiscussedBid:bid,
+    contract:Object.freeze({bid:last.bid,level:Number(last.bid[0]),strain:last.bid.slice(1),declarer:declarerFor(auction,last.bid.slice(1),last.seat)}),
+    unsupportedReason:'Undiscussed continuation: partner passes your selected contract. Undo to try another bid.'});
 }

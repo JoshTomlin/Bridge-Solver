@@ -106,12 +106,12 @@ test('typed entry stays in the menu and an undiscussed bid has a direct way back
   await page.fill('#bid-input', '3C');
   await page.click('#submit-bid');
   await expect(page.locator('dialog[open]')).toHaveCount(0);
-  await expect(page.locator('#resume-bidding')).toBeVisible();
-  await expect(page.locator('#review-hand')).toBeHidden();
-  await expect(page.locator('#review-assess')).toBeHidden();
-  await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(13);
+  await expect(page.locator('#undo-bid')).toBeEnabled();
+  await expect(page.locator('#review-hand')).toBeVisible();
+  await expect(page.locator('#review-assess')).toBeVisible();
+  await expect(page.locator('#partner-cards [data-card]')).toHaveCount(13);
   await fitsScreen(page);
-  await page.click('#resume-bidding');
+  await page.click('#undo-bid');
   expect((await saved(page)).session).toEqual(original);
   await expect(page.locator('#bidding-controls')).toBeVisible();
   await fitsScreen(page);

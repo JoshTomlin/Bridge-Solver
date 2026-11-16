@@ -35,7 +35,10 @@ table('1D', [
 ]);
 table('1H', [['1S', 'Four-plus spades'], ['2NT', 'Four-plus hearts; game-forcing raise']]);
 table('1S', [['2NT', 'Four-plus spades; game-forcing raise']]);
-for (const bid of ['2D','2H','2S']) table(bid, [['2NT', 'Horton range and shape enquiry']]);
+for (const bid of ['2D','2H','2S']) table(bid, [
+  ...(bid==='2D'?['2H','2S','3C']:bid==='2H'?['2S','3C','3D']:['3C','3D','3H']).map(call=>[call,'Natural; to play']),
+  ['2NT', 'Horton range and shape enquiry'],
+]);
 
 const single = (suit, major) => `Six-plus ${names[suit]}; 14+; no second four-card suit, at most two ${names[major]}`;
 const support = (suit, major) => `Six-plus ${names[suit]}, three ${names[major]}; ${suit === 'D' ? '16+' : '14+'}`;

@@ -81,15 +81,15 @@ test('public bid choices never identify the right opening response using hidden 
   assert.equal(openingPartnerBid({ ...input, partnerHand: ['hidden'], targetProfile: 'wrong' }), '1NT');
 });
 
-test('a legal continuation beyond coverage pauses without reveal or invented facts and remains undoable', () => {
+test('a legal continuation beyond coverage accepts the contract without invented facts and remains undoable', () => {
   const initial = fixture();
   const next = applyPracticeBid(initial, '2D');
-  assert.equal(next.coverageBoundary, true);
+  assert.equal(next.coverageBoundary, false);
   assert.equal(next.revealed, false);
-  assert.equal(next.contract, null);
+  assert.equal(next.contract.bid,'2D');
   assert.deepEqual(next.constraints, initial.constraints);
   assert.deepEqual(next.partnerHand, initial.partnerHand);
-  assert.match(next.unsupportedReason, /not been graded/);
+  assert.match(next.unsupportedReason, /partner passes/);
   assert.deepEqual(applyPracticeBid(initial, '1D').auction.map(call => call.bid), ['1C', '1D', '1NT']);
 });
 

@@ -129,3 +129,7 @@ summary { font-weight: 500; min-height: 28px; }.replay-options { margin-top: 20p
 .context-toggle { display: flex; align-items: center; min-height: 40px; padding: 4px 0; background: none; color: var(--accent); font-size: 12px; }
 .context-toggle::before { content: '+'; width: 20px; font-size: 16px; }.context-toggle[aria-expanded=true]::before { content: '−'; }
 @media (max-width: 420px) { .hand-lines { grid-template-columns: 1fr; } }
+
+.bid-feedback-banner { padding-right: 56px; }
+.bid-feedback-banner p { margin: 0; }
+#dismiss-bid-feedback { position: absolute; top: 0; right: 0; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: inherit; font-size: 25px; cursor: pointer; }

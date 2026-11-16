@@ -26,7 +26,7 @@ export const openingTitle = session => `${openingBidFor(session)} · Whole aucti
 export const isOpeningFamily = session => session.familyId?.startsWith('opening-');
 export const SYSTEM_OPENING_NOTES = [
   'Whole auction: first/second-seat, uncontested. Both hands are fixed before the opening; your physical seat stays fixed when the asker changes.',
-  '1D uses 9–19 openers with either a weak 5–8 diamond raise or a clear 14–19 response. It connects the two 1NT range entries, July minor rebids, support enquiries and reordered rebids. Borderline response values and routes outside the current tables pause for review.',
+  '1D uses 9–19 openers with either a weak 5–8 diamond raise or a clear 14–19 response. It connects the two 1NT range entries, July minor rebids, support enquiries and reordered rebids. Routes outside the current tables use the labelled contract-choice fallback.',
   '1M includes three-way 2C, natural 2D and 1S–2H responses, their documented rebids and shape enquiries, plus Jacoby, weak raises and selected 1H–1S routes. The 1NT continuation table remains unconfirmed.',
   'Ordinary major practice uses a game-first partner. For limit-raise judgement it declines with 9–11 and accepts with 12+; this is a practice policy, not a partnership rule. Human acceptance alternatives are not graded by that cutoff.',
   '2NT is 20–22 in 4333/4432/5332 shapes. Muppet, major transfers, minor Stayman and game choices are playable. Generated transfer hands avoid subjective super-accepts; quality is not graded when studying those alternatives.',
