@@ -269,7 +269,7 @@ export function ntOpeningPartnerBid(ctx) {
   else if(node==='no-major')bid=n.S===5&&n.H===4?(slam?'4H':'3NT'):slam&&n.C>=5?'4C':slam&&n.D>=5?'4D':'3S';
   else if(node==='puppet-nt')bid='3NT';
   else if(node==='nt-after-puppet')bid=slam&&n.S>=5&&n.H>=5?'4H':slam&&Math.max(n.C,n.D)>=4?'4C':'Pass';
-  else if(node==='shown-five')bid=n[major]>=3?(slam?choose(kickback(major),`4${major}`):`4${major}`):'Pass';
+  else if(node==='shown-five')bid=n[major]>=3?(slam?choose(kickback(major),`4${major}`):`4${major}`):choose('3NT','Pass');
   else if(node==='transfer')bid=n[major]>=4?(major==='H'?'3S':'4C'):`3${major}`;
   else if(node==='after-transfer')bid=slam&&n.C>=4?'4C':slam&&n.D>=4?'4D':major==='H'&&n.S===4?'3S':major==='S'&&n.H>=5?'4H':n[major]>=6?`4${major}`:'3NT';
   else if(node==='pick-game')bid=n[major]>=3?`4${major}`:'Pass';

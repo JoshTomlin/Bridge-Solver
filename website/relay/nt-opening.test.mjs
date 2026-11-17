@@ -129,6 +129,18 @@ test('Muppet five-heart 4D retains its documented cue meaning; re-transfer prese
   s=applyPracticeBid(s,'Pass');assert.equal(s.contract.declarer,'North');
 });
 
+
+test('the responder chooses 3NT without a fit for the five spades shown by Muppet',()=>{
+  const n='SA SK SQ SJ S2 HA H3 DK D4 D2 CQ CJ C8';
+  const r='S9 S8 HK HT H9 H8 DA D8 D6 CK CT C9 C6';
+  let s=path('2NT 3C',n,r,'North');
+  s=applyPracticeBid(s,'3S');
+  assert.deepEqual(bids(s),['2NT','3C','3S','3NT']);
+  assert.equal(s.finished,false);saved(s);
+  s=applyPracticeBid(s,'Pass');
+  assert.equal(s.contract.bid,'3NT');assert.equal(s.contract.declarer,'North');
+});
+
 test('public continuation choices and robot policies never depend on the concealed hand',()=>{
   const s=path('2NT 3S 4H 4NT',north,south,'North');
   const hidden={...s,playerHand:['hidden'],partnerHand:['hidden']};
