@@ -218,8 +218,9 @@ export function applyOpeningCall(session, bid) {
 
 /** Own cards and auction only. No completed deal, target profile or secret
  * recipe is passed to the bot's selection function. */
-export function openingPartnerBid({ system, node, major, puppet, auction, hand }) {
-  if (system) return systemOpeningPartnerBid({ system, node, major, auction, hand });
+export function openingPartnerBid(context) {
+  const { system, node, major, puppet, auction, hand }=context;
+  if (system) return systemOpeningPartnerBid(context);
   const f = feature(hand);
   if (node === 'open') return '1C';
   if (node === 'respond') return f.lengths.H >= 4 ? '1D' : f.lengths.S >= 4 ? '1H' : f.hcp >= 8 ? '1S' : '1NT';

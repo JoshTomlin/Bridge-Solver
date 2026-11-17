@@ -13,6 +13,7 @@ controls. The catalogue maps all 63 branches to the eight main choices.
 | [Club and Dappleton](club-and-dappleton.md) | 1C–1S, strong 2C–2D resolution, minor transfers and Baron |
 | [Reordered opener rebids](reordered-rebids.md) | Single-suiters, three-card support, reverses, mini–mega splinters and strength escapes |
 | [Split-range and Horton](split-and-horton.md) | Raises, 1NT support routes, Horton shape/shortage and 0/1/2 keycards |
+| [2NT opening continuations](notrump-opening.md) | Muppet, transfers, minor Stayman, cues, Kickback and subsequent slam enquiries |
 | [Exercise catalogue](scenario-catalog.md) | All 63 exercises, fixed prefixes, initial calls and player roles; generated from code |
 | [Coverage and remaining work](coverage.md) | What is implemented, known decisions, exclusions and next work |
 | [Maintainer guide](../relay-maintenance.md) | Source updates, engine contracts, tests and documentation workflow |

@@ -107,3 +107,21 @@ or four diamonds. Five-card support is excluded from generated minimum hands
 until its treatment is confirmed. P1036/P1043 explicitly allow six diamonds
 and three-card major support despite P0891's general denial of support; this
 specific exception is accepted when the user chooses the natural 2D route.
+
+## 2NT continuation increment — 17 November 2026
+
+**Q13 — Exclusion replies after a 2NT opening.** P1379/P1380/P1392/P1393
+name 5C/5D Exclusion; P1429 also names 5H after 2NT–4H–4S. Do they use the
+usual 0/3, 1/4, two without queen, two with queen steps, excluding the ace of
+the void suit? Asked Josh for Markey; no reply has been assumed. The bids
+keep their Exclusion description but their replies remain unimplemented.
+
+**Q6 remains open.** The deeper 2NT increment includes super-accepts, cues
+and quantitative decisions. Its bot uses a disclosed practice policy:
+responder with 11+ explores a fit, and opener accepts a quantitative 4NT
+with 22, declining with 20/21. Human quality choices are not graded by these
+cutoffs. Replace these policies with agreed examples when supplied.
+
+**Q8 remains open.** 2NT–3C–3NT–4D continues to mean a diamond cue agreeing
+hearts (P1354), not an invented re-transfer. Four-level re-transfers are
+implemented in the separate transfer/super-accept routes where P1370 applies.

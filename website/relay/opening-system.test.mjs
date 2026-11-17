@@ -124,7 +124,7 @@ test('2NT transfers and re-transfers preserve opener as declarer, and super-acce
   assert.equal(session.contract.declarer,'North');
 });
 
-test('opening menus and public study choices do not read either hand; unsupported routes preserve facts and remain undoable', () => {
+test('opening menus and public study choices do not read either hand; quantitative invitations preserve cards and add no invented facts', () => {
   for(const openingFamily of ['D','H','NT']) {
     const session=createTrainingPractice({auctionMode:true,openingFamily,humanSeat:'South',seed:'public-opening'});
     const hidden={...session,playerHand:['hidden'],partnerHand:['hidden']};
@@ -132,10 +132,10 @@ test('opening menus and public study choices do not read either hand; unsupporte
     assert.deepEqual(practiceCalls(hidden),practiceCalls(session));
     if(openingFamily==='NT') {
       const before=copy(session),next=applyPracticeBid(session,'4NT');
-      assert.equal(next.coverageBoundary,false);
-      assert.equal(next.contract.bid,'4NT');
+      assert.equal(next.coverageBoundary,undefined);
+      assert.ok(['4NT','6NT'].includes(next.contract.bid));
       assert.equal(next.revealed,false);
-      assert.deepEqual(next.constraints,before.constraints,'A coverage boundary must not invent invitation facts');
+      assert.deepEqual(next.constraints,before.constraints,'A quantitative choice must not invent a precise partner range');
       assert.deepEqual(next.partnerHand,before.partnerHand);
     }
   }

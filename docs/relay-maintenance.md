@@ -45,6 +45,7 @@ Paths below are relative to `website/relay/`, unless specified otherwise.
 | Practice roles | `practice.js` | Asker/teller views, public automatic asks, retry without mutation and final Pass |
 | Saved practice | `progress.js` | Versioned localStorage snapshot, validation, fixed-deal undo history and UI preferences |
 | Shared continuations | `continuations.js` | Ordinary/Horton KC, SKC, queen, specific suits, public length bounds and range escapes |
+| Whole-auction continuations | `opening-system.js`, `nt-opening.js`, `major-opening.js` | Source-specific opening choices, physical-seat turns, public constraints, and shared keycard asks without pre-answering the human's call |
 | Sampling | `core.js`, `sampling-worker.js` | Uniform proposals weighted by remaining card combinations; bounded rejection against all public facts |
 | DD analysis | `evaluation.js`, `evaluation-worker.js` | Complete opponents, preserve seats, find declarer, compare shared deals and report uncertainty |
 | UI | `app.js`, `relay.html`, `relay.css` | Render available actions and source meanings; undo/reveal/cancel; no hidden-hand inference |

@@ -4,6 +4,7 @@
 // own cards and the public auction, never the sampling stratum or other hand.
 import { DECK, PRACTICE_PROFILES, createPractice, practiceStartState, availableActions, applyBid,
   handFeatures, makeRng, matchesConstraints, bidIndex } from './core.js';
+import { NT_SHAPES, ntOpeningActions, applyNtOpeningCall, ntOpeningPartnerBid, validateNtOpening } from './nt-opening.js';
 import { declarerFor } from './profile-utils.js';
 import { entryContinuations } from './bid-reference.js';
 import { MAJOR_NODES, MAJOR_NORTH_NODES, isMajorBalanced, majorResponseFacts, ordinaryMajorOptions, ordinaryMajorCheck, ordinaryMajorPartnerBid } from './major-opening.js';
@@ -11,8 +12,7 @@ import { MAJOR_NODES, MAJOR_NORTH_NODES, isMajorBalanced, majorResponseFacts, or
 const names = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
 const other = major => major === 'H' ? 'S' : 'H';
 const features = hand => handFeatures(hand, 'C');
-const ntShapes=[];
-for(let S=2;S<=5;S++)for(let H=2;H<=5;H++)for(let D=2;D<=5;D++){const C=13-S-H-D;if(C>=2&&C<=5&&['4333','4432','5332'].includes([S,H,D,C].sort((a,b)=>b-a).join('')))ntShapes.push(`${S}${H}${D}${C}`);}
+const ntShapes=NT_SHAPES;
 const action = (bid, label, source) => ({ bid, label, source, kind: 'opening' });
 export const freezeOpening = value => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -29,8 +29,8 @@ export const SYSTEM_OPENING_NOTES = [
   '1D uses 9–19 openers with either a weak 5–8 diamond raise or a clear 14–19 response. It connects the two 1NT range entries, July minor rebids, support enquiries and reordered rebids. Routes outside the current tables use the labelled contract-choice fallback.',
   '1M includes three-way 2C, natural 2D and 1S–2H responses, their documented rebids and shape enquiries, plus Jacoby, weak raises and selected 1H–1S routes. The 1NT continuation table remains unconfirmed.',
   'Ordinary major practice uses a game-first partner. For limit-raise judgement it declines with 9–11 and accepts with 12+; this is a practice policy, not a partnership rule. Human acceptance alternatives are not graded by that cutoff.',
-  '2NT is 20–22 in 4333/4432/5332 shapes. Muppet, major transfers, minor Stayman and game choices are playable. Generated transfer hands avoid subjective super-accepts; quality is not graded when studying those alternatives.',
-  'The automated partner uses a game-first practice policy after 2NT. Quantitative acceptance and advanced slam follow-ups remain outside this increment.',
+  '2NT is 20–22 in 4333/4432/5332 shapes; responder is 6–16. Muppet, major transfers, minor Stayman, cue bids and Kickback continue into queen and specific-suit enquiries. Human slam-quality judgements are not graded.',
+  'The 2NT practice partner explores a fit with 11+ responder points, then follows the shared keycard questions. It accepts quantitative invitations with 22 and declines with 20/21; these are practice policies, not partnership thresholds. Exclusion reply ladders remain unconfirmed.',
 ];
 
 export function chooseOpeningFamily(family, seed) {
@@ -140,7 +140,9 @@ function majorRebid(f) {
   return '2H';
 }
 
-export function systemOpeningPartnerBid({ system, node, major, auction, hand }) {
+export function systemOpeningPartnerBid(context) {
+  const { system, node, major, auction, hand }=context;
+  if(system==='2NT')return ntOpeningPartnerBid(context);
   const f = features(hand);
   if (node === 'open') return system;
   if (node === 'weak-raise' || node === 'final') return 'Pass';
@@ -155,25 +157,6 @@ export function systemOpeningPartnerBid({ system, node, major, auction, hand }) 
     return diamondRebid(auction, f);
   }
   if (system !== '2NT') return node === 'respond' ? majorResponse(system.slice(1), f) : majorRebid(f);
-  if (node === 'respond') return f.lengths.S >= 5 || f.lengths.H >= 5
-    ? (f.lengths.S > f.lengths.H ? '3H' : '3D') : Math.max(f.lengths.S, f.lengths.H) >= 4 ? '3C' : '3NT';
-  if (node === 'muppet') return f.lengths.S === 5 ? '3S' : f.lengths.H === 5 ? '3NT'
-    : Math.max(f.lengths.S, f.lengths.H) === 4 ? '3D' : '3H';
-  if (node === 'four-major') return f.lengths.S >= 4 ? '3H' : f.lengths.H >= 4 ? '3S' : '3NT';
-  if (node === 'fit-major') return f.lengths[major] >= 4 ? `4${major}` : '3NT';
-  if (node === 'both-majors') return f.lengths.H >= 4 ? '4H' : '4S';
-  if (node === 'no-major') return f.lengths.S === 5 && f.lengths.H === 4 ? '3NT' : '3S';
-  if (node === 'puppet-nt') return '3NT';
-  if (node === 'shown-five') return f.lengths[major] >= 3 ? `4${major}` : 'Pass';
-  if (node === 'transfer') return f.lengths[major] >= 4 ? (major === 'H' ? '3S' : '4C') : `3${major}`;
-  if (node === 'after-transfer') return f.lengths[major]>=6 ? `4${major}` : '3NT';
-  if (node === 'pick-game') return f.lengths[major] >= 3 ? `4${major}` : 'Pass';
-  if (node === 'super-fit') return major === 'H' ? '4D' : '4H';
-  if (node === 'retransfer') return `4${major}`;
-  if (node === 'minor-stayman') return f.lengths.C === 5 ? '4H' : f.lengths.D === 5 ? '4S'
-    : f.lengths.C === 4 ? '4C' : f.lengths.D === 4 ? '4D' : '3NT';
-  if (node === 'shown-minor') return major ? `5${major}` : 'Pass';
-  if (node === 'final') return 'Pass';
   throw new Error('No automated continuation for this opening node.');
 }
 
@@ -196,9 +179,8 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
   let hands;
   if (openingBid === '2NT') hands = drawJoint(rng, (n,s) => {
     const shape = Object.values(n.lengths).sort((a,b) => b-a).join('');
-    if (n.hcp < 20 || n.hcp > 22 || !['4333','4432','5332'].includes(shape) || s.hcp < 6 || s.hcp > 10) return false;
-    const transfer = Math.max(s.lengths.H,s.lengths.S) >= 5 ? (s.lengths.S > s.lengths.H ? 'S' : 'H') : null;
-    return !transfer || n.lengths[transfer] <= 2;
+    if (n.hcp < 20 || n.hcp > 22 || !['4333','4432','5332'].includes(shape) || s.hcp < 6 || s.hcp > 16) return false;
+    return true;
   });
   else if (['1H','1S'].includes(openingBid) && makeRng(`ordinary-major:${seed}`)() < 0.6) {
     const major=openingBid.slice(1);
@@ -251,7 +233,7 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
   }
   const hcp=(min,max)=>({type:'hcp',min,max}), length=(suit,min,max)=>({type:'length',suit,min,max});
   const m=openingBid.slice(1);
-  const southRestriction=openingBid==='2NT'?{type:'hcp',min:6,max:10,label:'Responder: 6–10 in this practice subset'}
+  const southRestriction=openingBid==='2NT'?{type:'hcp',min:6,max:16,label:'Responder: 6–16 in this practice subset'}
     : {type:'anyOf',label:openingBid==='1D'?'Responder: weak raise or clear game force in this practice subset':'Responder: weak raise or 10–19 in this practice subset',options:openingBid==='1D'
       ?[[hcp(5,8),length('D',4,13),length('H',0,3),length('S',0,3)],[hcp(14,19)]]
       :[[hcp(5,8),length(m,3,3),length(other(m),0,3)],[hcp(14,19),length(m,4,13)],[hcp(10,19)],
@@ -288,39 +270,11 @@ function openingActionsTable(session) {
     if (node === 'weak-raise') return calls([['Pass',`Play ${session.auction.at(-1).bid}`], ...games]);
     return (entryContinuations(session.auction) ?? []).map(row => action(row.bid,row.label,'July email / Reordering'));
   }
-  switch (node) {
-    case 'respond': return calls([
-      ['Pass','Play 2NT'], ['3C','Muppet Stayman','P1315'], ['3D','Five-plus hearts; transfer','P1316'],
-      ['3H','Five-plus spades; transfer','P1316'], ['3S','Minor-suit Stayman','P1317'], ['3NT','Play 3NT','P1318'],
-      ['4C','Diamond slam try','P1319'], ['4D','Club slam try','P1319'], ['4H','Transfer to 4S','P1320'],
-      ['4S','Play 4S','P1321'], ['4NT','Quantitative invitation','P1322'],
-    ]);
-    case 'muppet': return calls([['3D','One/both four-card majors','P1325'],['3H','No four/five-card major','P1326'],['3S','Five spades','P1327'],['3NT','Five hearts','P1328']]);
-    case 'four-major': return calls([['3H','Four spades','P1330'],['3S','Four hearts','P1331'],['3NT','Play 3NT','P1332'],['4C','4/4 majors; slam interest','P1333'],['4D','4/4 majors; game choice','P1334']]);
-    case 'fit-major': return calls([...(major === 'S' ? [['3S','Spade fit; continue below game','P1330']] : [['4C','Heart fit; club control','P1331'],['4D','Heart fit; diamond control','P1331']]),['3NT','No fit; play 3NT'],[`4${major}`,`Major fit; choose 4${major}`]]);
-    case 'both-majors': return calls([['4H','Four hearts; play 4H'],['4S','Four spades; play 4S']]);
-    case 'no-major': return calls([['3S','Puppet to 3NT; denies five spades/four hearts','P1336'],['3NT','Five spades/four hearts; game choice','P1337'],['4C','Five-plus clubs; slam try','P1338'],['4D','Five-plus diamonds; slam try','P1339'],['4NT','Quantitative invitation','P1342']]);
-    case 'puppet-nt': return calls([['3NT','Puppet acceptance','P1343']]);
-    case 'shown-five': return calls([['Pass',`Play ${session.auction.at(-1).bid}`],['3NT','Play 3NT'],[`4${major}`,`Play 4${major}`],['4C','Agree the shown major; club cue','P1354'],['4D','Agree the shown major; diamond cue','P1354']]);
-    case 'transfer': return calls([
-      [`3${major}`,`${names[major]} transfer acceptance; at most three-card support`,'P1364'],
-      [major === 'H' ? '3S' : '4C',`Four/five ${names[major]}; super-accept`,'P1369'],
-      ['3NT',`Three ${names[major]}; great for slam (judgement)`,'P1365'],
-      [`4${major}`,`Four/five ${names[major]}; choose game`,'P1367'],
-      ...(major === 'H' ? [['4C','Four/five hearts; club control'],['4D','Four/five hearts; diamond control']] : [['4D','Four/five spades; diamond control'],['4H','Four/five spades; heart control']]),
-    ]);
-    case 'after-transfer': return calls([['Pass',`Play 3${major}`],['3NT','Offer choice of 3NT or major game','P1373/P1386'],[`4${major}`,`Play 4${major}`],[major === 'H' ? '3S' : '4H',major === 'H' ? 'Five hearts/four spades' : 'Five-plus spades/hearts; game values','P1372/P1389'],['4C','Four-plus clubs; slam interest'],['4D','Four-plus diamonds; slam interest'],['4NT','Quantitative invitation']]);
-    case 'pick-game': return calls([['Pass','Choose 3NT'],[`4${major}`,`Three-card fit; choose 4${major}`]]);
-    case 'super-fit': return calls([[major === 'H' ? '4D' : '4H',`Re-transfer to ${names[major]}`,'P1370'],[`4${major}`,`Play 4${major}`],['4NT','Slam continuation; not yet implemented']]);
-    case 'retransfer': return calls([[`4${major}`,`Accept re-transfer to ${names[major]}`,'P1370']]);
-    case 'minor-stayman': return calls([['3NT','No four/five-card minor, or unsuitable hand','P1396'],['4C','Four clubs','P1397'],['4D','Four diamonds','P1398'],['4H','Five clubs','P1399'],['4S','Five diamonds','P1399']]);
-    case 'shown-minor': return calls(major ? [[`5${major}`,`Play 5${major}`], [['4H','4S'].includes(session.auction.at(-1).bid) ? '4NT' : major === 'C' ? '4D' : '4H',`Keycards in ${names[major]}; later continuation`]] : [['Pass','Play 3NT'],['4C','Five-plus clubs; slam try'],['4D','Five-plus diamonds; slam try'],['4NT','Quantitative invitation']]);
-    case 'final': return calls([['Pass','Accept final contract'],...games.filter(([bid]) => bidIndex(bid)>bidIndex(session.auction.findLast(call=>call.bid!=='Pass').bid))]);
-    default: throw new Error('Unknown opening-practice node.');
-  }
+  throw new Error('Unknown opening-practice node.');
 }
 
 export function systemOpeningActions(session) {
+  if(session.opening.system==='2NT')return ntOpeningActions(session);
   const choices=openingActionsTable(session);
   const last=session.auction.findLast(call=>call.bid!=='Pass');
   if ((session.opening.system==='2NT' || MAJOR_NODES.includes(session.opening.node)) && session.opening.seat==='South' && last?.seat==='North') {
@@ -366,6 +320,7 @@ function openingFactsForCall(session,bid) {
 }
 
 export function applySystemOpeningCall(session,bid) {
+  if(session.opening.system==='2NT')return applyNtOpeningCall(session,bid);
   const { system,node,major,seat } = session.opening;
   const option = systemOpeningActions(session).find(call => call.bid === bid);
   const next = { ...session, opening: { ...session.opening }, constraints: [...session.constraints],
@@ -436,69 +391,6 @@ export function applySystemOpeningCall(session,bid) {
     require(bid===expected || target && matchesConstraints(physicalHands(session).North,practiceStartState({profileId:target.id}).constraints,target.defaultTrump),`This rebid does not match the shown shape/range. The source route for this hand is ${expected}.`);
     return target ? startRelay(next,target.id) : openingBoundary(next);
   }
-  if (bid === 'Pass') return finishOpening(next);
-  if (node === 'respond') {
-    if (bid==='3C') return move('muppet');
-    if (['3D','3H','4H'].includes(bid)) {
-      const suit=bid==='3D'?'H':'S'; require(f.lengths[suit]>=5,`This transfer promises five-plus ${names[suit]}.`);
-      return move(bid==='4H'?'retransfer':'transfer',{major:suit});
-    }
-    if (bid==='3S') return move('minor-stayman');
-    if (bid==='3NT' || bid==='4S') return move('final',{major:bid==='4S'?'S':null});
-    return openingBoundary(next);
-  }
-  if (node==='muppet') {
-    const expected=systemOpeningPartnerBid({ ...session.opening,hand:physicalHands(session)[seat],auction:session.auction });
-    require(bid===expected,'This Muppet answer does not match your four/five-card majors.');
-    return move(bid==='3D'?'four-major':bid==='3H'?'no-major':'shown-five',{major:bid==='3S'?'S':bid==='3NT'?'H':null});
-  }
-  if (node==='four-major') {
-    if (bid==='3H' || bid==='3S') { const suit=bid==='3H'?'S':'H'; require(f.lengths[suit]>=4,`This response shows four ${names[suit]}.`); return move('fit-major',{major:suit}); }
-    if (bid==='4D') { require(f.lengths.H===4 && f.lengths.S===4,'The 4D game choice shows both four-card majors.'); return move('both-majors'); }
-    if (bid==='3NT') return move('final');
-    return openingBoundary(next);
-  }
-  if (node==='fit-major') {
-    if (bid==='3NT') { require(f.lengths[major]<4,'With four-card support, show the major fit.'); return move('final'); }
-    require(f.lengths[major]>=4,'Showing the major fit requires four-card support.');
-    if (bid===`4${major}`) return move('final');
-    if (['4C','4D'].includes(bid)) { const suit=bid.slice(1);require(physicalHands(session)[seat].some(card=>[suit+'A',suit+'K'].includes(card)),'This cue needs a control in the bid suit.'); }
-    return move('shown-five'); // Below-game fit established; game choices remain available.
-  }
-  if (node==='both-majors') { require(f.lengths[bid.slice(1)]>=4,'Choose a major in which you hold four cards.'); return move('final',{major:bid.slice(1)}); }
-  if (node==='no-major') {
-    if (bid==='3S') { require(!(f.lengths.S===5 && f.lengths.H===4),'With five spades and four hearts, 3NT shows that game hand.'); return move('puppet-nt'); }
-    if (bid==='3NT') { require(f.lengths.S===5 && f.lengths.H===4,'This artificial 3NT shows five spades and four hearts.'); return move('pick-game',{major:'S'}); }
-    return openingBoundary(next);
-  }
-  if (node==='puppet-nt') return move('final');
-  if (node==='shown-five') return bid==='3NT' || bid===`4${major}` ? move('final') : openingBoundary(next);
-  if (node==='transfer') {
-    if (bid===`3${major}`) { require(f.lengths[major]<=3,'Four/five-card support requires a super-accept.'); return move('after-transfer'); }
-    if (bid==='3NT') { require(f.lengths[major]===3,'The 3NT super-accept shows exactly three-card support.'); require(Object.values(f.lengths).sort((a,b)=>b-a).join('')!=='4333','The three-card super-accept excludes 4333.'); return move('super-fit'); }
-    require(f.lengths[major]>=4,'This super-accept requires four/five-card support.');
-    if (bid===`4${major}`) return move('final');
-    if ((major==='H'?['4C','4D']:['4D','4H']).includes(bid)) {
-      const suit=bid.slice(1); require(physicalHands(session)[seat].includes(suit+'A') || physicalHands(session)[seat].includes(suit+'K'),'This cue needs a control in the bid suit.');
-    }
-    return move('super-fit');
-  }
-  if (node==='after-transfer') {
-    if (bid==='3NT') return move('pick-game');
-    if (bid===`4${major}`) return move('final');
-    return openingBoundary(next);
-  }
-  if (node==='pick-game') { require(f.lengths[major]>=3,'Choosing major game after the notrump offer requires three-card support.'); return move('final'); }
-  if (node==='super-fit') return bid===`4${major}` ? move('final') : bid===(major==='H'?'4D':'4H') ? move('retransfer') : openingBoundary(next);
-  if (node==='retransfer') return move('final');
-  if (node==='minor-stayman') {
-    if (bid==='3NT') return move('shown-minor',{major:null});
-    const suit=bid==='4C'||bid==='4H'?'C':'D', length=bid==='4H'||bid==='4S'?5:4;
-    require(f.lengths[suit]===length,`This response shows ${length} ${names[suit]}.`);
-    return move('shown-minor',{major:suit});
-  }
-  if (node==='shown-minor') return bid===`5${major}` ? move('final') : openingBoundary(next);
-  if (node==='final') return move('final');
   return openingBoundary(next);
 }
 
@@ -508,6 +400,7 @@ export function validateSystemOpeningSession(session) {
       || !['1D','1H','1S','2NT'].includes(whole.openingBid)
       || session.practiceRole!==(whole.humanSeat===session.playerSeat?'asker':'teller')
       || !session.openingFacts || !Array.isArray(session.openingFacts.North) || !Array.isArray(session.openingFacts.South)) throw new Error('Saved opening rules or settings are incompatible.');
+  if (whole.openingBid==='2NT')return validateNtOpening(session);
   if (session.opening) {
     const { system,node,seat }=session.opening;
     if (system!==whole.openingBid || !['North','South'].includes(seat) || typeof node!=='string') throw new Error('Saved opening node is invalid.');

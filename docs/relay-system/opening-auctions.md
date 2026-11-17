@@ -18,7 +18,7 @@ asker/teller roles may change. Undo and reopening work across this transition.
 | 1C | Existing transfer responses, balanced acceptance/1NT rebid, weak exits, puppet, exact-five-minor and Baron routes into Dappleton | Existing balanced 14–19 subset; unchanged |
 | 1D | Natural 1H/1S or artificial 1NT, then the implemented July minor, 1NT support, direct weak support, reordered single-suit, support-2NT, reverse and mini–mega entries | 9–19 opener; clear 14–19 responder with a supported route, or a weak 5–8 diamond raise. Two-major response priorities and strong reverses after 1D–1NT are not generated |
 | 1H/1S | Three-way 2C, natural 2D and 1S–2H responses; documented opener rebids, resolving enquiries and game choices; weak raises, Jacoby and selected reordered 1H–1S entries | Ordinary 1NT rebids, detailed cue/solid-suit continuations and remaining 1H–1S routes are incomplete |
-| 2NT | Muppet Stayman, major transfers, re-transfers, notrump/major game choice, minor-suit Stayman descriptions and minor game choice, passing any reply, final slam choices | 20–22 in 4333/4432/5332; responder 6–10. Generated transfer routes avoid the subjective super-accept cases. Quantitative and advanced slam continuations use the contract fallback |
+| 2NT | Muppet and direct/delayed minor Stayman; major transfers/re-transfers; major/minor slam tries; cues, Kickback, queen and specific-suit enquiries; quantitative choices | 20–22 in 4333/4432/5332; responder 6–16. Subjective policies and remaining Exclusion/general-grand-try questions are disclosed in the [2NT tables](notrump-opening.md) |
 
 The diamond and major opening tables follow P0631–P0691, P0885–P0924,
 P1478–P1522, the July email and the separate reordering document. The strong
@@ -41,11 +41,12 @@ The asking hand may pass any relay answer, including an artificial Muppet
 answer below game, or choose a final slam. The reply keeps its original
 meaning; the deal and public facts are unchanged.
 
-The bot uses a disclosed game-first policy in this 2NT increment. Human
-super-accepts are checked for the promised three/four/five-card support and
-actual cue controls; “poor/decent/great for slam” is not given an invented
-HCP threshold. These judgement criteria and 1M–2C limit-raise acceptance are
-recorded as Q6/Q7 in [questions for Markey](questions-for-markey.md).
+The 2NT bot explores fits with an 11+ responder, then follows the shared
+keycard questions; weaker responders choose game. Quantitative invitations
+are accepted with 22 and declined with 20/21. These are provisional practice
+policies; human super-accepts and slam judgements are checked for promised
+lengths/controls, not graded against those cutoffs. Partnership criteria and
+1M–2C limit-raise acceptance remain Q6/Q7 in [questions for Markey](questions-for-markey.md).
 
 Public menus show documented routes beyond the current playable subset.
 An unimplemented legal continuation is accepted as a contract choice, with

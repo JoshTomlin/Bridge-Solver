@@ -36,6 +36,12 @@ also be checked on the user's physical phone.
 
 ## Whole-auction practice
 
+The strong **2NT opening** now includes the [deeper continuation tables](relay-system/notrump-opening.md):
+Muppet, direct/delayed minor Stayman, major transfers, minor slam tries,
+control cues and Kickback through queen and specific-suit enquiries. Either
+seat can ask or answer, with the actual auction and both hands preserved.
+Exclusion replies remain a recorded partnership question.
+
 Choose **Practice mode → Whole auction**, then **Opening family**: 1C, 1D,
 majors, 2NT or **Mix all openings**. You play every call for your seat,
 starting with the opening as opener or the first response as responder.
