@@ -80,6 +80,9 @@ test('the reported four-spade, three-heart responder can force a rebid with 1S',
   const opener = open(deal('H', north, south, 'North'), '1H');
   assert.equal(opener.auction.at(-1).bid, '1S');
   assert.throws(() => applyPracticeBid(opener, 'Pass'), /1S is forcing/);
+  const legacy = copy(opener);
+  delete legacy.auction.at(-1).forcing;
+  assert.throws(() => applyPracticeBid(legacy, 'Pass'), /1S is forcing/);
   assert.equal(applyPracticeBid(opener, '1NT').auction.at(-1).bid, '2C');
 });
 

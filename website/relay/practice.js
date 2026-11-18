@@ -4,6 +4,7 @@
 import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex, getPracticeProfile, practiceNode, handFeatures } from './core.js';
 import { declarerFor } from './profile-utils.js';
 import { createOpeningPractice, openingActions, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
+import { isForcingOpeningCall } from './opening-system.js';
 
 export function practiceView(session) {
   const teller = session.practiceRole === 'teller';
@@ -97,7 +98,7 @@ export function practiceCalls(session) {
   const bids = Array.from({ length: 35 }, (_, index) => `${Math.floor(index / 5) + 1}${['C', 'D', 'H', 'S', 'NT'][index % 5]}`)
     .filter(bid => bidIndex(bid) > minimum);
   // The contract fallback cannot turn an explicitly forcing call into a signoff.
-  if (!session.opening || !last?.forcing || discussed.has('Pass')) bids.push('Pass');
+  if (!isForcingOpeningCall(session) || discussed.has('Pass')) bids.push('Pass');
   return Object.freeze(bids.map(bid => Object.freeze(discussed.has(bid)
     ? { ...discussed.get(bid), discussed: true }
     : { bid, discussed: false, kind: 'undiscussed', label: 'Undiscussed. Choose this contract; partner will pass. Undo is available.' })));
@@ -105,7 +106,7 @@ export function practiceCalls(session) {
 
 export function applyPracticeBid(session, bid) {
   const call = practiceCalls(session).find(call => call.bid === bid);
-  if (!call && bid === 'Pass' && session.opening && session.auction.at(-1)?.forcing) {
+  if (!call && bid === 'Pass' && isForcingOpeningCall(session)) {
     throw new Error(`${session.auction.at(-1).bid} is forcing. Choose a rebid.`);
   }
   if (!call) throw new Error(`${bid} is not an available response or legal call at this point in the auction.`);
@@ -115,7 +116,7 @@ export function applyPracticeBid(session, bid) {
     // A documented but unimplemented continuation is also playable. Preserve
     // the public description; the fallback adds no partner response facts.
     if (result.coverageBoundary) {
-      if (result.auction.at(-1)?.forcing) return result;
+      if (isForcingOpeningCall(result)) return result;
       return acceptUndiscussedContract(result,bid,true);
     }
     const next=advanceOpeningPartner(result);

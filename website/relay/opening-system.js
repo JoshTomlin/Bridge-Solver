@@ -14,6 +14,20 @@ const other = major => major === 'H' ? 'S' : 'H';
 const features = hand => handFeatures(hand, 'C');
 const ntShapes=NT_SHAPES;
 const action = (bid, label, source) => ({ bid, label, source, kind: 'opening' });
+const forcingResponses = {
+  '1D': ['1H', '1S', '1NT'],
+  '1H': ['1S', '2C', '2D'],
+  '1S': ['2C', '2D', '2H'],
+};
+
+export function isForcingOpeningCall(session) {
+  if (!session.opening) return false;
+  const last = session.auction.at(-1);
+  if (last?.forcing) return true;
+  // Saves from before the flag was stored still have their original opening and response.
+  return session.auction.length === 2 && (forcingResponses[session.opening.system]?.includes(last.bid) ?? false);
+}
+
 export const freezeOpening = value => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.values(value).forEach(freezeOpening); Object.freeze(value);
@@ -250,7 +264,7 @@ function openingActionsTable(session) {
   if (node === 'final') return calls([['Pass','Accept final contract'],...games.filter(([bid]) => bidIndex(bid)>bidIndex(session.auction.findLast(call=>call.bid!=='Pass').bid))]);
   if (system !== '2NT') {
     if (node === 'respond') return system === '1D' ? (entryContinuations(session.auction) ?? []).map(row => ({
-      ...action(row.bid,row.label,'P0638–P0647'), ...(['1H','1S','1NT'].includes(row.bid) ? {forcing:true} : {}),
+      ...action(row.bid,row.label,'P0638–P0647'), ...(forcingResponses[system].includes(row.bid) ? {forcing:true} : {}),
     })) : calls([
       ...(major==='H' ? [['1S','Four-plus spades; forcing one round','P0904–P0909']] : []),
       ['1NT','5–9, or 10/11 with clubs; nonforcing, fewer than three trumps','P0889'],
@@ -265,7 +279,7 @@ function openingActionsTable(session) {
       [`3${major}`,'Four-plus support; 8–12, invitational','P0899'], ['3NT','Five-plus/six-plus minors; 9–13','P0900'],
       ...['C','D'].map(suit => [`4${suit}`, `Seven-plus ${names[suit].toLowerCase()}; weak, to play`,'P0901']),
       [`4${other(major)}`,`Natural; play 4${other(major)}`,'P0902–P0903'],
-    ]).map(row => ['1S','2C','2D',...(major === 'S' ? ['2H'] : [])].includes(row.bid) ? {...row,forcing:true} : row);
+    ]).map(row => forcingResponses[system].includes(row.bid) ? {...row,forcing:true} : row);
     if (node === 'weak-raise') return calls([['Pass',`Play ${session.auction.at(-1).bid}`], ...games]);
     return (entryContinuations(session.auction) ?? []).map(row => action(row.bid,row.label,'July email / Reordering'));
   }
@@ -278,7 +292,7 @@ export function systemOpeningActions(session) {
   const last=session.auction.findLast(call=>call.bid!=='Pass');
   if ((session.opening.system==='2NT' || MAJOR_NODES.includes(session.opening.node)) && session.opening.seat==='South' && last?.seat==='North') {
     // The asking hand controls the contract, including artificial answers.
-    if (!last.forcing && !choices.some(call=>call.bid==='Pass')) choices.push(action('Pass',`Play ${last.bid}`));
+    if (!isForcingOpeningCall(session) && !choices.some(call=>call.bid==='Pass')) choices.push(action('Pass',`Play ${last.bid}`));
     for (const level of [6,7]) for (const strain of ['C','D','H','S','NT']) {
       const bid=`${level}${strain}`;
       if (!choices.some(call=>call.bid===bid)) choices.push({...action(bid,`Play ${bid}`),kind:'opening-final'});
