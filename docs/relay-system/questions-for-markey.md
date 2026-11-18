@@ -125,3 +125,10 @@ cutoffs. Replace these policies with agreed examples when supplied.
 **Q8 remains open.** 2NT–3C–3NT–4D continues to mean a diamond cue agreeing
 hearts (P1354), not an invented re-transfer. Four-level re-transfers are
 implemented in the separate transfer/super-accept routes where P1370 applies.
+
+## Natural major continuations — 18 November 2026
+
+**Q14 — `1S–2H–2S` natural continuations.** P0996 specifies 3S as three
+spades and six hearts, forcing. Are 2NT and 3H natural invitations, and
+3C/3D natural one-round forces with four-plus cards in the minor? The trainer
+uses those provisional meanings and treats the direct 1M–1NT as nonforcing.

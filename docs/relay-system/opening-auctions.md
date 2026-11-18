@@ -17,12 +17,28 @@ asker/teller roles may change. Undo and reopening work across this transition.
 |---|---|---|
 | 1C | Existing transfer responses, balanced acceptance/1NT rebid, weak exits, puppet, exact-five-minor and Baron routes into Dappleton | Existing balanced 14–19 subset; unchanged |
 | 1D | Natural 1H/1S or artificial 1NT, then the implemented July minor, 1NT support, direct weak support, reordered single-suit, support-2NT, reverse and mini–mega entries | 9–19 opener; clear 14–19 responder with a supported route, or a weak 5–8 diamond raise. Two-major response priorities and strong reverses after 1D–1NT are not generated |
-| 1H/1S | Three-way 2C, natural 2D and 1S–2H responses; documented opener rebids, resolving enquiries and game choices; weak raises, Jacoby and selected reordered 1H–1S entries | Ordinary 1NT rebids, detailed cue/solid-suit continuations and remaining 1H–1S routes are incomplete |
+| 1H/1S | Three-way 2C, natural 2D and 1S–2H, natural invitations, weak raises and Jacoby. 1H–1S continues through natural rebids, the 1NT range and shape enquiries, the 2C resolver and reordered rebids | Further rebids over the direct nonforcing 1NT response and some later slam, shortage and invitation continuations are incomplete |
 | 2NT | Muppet and direct/delayed minor Stayman; major transfers/re-transfers; major/minor slam tries; cues, Kickback, queen and specific-suit enquiries; quantitative choices | 20–22 in 4333/4432/5332; responder 6–16. Subjective policies and remaining Exclusion/general-grand-try questions are disclosed in the [2NT tables](notrump-opening.md) |
 
 The diamond and major opening tables follow P0631–P0691, P0885–P0924,
 P1478–P1522, the July email and the separate reordering document. The strong
 2NT opening follows P1311–P1429; it is separate from the Horton 2NT enquiry.
+
+In first or second seat, 1♥–1♠ shows four-plus spades and forces opener to
+rebid. Four spades and three hearts can take this route. After opener's
+12–17 1NT rebid, 2♣ asks range and 2♦/2♥/2♠ show 14–15/12–13/16–17
+respectively. Responder can also pass 1NT. The direct 1M–1NT response is
+nonforcing. Forcing new suits stay distinct from the weak spade jumps and
+natural invitations described in P0889–P0908. A forcing call cannot trigger
+the trainer's contract fallback or be passed by partner.
+
+After 1♠–2♥–2♠ the notes explicitly give 3♠ as three spades and six hearts,
+forcing (P0996). The trainer also offers 2NT and 3♥ as natural invitations,
+and 3♣/3♦ as four-plus cards in the new minor, forcing for one round. Over
+a new minor, opener can show support, give a heart or spade preference, or
+choose game. These natural continuations are practice agreements pending
+confirmation. The bot's invitation decisions reuse the existing practice
+cutoff of 12 HCP. Human choices use the shown lengths and retain judgement.
 
 The four/five-card major Muppet answers are implemented literally:
 3D = one/both four-card majors; 3H = no four/five-card major; 3S = five spades;

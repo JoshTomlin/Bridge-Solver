@@ -96,7 +96,8 @@ export function practiceCalls(session) {
   const minimum = last ? bidIndex(last.bid) : -1;
   const bids = Array.from({ length: 35 }, (_, index) => `${Math.floor(index / 5) + 1}${['C', 'D', 'H', 'S', 'NT'][index % 5]}`)
     .filter(bid => bidIndex(bid) > minimum);
-  bids.push('Pass');
+  // The contract fallback cannot turn an explicitly forcing call into a signoff.
+  if (!session.opening || !last?.forcing || discussed.has('Pass')) bids.push('Pass');
   return Object.freeze(bids.map(bid => Object.freeze(discussed.has(bid)
     ? { ...discussed.get(bid), discussed: true }
     : { bid, discussed: false, kind: 'undiscussed', label: 'Undiscussed. Choose this contract; partner will pass. Undo is available.' })));
@@ -104,13 +105,19 @@ export function practiceCalls(session) {
 
 export function applyPracticeBid(session, bid) {
   const call = practiceCalls(session).find(call => call.bid === bid);
+  if (!call && bid === 'Pass' && session.opening && session.auction.at(-1)?.forcing) {
+    throw new Error(`${session.auction.at(-1).bid} is forcing. Choose a rebid.`);
+  }
   if (!call) throw new Error(`${bid} is not an available response or legal call at this point in the auction.`);
   if (!call.discussed) return acceptUndiscussedContract(session,bid);
   if (session.opening) {
     const result=applyOpeningCall(session,bid);
     // A documented but unimplemented continuation is also playable. Preserve
     // the public description; the fallback adds no partner response facts.
-    if(result.coverageBoundary) return acceptUndiscussedContract(result,bid,true);
+    if (result.coverageBoundary) {
+      if (result.auction.at(-1)?.forcing) return result;
+      return acceptUndiscussedContract(result,bid,true);
+    }
     const next=advanceOpeningPartner(result);
     return !next.opening && next.practiceRole === 'teller' ? advanceAsker(next) : next;
   }

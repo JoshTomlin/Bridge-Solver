@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createTrainingPractice, practiceView, applyPracticeBid, availablePracticeActions, practiceCalls } from './practice.js';
 import { applyBid, handFeatures } from './core.js';
-import { openingPartnerBid } from './opening-practice.js';
+import { advanceOpeningPartner, openingPartnerBid } from './opening-practice.js';
 import { savePracticeProgress, loadPracticeProgress } from './progress.js';
 const copy = value => JSON.parse(JSON.stringify(value));
 const storage = () => ({ getItem(){return this.value??null},setItem(key,value){this.value=value} });
@@ -60,6 +60,65 @@ const diamondNorth='SQ S2 HK H8 H4 DA DK DQ DJ D9 D6 CQ C2'; // 17, 2362
 const diamondSouth='SA SK S8 HQ HJ HT H9 H7 DT D8 CA CJ C9'; // 15, 3523
 const ntFourSpades='SA SK SQ S2 HA HK H3 DK D4 D2 CJ C8 C7'; // 20, 4333
 const ntResponder='SJ ST S9 S8 HQ HT H9 DA D8 D6 CQ CT C2';
+
+test('the reported four-spade, three-heart responder can force a rebid with 1S', () => {
+  const north = 'S5 S4 HQ HJ H7 H3 H2 DK DQ D8 CA C9 C5';
+  const south = 'SQ S8 S6 S3 HA H9 H5 DJ D9 D2 CK CJ C2';
+  const response = advanceOpeningPartner(deal('H', north, south));
+  const rebid = applyPracticeBid(response, '1S');
+  assert.deepEqual(rebid.auction.map(c => c.bid), ['1H','1S','1NT']);
+  assert.equal(rebid.finished, false);
+  assert.match(rebid.auction[1].meaning, /forcing one round/);
+  assert.deepEqual(practiceView(rebid).partnerHand, north.split(' '));
+  const enquiry = applyPracticeBid(rebid, '2C');
+  assert.deepEqual(enquiry.auction.map(c => c.bid), ['1H','1S','1NT','2C','2H']);
+  assert.equal(applyPracticeBid(enquiry, 'Pass').contract.bid, '2H');
+  const store = storage();
+  savePracticeProgress({ session: enquiry, history: [response, rebid], preferences: {practiceMode:'auction'} }, store);
+  assert.deepEqual(loadPracticeProgress(store).progress.session, copy(enquiry));
+
+  const opener = open(deal('H', north, south, 'North'), '1H');
+  assert.equal(opener.auction.at(-1).bid, '1S');
+  assert.throws(() => applyPracticeBid(opener, 'Pass'), /1S is forcing/);
+  assert.equal(applyPracticeBid(opener, '1NT').auction.at(-1).bid, '2C');
+});
+
+test('a direct 1NT response and a weak jump in spades are still passable', () => {
+  const north = 'S5 S4 HQ HJ H7 H3 H2 DK DQ D8 CA C9 C5';
+  const weakNoTrump = 'SQ S8 S6 HA H9 DJ D9 D2 CJ CT C7 C3 C2';
+  const weakSpades = 'SQ ST S9 S8 S6 S3 H9 H5 DT D9 D2 CJ C2';
+  for (const [bid, south] of [['1NT',weakNoTrump],['2S',weakSpades]]) {
+    const before = advanceOpeningPartner(deal('H', north, south));
+    const done = applyPracticeBid(before, bid);
+    assert.deepEqual(done.auction.map(c => c.bid), ['1H',bid,'Pass']);
+    assert.equal(done.contract.bid, bid);
+    assert.equal(done.undiscussedBid, undefined);
+    assert.equal(done.auction[1].forcing, undefined);
+  }
+});
+
+test('the reported 1S–2H–2S hand can show diamonds as a forcing natural call', () => {
+  const north = 'SA SJ ST S9 S7 S2 HQ H3 DA D8 CJ C8 C5';
+  const south = 'SQ S6 HK HJ HT H6 H5 H4 DK DQ DJ D3 C7';
+  let session = advanceOpeningPartner(deal('S', north, south));
+  session = applyPracticeBid(session, '2H');
+  assert.deepEqual(session.auction.map(c => c.bid), ['1S','2H','2S']);
+  for (const bid of ['2NT','3C','3D','3H','3S','3NT','Pass']) {
+    assert.equal(practiceCalls(session).find(row => row.bid === bid)?.discussed, true, bid);
+  }
+  assert.throws(() => applyPracticeBid(session, '3C'), /four-plus clubs/);
+  const natural = applyPracticeBid(session, '3D');
+  assert.deepEqual(natural.auction.map(c => c.bid), ['1S','2H','2S','3D','3H']);
+  assert.equal(natural.finished, false);
+  assert.equal(applyPracticeBid(natural, 'Pass').contract.bid, '3H');
+  assert.equal(applyPracticeBid(session,'Pass').contract.bid, '2S');
+
+  let opener = open(deal('S', north, south, 'North'), '1S');
+  assert.throws(() => applyPracticeBid(opener, 'Pass'), /2H is forcing/);
+  opener = applyPracticeBid(opener, '2S');
+  assert.deepEqual(opener.auction.map(c => c.bid), ['1S','2H','2S','3D']);
+  assert.throws(() => applyPracticeBid(opener, 'Pass'), /3D is forcing/);
+});
 
 test('1D–1H–2NT is bid from the opening before the existing diamond or heart shortage enquiries', () => {
   let session=open(deal('D',diamondNorth,diamondSouth),'1D');

@@ -24,7 +24,7 @@ table('1C', [
   ...['D','H','S'].map(suit => [`3${suit}`, `Six/seven ${names[suit]}; 0–6(7)`]),
 ]);
 table('1D', [
-  ['1H', 'Four-plus hearts; not a game force with only four'], ['1S', 'Four-plus spades; not a game force with only four'],
+  ['1H', 'Four-plus hearts; forcing one round'], ['1S', 'Four-plus spades; forcing one round'],
   ['1NT', '10+ enquiry; no five-card major; game-forcing with a four-card major'],
   ['2C', 'Five-plus clubs; 5–9'], ['2D', 'Three/four-plus diamonds; 5–9'],
   ['2H', 'Six-plus hearts; 0–6(7)'], ['2S', 'Six-plus spades; 0–6(7)'],
@@ -33,7 +33,7 @@ table('1D', [
   ['3H', 'Six/seven hearts; 0–6(7)'], ['3S', 'Six/seven spades; 0–6(7)'],
   ['3NT', 'Five-plus spades and six-plus hearts; 8–12'],
 ]);
-table('1H', [['1S', 'Four-plus spades'], ['2NT', 'Four-plus hearts; game-forcing raise']]);
+table('1H', [['1S', 'Four-plus spades; forcing one round'], ['2NT', 'Four-plus hearts; game-forcing raise']]);
 table('1S', [['2NT', 'Four-plus spades; game-forcing raise']]);
 for (const bid of ['2D','2H','2S']) table(bid, [
   ...(bid==='2D'?['2H','2S','3C']:bid==='2H'?['2S','3C','3D']:['3C','3D','3H']).map(call=>[call,'Natural; to play']),

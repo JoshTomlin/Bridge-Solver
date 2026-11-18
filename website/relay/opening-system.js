@@ -27,7 +27,8 @@ export const isOpeningFamily = session => session.familyId?.startsWith('opening-
 export const SYSTEM_OPENING_NOTES = [
   'Whole auction: first/second-seat, uncontested. Both hands are fixed before the opening; your physical seat stays fixed when the asker changes.',
   '1D uses 9–19 openers with either a weak 5–8 diamond raise or a clear 14–19 response. It connects the two 1NT range entries, July minor rebids, support enquiries and reordered rebids. Routes outside the current tables use the labelled contract-choice fallback.',
-  '1M includes three-way 2C, natural 2D and 1S–2H responses, their documented rebids and shape enquiries, plus Jacoby, weak raises and selected 1H–1S routes. The 1NT continuation table remains unconfirmed.',
+  '1M includes three-way 2C, natural 2D and 1S–2H responses, Jacoby, weak raises and 1H–1S rebids with a range enquiry over 1NT. New-suit responses are forcing where indicated. The direct 1NT response is nonforcing.',
+  'After 1S–2H–2S, 2NT and 3H are treated as natural invitations, and a new minor is natural and forcing for one round. These natural continuations fill out the notes’ explicit 3S route.',
   'Ordinary major practice uses a game-first partner. For limit-raise judgement it declines with 9–11 and accepts with 12+; this is a practice policy, not a partnership rule. Human acceptance alternatives are not graded by that cutoff.',
   '2NT is 20–22 in 4333/4432/5332 shapes; responder is 6–16. Muppet, major transfers, minor Stayman, cue bids and Kickback continue into queen and specific-suit enquiries. Human slam-quality judgements are not graded.',
   'The 2NT practice partner explores a fit with 11+ responder points, then follows the shared keycard questions. It accepts quantitative invitations with 22 and declines with 20/21; these are practice policies, not partnership thresholds. Exclusion reply ladders remain unconfirmed.',
@@ -119,7 +120,7 @@ function diamondRebid(auction, f) {
 
 function majorResponse(major, f) {
   if (f.lengths[major] >= 4 && f.hcp >= 12) return '2NT';
-  if (major === 'H' && f.lengths.S >= 4 && f.lengths.H <= 2
+  if (major === 'H' && f.lengths.S >= 4 && (f.lengths.H <= 2 || f.lengths.S === 4 && f.lengths.H === 3 && f.hcp >= 10 && f.hcp <= 11)
       && !(f.balanced && f.hcp >= 12) && !(f.lengths.S >= 6 && f.hcp <= 7)) return '1S';
   if (f.lengths[major] >= 4 && f.hcp >= 10) return `3${major}`;
   if (f.lengths[major] >= 3) return f.hcp <= 9 ? `2${major}` : '2C';
@@ -129,24 +130,13 @@ function majorResponse(major, f) {
   return '1NT';
 }
 
-function majorRebid(f) {
-  if (f.lengths.S >= 4 && (f.hcp <= 13 || f.hcp >= 17)) {
-    return f.lengths.D <= 1 ? '3D' : f.lengths.C <= 1 ? '3H' : '2S';
-  }
-  if (f.lengths.H >= 6 && f.lengths.S <= 2 && f.hcp >= 14) return '3C';
-  if (f.balanced && f.hcp <= 17) return '1NT';
-  if (f.lengths.C >= 4 || f.balanced) return '2C';
-  if (f.lengths.D >= 4) return '2D';
-  return '2H';
-}
-
 export function systemOpeningPartnerBid(context) {
   const { system, node, major, auction, hand }=context;
   if(system==='2NT')return ntOpeningPartnerBid(context);
   const f = features(hand);
   if (node === 'open') return system;
   if (node === 'weak-raise' || node === 'final') return 'Pass';
-  if (MAJOR_NODES.includes(node)) return ordinaryMajorPartnerBid({system,node,major,auction},hand);
+  if (MAJOR_NODES.includes(node) || system === '1H' && node === 'rebid') return ordinaryMajorPartnerBid(context,hand);
   if (system === '1D') {
     if (node === 'respond') {
       if (f.hcp<=9 && f.lengths.H<=3 && f.lengths.S<=3) return f.lengths.D>=3?'2D':'2C';
@@ -156,7 +146,7 @@ export function systemOpeningPartnerBid(context) {
     }
     return diamondRebid(auction, f);
   }
-  if (system !== '2NT') return node === 'respond' ? majorResponse(system.slice(1), f) : majorRebid(f);
+  if (node === 'respond') return majorResponse(system.slice(1), f);
   throw new Error('No automated continuation for this opening node.');
 }
 
@@ -224,8 +214,9 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
         if (!target || !matchesConstraints(pair.North, practiceStartState({profileId:target.id}).constraints, target.defaultTrump)) continue;
       } else if (majorResponse(major,s) !== '2NT') {
         if (openingBid !== '1H' || majorResponse(major,s) !== '1S') continue;
-        const auction = [{seat:'North',bid:'1H'},{seat:'South',bid:'1S'},{seat:'North',bid:majorRebid(n)}];
-        if (!prefixProfile(auction)) continue;
+        const auction = [{seat:'North',bid:'1H'},{seat:'South',bid:'1S'}];
+        const rebid = ordinaryMajorPartnerBid({ system:'1H', node:'rebid', auction }, pair.North);
+        if (!rebid || !prefixProfile([...auction,{seat:'North',bid:rebid}])) continue;
       }
       hands = pair; break;
     }
@@ -252,21 +243,29 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
 function openingActionsTable(session) {
   const { system, node, major } = session.opening;
   const ordinary=ordinaryMajorOptions({...session.opening,auction:session.auction});
-  if(ordinary) return ordinary.map(({bid,label,source})=>action(bid,label,source));
+  if(ordinary) return ordinary.map(({bid,label,source,forcing})=>({ ...action(bid,label,source), ...(forcing ? {forcing} : {}) }));
   const calls = rows => rows.map(([bid,label,source]) => action(bid,label,source));
   const games = [['3NT','Play 3NT'], ...(major ? [[`4${major}`,`Play 4${major}`]] : [])];
   if (node === 'open') return calls([[system, system === '2NT' ? '20–22 balanced' : system === '1D' ? 'Diamond opening' : `Five-plus ${names[major]}; 9+`, system === '2NT' ? 'P1312' : system === '1D' ? 'P0631–P0636' : 'P0886']]);
   if (node === 'final') return calls([['Pass','Accept final contract'],...games.filter(([bid]) => bidIndex(bid)>bidIndex(session.auction.findLast(call=>call.bid!=='Pass').bid))]);
   if (system !== '2NT') {
-    if (node === 'respond') return system === '1D' ? (entryContinuations(session.auction) ?? []).map(row => action(row.bid,row.label,'P0638–P0647')) : calls([
-      ...(major==='H' ? [['1S','Four-plus spades; source exclusions apply']] : []),
-      ['1NT','5–9, or 10/11 with clubs; denies three-card support','P0889'],
+    if (node === 'respond') return system === '1D' ? (entryContinuations(session.auction) ?? []).map(row => ({
+      ...action(row.bid,row.label,'P0638–P0647'), ...(['1H','1S','1NT'].includes(row.bid) ? {forcing:true} : {}),
+    })) : calls([
+      ...(major==='H' ? [['1S','Four-plus spades; forcing one round','P0904–P0909']] : []),
+      ['1NT','5–9, or 10/11 with clubs; nonforcing, fewer than three trumps','P0889'],
       ['2C','Three-way: invitational-plus raise, balanced game force, or game-forcing clubs','P1479'],
-      ['2D','Five-plus diamonds; 10+, usually fewer than three in the major','P0891/P1019/P1036'],
-      ...(major==='S' ? [['2H','Five-plus hearts; 10+','P0894']] : []),
+      ['2D','Five-plus diamonds; 10+, forcing one round','P0891/P1019/P1036'],
+      ...(major==='S' ? [['2H','Five-plus hearts; 10+, forcing one round','P0894']] : [
+        ['2S','Six-plus spades; weak, nonforcing','P0893'], ['3S','Long spades; weak, nonforcing','P0898'],
+      ]),
       [`2${major}`,'Three-plus support; 5–9','P0892'],['2NT','Four-plus support; game-forcing','P0895'],
-      [`3${major}`,'Four-plus support; 8–12','P0899'], ['3NT','Five-plus/six-plus minors; 9–13','P0900'],
-    ]);
+      ['3C','Six-plus clubs; natural invitation','P0896'], ['3D','Six-plus diamonds; natural invitation','P0896'],
+      ...(major === 'S' ? [['3H','Six-plus hearts; natural invitation','P0897']] : []),
+      [`3${major}`,'Four-plus support; 8–12, invitational','P0899'], ['3NT','Five-plus/six-plus minors; 9–13','P0900'],
+      ...['C','D'].map(suit => [`4${suit}`, `Seven-plus ${names[suit].toLowerCase()}; weak, to play`,'P0901']),
+      [`4${other(major)}`,`Natural; play 4${other(major)}`,'P0902–P0903'],
+    ]).map(row => ['1S','2C','2D',...(major === 'S' ? ['2H'] : [])].includes(row.bid) ? {...row,forcing:true} : row);
     if (node === 'weak-raise') return calls([['Pass',`Play ${session.auction.at(-1).bid}`], ...games]);
     return (entryContinuations(session.auction) ?? []).map(row => action(row.bid,row.label,'July email / Reordering'));
   }
@@ -279,7 +278,7 @@ export function systemOpeningActions(session) {
   const last=session.auction.findLast(call=>call.bid!=='Pass');
   if ((session.opening.system==='2NT' || MAJOR_NODES.includes(session.opening.node)) && session.opening.seat==='South' && last?.seat==='North') {
     // The asking hand controls the contract, including artificial answers.
-    if (!choices.some(call=>call.bid==='Pass')) choices.push(action('Pass',`Play ${last.bid}`));
+    if (!last.forcing && !choices.some(call=>call.bid==='Pass')) choices.push(action('Pass',`Play ${last.bid}`));
     for (const level of [6,7]) for (const strain of ['C','D','H','S','NT']) {
       const bid=`${level}${strain}`;
       if (!choices.some(call=>call.bid===bid)) choices.push({...action(bid,`Play ${bid}`),kind:'opening-final'});
@@ -300,11 +299,16 @@ function openingFactsForCall(session,bid) {
     if (bid==='2D') return [points(5,9),length('D',3)];
   }
   if (['1H','1S'].includes(system) && node==='respond' && (['1NT','2C','2D'].includes(bid) || system==='1S'&&bid==='2H')) return majorResponseFacts(major,bid);
-  if(MAJOR_NODES.includes(node)) return ordinaryMajorOptions({...session.opening,auction:session.auction}).find(row=>row.bid===bid)?.facts ?? [];
+  const ordinary = ordinaryMajorOptions({...session.opening,auction:session.auction});
+  if (ordinary) return ordinary.find(row => row.bid === bid)?.facts ?? [];
   if (system!=='2NT' && node==='respond') {
     if (bid==='2NT') return [points(12),length(major,4)];
     if (bid===`2${major}`) return [points(5,9),length(major,3)];
-    if (bid==='1S') return [length('S',4)];
+    if (bid===`3${major}`) return [points(8,12),length(major,4)];
+    if (['3C','3D'].includes(bid) || system==='1S' && bid==='3H') return [length(bid[1],6)];
+    if (['4C','4D'].includes(bid)) return [length(bid[1],7)];
+    if (bid==='1S') return [points(5),length('S',4)];
+    if (system==='1H' && ['2S','3S'].includes(bid)) return [points(0,7),length('S',6)];
   }
   if (system!=='2NT') return [];
   if (node==='respond' && ['3D','3H','4H'].includes(bid)) return [length(bid==='3D'?'H':'S',5)];
@@ -326,6 +330,7 @@ export function applySystemOpeningCall(session,bid) {
   const next = { ...session, opening: { ...session.opening }, constraints: [...session.constraints],
     openingFacts: { North: [...session.openingFacts.North], South: [...session.openingFacts.South] },
     auction: [...session.auction,{ seat,bid,meaning:option?.label ?? 'Not implemented in whole-auction practice',source:option?.source,
+      ...(option?.forcing ? {forcing:true} : {}),
       callAlternatives: systemOpeningActions(session).map(({bid,label}) => ({bid,label})) }] };
   if (!option) return openingBoundary(next);
   next.openingConstraintsBySeat = { North: [...(session.openingConstraintsBySeat?.North ?? [])], South: [...(session.openingConstraintsBySeat?.South ?? [])] };
@@ -347,11 +352,19 @@ export function applySystemOpeningCall(session,bid) {
     return move('respond');
   }
   if(option.kind==='opening-final') return move('final');
-  if(MAJOR_NODES.includes(node)) {
-    if(bid==='Pass') return finishOpening(next);
-    const row=ordinaryMajorCheck({...session.opening,auction:session.auction},bid,physicalHands(session)[seat]);
+  const context = {...session.opening,auction:session.auction};
+  if (ordinaryMajorOptions(context)) {
+    const row=ordinaryMajorCheck(context,bid,physicalHands(session)[seat]);
+    if (bid === 'Pass' && !row) return finishOpening(next); // Generic signoff added to an ordinary asking node.
     if(!row || row.next==='boundary') return openingBoundary(next);
     if(row.next==='finish') return finishOpening(next);
+    if (row.next === 'relay-handover') {
+      const target = prefixProfile(next.auction);
+      if (!target) return openingBoundary(next);
+      require(matchesConstraints(physicalHands(session).North, practiceStartState({profileId:target.id}).constraints, target.defaultTrump),
+        'This relay entry does not match the shape and range shown by the rebid.');
+      return startRelay(next,target.id);
+    }
     return move(row.next);
   }
 
@@ -371,22 +384,35 @@ export function applySystemOpeningCall(session,bid) {
   if (system !== '2NT' && node === 'respond') {
     if (bid === '2NT') { require(f.hcp>=12 && f.lengths[major]>=4,'Jacoby 2NT needs four-plus support and game-forcing values (12+ in this subset).'); return joinJacoby(next); }
     if (bid === `2${major}`) { require(f.hcp>=5 && f.hcp<=9 && f.lengths[major]>=3,'A simple major raise shows 5–9 with three-plus support.'); return move('weak-raise'); }
+    if (bid === `3${major}` || ['3C','3D'].includes(bid) || system === '1S' && bid === '3H') {
+      require(matchesConstraints(physicalHands(session)[seat], openingFactsForCall(session,bid), major), `This invitation shows ${option.label.toLowerCase()}.`);
+      return move('major-invitation');
+    }
+    if (['4C','4D'].includes(bid) || bid === `4${other(major)}`) {
+      require(matchesConstraints(physicalHands(session)[seat], openingFactsForCall(session,bid), major), `This response shows ${option.label.toLowerCase()}.`);
+      return move('final');
+    }
     if (bid === '1S') {
-      require(major==='H' && f.lengths.S>=4,'The 1S response promises four-plus spades.');
-      if (f.lengths.H>=3) return openingBoundary(next);
+      require(major==='H' && f.lengths.S>=4 && f.hcp>=5,'The 1S response needs four-plus spades and response values.');
+      require(!(f.lengths.S===5 && f.lengths.H===3),'With five spades and three hearts, use the heart raise or three-way 2C.');
       require(!(f.balanced && f.hcp>=12),'A game-forcing balanced hand uses the three-way 2C response.');
       return move('rebid');
+    }
+    if (major === 'H' && ['2S','3S'].includes(bid)) {
+      require(f.hcp <= 7 && f.lengths.S >= 6, 'This spade jump shows a weak hand with at least six spades.');
+      return move('final');
     }
     if (['1NT','2C','2D','2H'].includes(bid)) {
       require(matchesConstraints(physicalHands(session)[seat],majorResponseFacts(major,bid),major),`This response shows ${option.label.toLowerCase()}.`);
       if(bid==='2C') return move('major-club-rebid');
       if(bid==='2D') return move('major-diamond-rebid');
       if(bid==='2H' && major==='S') return move('major-heart-rebid');
+      if(bid==='1NT') return move('weak-raise');
     }
     return openingBoundary(next);
   }
   if (system !== '2NT') {
-    const expected = system === '1D' ? diamondRebid(session.auction,f) : majorRebid(f);
+    const expected = diamondRebid(session.auction,f);
     const target = prefixProfile(next.auction);
     require(bid===expected || target && matchesConstraints(physicalHands(session).North,practiceStartState({profileId:target.id}).constraints,target.defaultTrump),`This rebid does not match the shown shape/range. The source route for this hand is ${expected}.`);
     return target ? startRelay(next,target.id) : openingBoundary(next);

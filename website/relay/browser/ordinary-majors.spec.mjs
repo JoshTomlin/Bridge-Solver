@@ -48,3 +48,31 @@ test('heart response to spades, shape enquiry and notrump game',async({page})=>{
   expect((await saved(page)).session.auction.map(c=>c.bid)).toEqual(['1S','2H','2NT','3C','3NT','Pass']);
   await page.reload();await ready(page);await fitsScreen(page);
 });
+
+test('1H–1S forces a rebid on the reported hand and the range enquiry survives reopening',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await load(page,'H','S5 S4 HQ HJ H7 H3 H2 DK DQ D8 CA C9 C5','SQ S8 S6 S3 HA H9 H5 DJ D9 D2 CK CJ C2','South');
+  const initial=(await saved(page)).session;
+  await clickBid(page,'1S');
+  expect((await saved(page)).session.auction.map(c=>c.bid)).toEqual(['1H','1S','1NT']);
+  await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(13);
+  await clickBid(page,'2C');
+  const progress=await saved(page);
+  expect(progress.session.auction.map(c=>c.bid)).toEqual(['1H','1S','1NT','2C','2H']);
+  await page.reload();await ready(page);expect(await saved(page)).toEqual(progress);
+  await page.click('#undo-bid');await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(initial);
+  await fitsScreen(page);
+});
+
+test('1S–2H–2S lets the reported hand show four diamonds and get a reply',async({page})=>{
+  await load(page,'S','SA SJ ST S9 S7 S2 HQ H3 DA D8 CJ C8 C5','SQ S6 HK HJ HT H6 H5 H4 DK DQ DJ D3 C7','South');
+  await clickBid(page,'2H');
+  await expect(page.locator('[data-bid="3D"]')).toHaveAttribute('data-discussed','true');
+  await clickBid(page,'3D');
+  expect((await saved(page)).session.auction.map(c=>c.bid)).toEqual(['1S','2H','2S','3D','3H']);
+  await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(13);
+  await clickBid(page,'Pass');
+  expect((await saved(page)).session.contract.bid).toBe('3H');
+  await expect(page.locator('#partner-cards [data-card]')).toHaveCount(13);
+});
