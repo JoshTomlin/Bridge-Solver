@@ -54,7 +54,8 @@ export function weakNotrumpRows({ node, major, auction }) {
       ...majors.map((s, i) => row(i ? '2H' : '2D', `Transfer to ${names[s]}, usually five-plus`, 'P0213', 'transfer',
         [alternatives([length(s,5)], [...weakRun,length(s,2)])], { major:s })),
       row('2S', 'Baron, mild slam interest or better', 'P0220', 'baron'),
-      row('2NT', 'Puppet to 3♣ for a weak minor-suit hand', 'P0222', 'minor-puppet'),
+      row('2NT', 'Puppet to 3♣ for a weak minor-suit hand', 'P0222', 'minor-puppet',
+        [alternatives([length('C',5)], [length('D',5)])]),
       ...suits.map(s => row(`3${s}`, `Natural ${names[s]}, slam interest`, 'P0223–P0224', 'fit-choice', [length(s,5)], {major:s})),
       play('3NT'), ...suits.map(s => play(`4${s}`)),
       row('4NT', 'At least five-five in the minors', 'P0226', 'minor-choice', [length('C',5),length('D',5)]),
@@ -83,14 +84,23 @@ export function weakNotrumpRows({ node, major, auction }) {
       row(`2${major}`, `Accept the transfer to ${names[major]}`,'P0213','transfer-continue'),
       row('2NT', `Super-accept with four-plus ${names[major]}`,'P0217–P0218','super-accept',[length(major,4)]),
     ];
-    case 'transfer-continue': return [
-      pass(last), row('2NT','Natural game invitation','Natural continuation','invite'),
-      row(`3${major}`,`Six-plus ${names[major]}, invitational`,'Natural continuation','invite',[length(major,6)]),
-      ...suits.filter(s=>s!==major).map(s=>row(`3${s}`, major==='S'&&s==='H'?'Five-five majors, game force':`Natural ${names[s]}, game force`,
-        'P0214/P0219','transfer-fit',[length(s,major==='S'&&s==='H'?5:4)],{second:s})),
-      ...(major==='H' ? [row('4NT','Quantitative slam invitation','P0215','slam-invite')] : []),
-      ...games(),
-    ];
+    case 'transfer-continue': {
+      const newSuits = suits.filter(s => s !== major);
+      const levelFor = suit => major === 'H' && suit === 'S' ? 2 : 3;
+      return [
+        pass(last), row('2NT','Natural game invitation','Natural continuation','invite'),
+        row(`3${major}`,`Six-plus ${names[major]}, invitational`,'Natural continuation','invite',[length(major,6)]),
+        ...newSuits.map(s => row(`${levelFor(s)}${s}`, major==='S'&&s==='H'?'Five-five majors, game force':`Natural ${names[s]}, game force`,
+          'P0214/P0219','transfer-fit',[length(s,major==='S'&&s==='H'?5:4)],{second:s})),
+        ...newSuits.filter(s => major !== 'S' || s !== 'H').map(s => row(`${levelFor(s)+1}${s}`,
+          `Six-plus ${names[major]}, ${names[s]} shortage, mild slam interest`,'P0216','fit-choice',[length(major,6),length(s,0,1)])),
+        ...(major==='H' ? [row('4NT','Quantitative slam invitation','P0215','slam-invite')]
+          : [row('4H','Five spades, 5332, slam interest','P0215','spade-slam',
+            [shapeFact(n => n.S === 5 && shapeKind(n) === '2335')])]),
+        ...games(),
+      ];
+    }
+    case 'spade-slam': return [play('4S'),play('4NT'),play('6S'),play('6NT')];
     case 'super-accept': return [
       row('3C','Ask minimum or maximum','P0218','super-detail'),
       row(major==='H'?'3D':'3H',`Re-transfer to ${names[major]}`,'P0218','retransfer'),
@@ -104,7 +114,8 @@ export function weakNotrumpRows({ node, major, auction }) {
     case 'retransfer': return [play(`3${major}`)];
     case 'major-game': return [play(`4${major}`)];
     case 'minor-puppet': return [row('3C','Complete the minor puppet','P0222','minor-correct')];
-    case 'minor-correct': return [pass(last),row('3D','Correct to diamonds, to play','P0222','final',[length('D',5)])];
+    case 'minor-correct': return [row('Pass', 'Play clubs', 'P0222', 'finish', [length('C',5)]),
+      row('3D','Correct to diamonds, to play','P0222','final',[length('D',5)])];
     case 'minor-choice': return [pass(last),play('5C'),play('5D'),play('6C'),play('6D')];
     case 'baron': return baronRows;
     case 'baron-continue': return [
@@ -169,6 +180,7 @@ export function weakNotrumpPartner({node, major, second, auction, hand}, choices
       if (second && n[second]>=4 && !majors.includes(second)) return game(second);
       return major && n[major]>=3 ? game(major) : '3NT';
     case 'choose-contract': return f.hcp>=15 ? pick('3NT',major?game(major):'3NT','Pass') : pick(major?game(major):'3NT','3NT','Pass');
+    case 'spade-slam': return n.S >= 3 ? '4S' : '4NT';
     case 'final': return 'Pass';
     default: return undefined;
   }

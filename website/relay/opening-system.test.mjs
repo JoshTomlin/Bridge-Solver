@@ -303,3 +303,15 @@ test('weak 1NT Stayman can invite and stop in notrump on a minimum', () => {
   assert.equal(done.contract.declarer,'North');
   assert.equal(done.undiscussedBid,undefined);
 });
+
+test('after a weak notrump transfer, a new-suit jump shows shortage and the lower call is natural', () => {
+  const north = 'SQ S8 S6 HJ H9 H5 H2 DK D9 D3 CA C9 C5';
+  const south = 'SK HA HK HQ HT H8 H6 DJ D8 D2 CK C7 C2';
+  let session = advanceOpeningPartner(deal('WNT',north,south));
+  session = applyPracticeBid(session,'2D');
+  assert.equal(session.auction.at(-1).bid,'2H');
+  assert.match(availablePracticeActions(session).find(row=>row.bid==='2S').label,/Natural spades/);
+  assert.match(availablePracticeActions(session).find(row=>row.bid==='3S').label,/spades shortage/);
+  assert.throws(() => applyPracticeBid(session,'2S'), /natural spades/);
+  assert.equal(applyPracticeBid(session,'3S').auction.at(-1).bid,'4H');
+});
