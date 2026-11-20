@@ -10,6 +10,12 @@ async function ready(page) {
   await expect(page.locator('#dds-status')).toHaveText('DDS ready');
 }
 
+async function setNextSeed(page, uuid) {
+  await page.evaluate(value => {
+    Object.defineProperty(crypto, 'randomUUID', { configurable: true, value: () => value });
+  }, uuid);
+}
+
 test('the home-screen launch resumes offline and deals new mixed hands with the real engine available', async ({ page, context, browserName }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('relay.html');
@@ -34,6 +40,7 @@ test('the home-screen launch resumes offline and deals new mixed hands with the 
     expect((await cdp.send('Page.getInstallabilityErrors')).installabilityErrors).toEqual([]);
     await cdp.detach();
   }
+  await setNextSeed(page, 'pwa-mixed-opening-19'); // Ordinary 1C, human opener.
   await selectSetting(page, '#practice-mode', 'mixed');
   await ready(page);
   const { session } = await saved(page);
@@ -48,12 +55,13 @@ test('the home-screen launch resumes offline and deals new mixed hands with the 
   await ready(page);
   expect(await saved(page)).toEqual(progress);
   await fitsScreen(page);
+  await setNextSeed(page, 'pwa-mixed-opening-13'); // Fourth-seat 1D, human responder.
   await newHand(page);
   await expect.poll(async () => (await saved(page)).session.seed).not.toBe(progress.session.seed);
   const nextProgress = await saved(page);
   expect(nextProgress.preferences.practiceMode).toBe('mixed');
-  expect(nextProgress.session.wholeAuction).toBeTruthy();
-  expect(nextProgress.session.auction.some(call => call.seat === nextProgress.session.wholeAuction.humanSeat)).toBe(false);
+  expect(nextProgress.session.wholeAuction).toMatchObject({passedHand:true,openingSeatNumber:4,humanSeat:'South',openingBid:'1D'});
+  expect(nextProgress.session.auction.map(({seat,bid})=>[seat,bid])).toEqual([['South','Pass'],['North','1D']]);
   await page.close();
   const launched = await context.newPage();
   await launched.goto(start + '?from=home-screen');
