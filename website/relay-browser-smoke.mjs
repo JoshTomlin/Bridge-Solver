@@ -283,8 +283,8 @@ try {
     && JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).preferences.practiceMode === 'mixed');
   const mixedInitial = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).session);
   assert.ok(mixedInitial.wholeAuction);
-  assert.equal(mixedInitial.auction.some(call => call.seat === mixedInitial.wholeAuction.humanSeat), false);
-  const mixedBid = openingPartnerBid({ ...mixedInitial.opening, auction: mixedInitial.auction,
+  assert.equal(mixedInitial.auction.some(call => call.seat === mixedInitial.wholeAuction.humanSeat && call.bid !== 'Pass'), false);
+  const mixedBid = !mixedInitial.opening ? '2NT' : openingPartnerBid({ ...mixedInitial.opening, auction: mixedInitial.auction,
     hand: practiceView(mixedInitial).playerHand });
   await clickUiBid(returning, mixedBid);
   const mixedProgress = await returning.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
@@ -303,7 +303,7 @@ try {
   assert.equal(mixedNext.preferences.practiceMode, 'mixed');
   assert.equal(mixedNext.preferences.studyProfileId, '');
   assert.ok(mixedNext.session.wholeAuction);
-  assert.equal(mixedNext.session.auction.some(call => call.seat === mixedNext.session.wholeAuction.humanSeat), false);
+  assert.equal(mixedNext.session.auction.some(call => call.seat === mixedNext.session.wholeAuction.humanSeat && call.bid !== 'Pass'), false);
   console.log('Just bid persistence passed: full browser restart retains the exact auction and random mode for subsequent hands.');
 
   await selectSetting(returning, '#practice-mode', 'auction');

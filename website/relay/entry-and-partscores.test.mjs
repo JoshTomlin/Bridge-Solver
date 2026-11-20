@@ -57,16 +57,17 @@ test('a 16-count Horton partner chooses a partscore using only their own hand',(
 
 test('Just bid preserves whole-auction mode on reload and has no prefilled human calls',()=>{
   const storage={setItem(k,v){this.value=v},getItem(){return this.value}};
-  const seats=new Set(),openings=new Set();
+  const seats=new Set(),openings=new Set(),passedPositions=new Set();
   for(let i=0;i<120;i++) {
     const session=createTrainingPractice({auctionMode:true,openingFamily:'all',seed:`just-from-start-${i}`});
-    assert.equal(session.auction.some(c=>c.seat===session.wholeAuction.humanSeat),false);
-    assert.ok(session.auction.length<=1);assert.equal(session.pendingAsk,null);
+    assert.equal(session.auction.some(c=>c.seat===session.wholeAuction.humanSeat && c.bid!=='Pass'),false);
+    assert.ok(session.auction.length<=(session.wholeAuction.passedHand ? 2 : 1));
+    if (session.wholeAuction.passedHand) passedPositions.add(session.wholeAuction.openingSeatNumber);assert.equal(session.pendingAsk,null);
     seats.add(session.wholeAuction.humanSeat);openings.add(session.wholeAuction.openingBid??'1C');
     savePracticeProgress({session,history:[],preferences:{practiceMode:'mixed'}},storage);
     assert.equal(loadPracticeProgress(storage).progress.preferences.practiceMode,'mixed');
   }
-  assert.equal(seats.size,2);assert.equal(openings.size,5);
+  assert.equal(seats.size,2);assert.equal(openings.size,10); assert.deepEqual([...passedPositions].sort(),[3,4]);
 });
 
 

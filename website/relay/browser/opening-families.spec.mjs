@@ -85,9 +85,10 @@ test('a human major opener answers the first Jacoby question and keeps their phy
 });
 
 test('opening-family selection, mixed openings, seed replay and reopening retain their settings',async({page})=>{
+  test.setTimeout(90000);
   await page.goto('relay.html');await ready(page);
   await selectSetting(page,'#practice-mode','auction');await ready(page);
-  for(const [family,allowed] of [['D',['1D']],['M',['1H','1S']],['NT',['2NT']],['all',['1C','1D','1H','1S','2NT']]]) {
+  for(const [family,allowed] of [['D',['1D']],['M',['1H','1S']],['NT',['2NT']],['WNT',['1NT']],['2C',['2C']],['HT',['2D','2H','2S']],['all',['1C','1D','1H','1S','1NT','2C','2D','2H','2S','2NT']]]) {
     await selectSetting(page,'#opening-family',family);await ready(page);
     const first=await saved(page);
     expect(first.preferences.openingFamily).toBe(family);

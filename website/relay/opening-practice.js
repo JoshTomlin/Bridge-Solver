@@ -3,9 +3,11 @@
 // the auction controller chooses a route from calls and the acting hand only.
 import { DECK, makeRng, handFeatures, bidIndex, getPracticeProfile } from './core.js';
 import { declarerFor } from './profile-utils.js';
+import { createPassedPractice, passedActions, applyPassedCall, passedPartnerBid, validatePassedSession, PASSED_FAMILIES } from './passed-hand.js';
+export { PASSED_NOTES } from './passed-hand.js';
 import { chooseOpeningFamily, createSystemOpeningPractice, systemOpeningActions,
-  systemOpeningPartnerBid, applySystemOpeningCall, validateSystemOpeningSession } from './opening-system.js';
-export { OPENING_FAMILIES, SYSTEM_OPENING_NOTES, openingBidFor, openingTitle, isOpeningFamily } from './opening-system.js';
+  systemOpeningPartnerBid, applySystemOpeningCall, validateSystemOpeningSession, openingBidForFamily } from './opening-system.js';
+export { OPENING_FAMILIES, SYSTEM_OPENING_NOTES, openingBidFor, openingFamilyFor, openingTitle, isOpeningFamily } from './opening-system.js';
 
 export const OPENING_RULES_VERSION = 1;
 const names = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
@@ -26,10 +28,16 @@ export const OPENING_NOTES = [
   'Supported alternatives determine the route. An unimplemented legal call is accepted as a contract choice with a labelled partner-Pass fallback and Undo.',
 ];
 
-export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C' } = {}) {
+export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C', openingSeatNumber, vulnerable } = {}) {
   seed = String(seed);
   const selected = chooseOpeningFamily(openingFamily, seed);
-  if (selected !== 'C') return advanceOpeningPartner(createSystemOpeningPractice({ seed, humanSeat, openingBid: selected === 'NT' ? '2NT' : `1${selected}` }));
+  if (PASSED_FAMILIES.includes(selected)) {
+    const rng = makeRng(`passed-settings:${seed}`);
+    return advanceOpeningPartner(createPassedPractice({ seed, humanSeat, openingFamily:selected,
+      openingSeatNumber:openingSeatNumber ?? (openingFamily === 'all' && rng()<0.5 ? 4 : 3),
+      vulnerable:vulnerable ?? (openingFamily === 'all' && rng()<0.5) }));
+  }
+  if (selected !== 'C') return advanceOpeningPartner(createSystemOpeningPractice({ seed, humanSeat, openingBid:openingBidForFamily(selected) }));
   const rng = makeRng(`whole-club:${seed}`);
   const randomSeat = rng() < 0.5 ? 'North' : 'South';
   humanSeat ??= randomSeat;
@@ -71,6 +79,7 @@ export function openingSeat(session) {
 }
 
 export function openingActions(session) {
+  if (session.opening.system === 'passed') return passedActions(session);
   if (session.opening.system) return systemOpeningActions(session);
   const major = session.opening.major;
   const transfer = major === 'H' ? '1D' : '1H';
@@ -135,6 +144,7 @@ function bridge(session, minor, baron = false) {
 
 /** Apply one call. Only the acting hand is read; partner's policy is separate. */
 export function applyOpeningCall(session, bid) {
+  if (session.opening.system === 'passed') return applyPassedCall(session,bid);
   if (session.opening.system) return applySystemOpeningCall(session, bid);
   const action = openingActions(session).find(action => action.bid === bid);
   if (!action) return boundary({ ...session, auction: [...session.auction,
@@ -220,6 +230,7 @@ export function applyOpeningCall(session, bid) {
  * recipe is passed to the bot's selection function. */
 export function openingPartnerBid(context) {
   const { system, node, major, puppet, auction, hand }=context;
+  if (system === 'passed') return passedPartnerBid(context);
   if (system) return systemOpeningPartnerBid(context);
   const f = feature(hand);
   if (node === 'open') return '1C';
@@ -250,6 +261,7 @@ export function advanceOpeningPartner(session) {
 }
 
 export function validateOpeningSession(session) {
+  if (session.wholeAuction?.passedHand) return validatePassedSession(session);
   if (session.wholeAuction?.openingBid && session.wholeAuction.openingBid !== '1C') return validateSystemOpeningSession(session);
   if (session.wholeAuction?.rulesVersion !== OPENING_RULES_VERSION
       || !['North', 'South'].includes(session.wholeAuction?.humanSeat)

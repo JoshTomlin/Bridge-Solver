@@ -43,7 +43,7 @@ seat can ask or answer, with the actual auction and both hands preserved.
 Exclusion replies remain a recorded partnership question.
 
 Choose **Practice mode → Whole auction**, then **Opening family**: 1C, 1D,
-majors, 2NT or **Mix all openings**. You play every call for your seat,
+majors, weak 1NT, strong 2C, Horton twos, strong 2NT, passed hand or **Mix all openings**. You play every call for your seat,
 starting with the opening as opener or the first response as responder.
 See [opening-family coverage](relay-system/opening-auctions.md) for the new
 routes and their explicit limits.
@@ -79,8 +79,8 @@ preserves the original seat and deal; New hand draws a new one.
 
 For practice from the first bid, choose **Practice settings → Practice mode →
 Just bid · From the opening**. Each new hand draws a supported opening family
-(1C, 1D, 1M or strong 2NT) and an independent opener/responder seat. No calls
-for your seat are pre-filled. The next-hand arrow keeps this mode active.
+(including weak 1NT, strong 2C, Horton and passed hand) and an independent
+opener/responder seat. Passed-hand practice includes the earlier passes. The next-hand arrow keeps this mode active.
 The current opening subset is described in [opening coverage](relay-system/opening-auctions.md).
 
 Just bid resumes the same saved auction after reopening. Old saved relay drills

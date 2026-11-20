@@ -13,7 +13,7 @@ const policy = session => session.opening
 
 test('new opening families complete from either seat, preserving hands, progress and all earlier calls at relay handovers', () => {
   const roots=new Set(),routes=new Set();
-  for(const family of ['D','H','S','NT','all']) for(const humanSeat of ['North','South']) for(let i=0;i<16;i++) {
+  for(const family of ['D','H','S','NT','WNT','2C','2D','2H','2S','all']) for(const humanSeat of ['North','South']) for(let i=0;i<16;i++) {
     let session=createTrainingPractice({auctionMode:true,openingFamily:family,humanSeat,seed:`system-opening-${i}`});
     const initial=copy(practiceView(session)),history=[];
     for(let turn=0;!session.finished && turn<35;turn++) {
@@ -31,11 +31,11 @@ test('new opening families complete from either seat, preserving hands, progress
     }
     assert.equal(session.finished,true,`${family}/${i}`);
     assert.equal(session.coverageBoundary,undefined,`${family}/${i}: ${session.auction.map(call=>call.bid).join(' ')}`);
-    roots.add(session.auction[0].bid);routes.add(session.familyId);
+    roots.add(session.auction.find(call=>call.bid!=='Pass').bid);routes.add(session.familyId);
     const store=storage();savePracticeProgress({session,history,preferences:{practiceMode:'auction',openingFamily:family}},store);
     assert.equal(loadPracticeProgress(store).error,undefined,'Completed games retain the full undo history');
   }
-  assert.deepEqual([...roots].sort(),['1C','1D','1H','1S','2NT']);
+  assert.deepEqual([...roots].sort(),['1C','1D','1H','1NT','1S','2C','2D','2H','2NT','2S']);
   assert.ok([...routes].some(route=>route.startsWith('minor-d')));
   assert.ok([...routes].some(route=>route.startsWith('rebid-')));
   assert.ok(routes.has('major-H') && routes.has('major-S'));
@@ -268,4 +268,38 @@ test('with exactly five transferred major cards, the partner offers a notrump/ga
   assert.equal(openingPartnerBid(input),'3NT');
   assert.equal(openingPartnerBid({...input,hand:'SJ S9 S7 HQ HJ HT H9 H8 H5 DA D8 CQ C2'.split(' ')}),'4H');
   assert.equal(openingPartnerBid({...input,partnerHand:['hidden'],targetProfile:'wrong'}),'3NT');
+});
+
+test('strong 2C uses control replies, suit transfers and the exact post-acceptance control steps', () => {
+  const north = 'SA SK S2 HA HK H3 DA DK D2 CK CJ C8 C7';
+  const noControl = 'SQ SJ S9 S8 HQ HT DQ D8 CQ CT C9 C6 C5';
+  let session = advanceOpeningPartner(deal('2C', north, noControl));
+  assert.equal(session.auction[0].bid,'2C');
+  assert.throws(() => applyPracticeBid(session,'Pass'), /2C is forcing/);
+  assert.throws(() => applyPracticeBid(session,'2H'), /2 or 5 controls/);
+  session = applyPracticeBid(session,'2D');
+  assert.deepEqual(session.auction.map(call=>call.bid),['2C','2D','2NT']);
+  assert.throws(() => applyPracticeBid(session,'Pass'), /2NT is forcing/);
+  assert.equal(applyPracticeBid(session,'3NT').contract.bid,'3NT');
+  const longClubs = 'S9 S8 S6 HT H9 DT D8 CA CQ CT C9 C6 C5';
+  let transfer = advanceOpeningPartner(deal('2C', north, longClubs));
+  transfer = applyPracticeBid(transfer,'2NT');
+  assert.deepEqual(transfer.auction.map(call=>call.bid),['2C','2NT','3C']);
+  assert.throws(() => applyPracticeBid(transfer,'3D'),/0 controls/);
+  const answer = applyPracticeBid(transfer,'3S');
+  assert.deepEqual(answer.auction.map(call=>call.bid),['2C','2NT','3C','3S','5C']);
+  assert.equal(applyPracticeBid(answer,'Pass').contract.declarer,'North');
+});
+
+test('weak 1NT Stayman can invite and stop in notrump on a minimum', () => {
+  const north = 'SQ S8 S6 HJ H9 H5 H2 DK D9 D3 CA C9 C5';
+  const south = 'SK SJ S9 HA H8 H6 DJ D8 D2 CK C7 C6 C2';
+  let session = advanceOpeningPartner(deal('WNT',north,south));
+  assert.match(session.auction[0].meaning,/9–13/);
+  session = applyPracticeBid(session,'2C');
+  assert.deepEqual(session.auction.map(call=>call.bid),['1NT','2C','2H']);
+  const done = applyPracticeBid(session,'2NT');
+  assert.deepEqual(done.auction.map(call=>call.bid),['1NT','2C','2H','2NT','Pass']);
+  assert.equal(done.contract.declarer,'North');
+  assert.equal(done.undiscussedBid,undefined);
 });

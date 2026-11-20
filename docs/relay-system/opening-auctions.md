@@ -1,9 +1,12 @@
 # Whole-auction opening practice
 
-Choose **Whole auction** in settings, then **Opening family**: 1C, 1D, a
-random 1H/1S, either individual major, 2NT, or **Mix all openings**. Each new
-hand chooses opener/responder independently. Seed replay retains the same
-cards, seat and opening. Existing saved 1C auctions remain compatible.
+Choose **Whole auction → Opening family** to practise a particular opening.
+The selector includes weak 1NT, strong 2C, each Horton two, strong 2NT and
+passed-hand openings alongside 1C, 1D and 1M. **Just bid** and **Mix all
+openings** draw an opening group and an independent opener/responder seat.
+The passed-hand group draws third/fourth seat and vulnerability in Just bid.
+In a dedicated passed-hand family those are settings. Replay preserves the
+seat, deal and applicable settings.
 
 Both hands exist before the first bid. Each bot decision receives only its
 own cards and the public auction. A sampling stratum is never stored as an
@@ -18,6 +21,10 @@ asker/teller roles may change. Undo and reopening work across this transition.
 | 1C | Existing transfer responses, balanced acceptance/1NT rebid, weak exits, puppet, exact-five-minor and Baron routes into Dappleton | Existing balanced 14–19 subset; unchanged |
 | 1D | Natural 1H/1S or artificial 1NT, then the implemented July minor, 1NT support, direct weak support, reordered single-suit, support-2NT, reverse and mini–mega entries | 9–19 opener; clear 14–19 responder with a supported route, or a weak 5–8 diamond raise. Two-major response priorities and strong reverses after 1D–1NT are not generated |
 | 1H/1S | Three-way 2C, natural 2D and 1S–2H, natural invitations, weak raises and Jacoby. 1H–1S continues through natural rebids, the 1NT range and shape enquiries, the 2C resolver and reordered rebids | Further rebids over the direct nonforcing 1NT response and some later slam, shortage and invitation continuations are incomplete |
+| Weak 1NT | Stayman, invitations, Smolen, transfers to majors, super-accept, 2NT minor puppet, Baron, natural game and quantitative choices | Uses a 9–13 subset of P0070–P0072. Later splinters, control/Keycard and competitive routes are incomplete |
+| Strong 2C | 2D = 0/1/4 controls; 2H = 2/5; 2S = 3. Long-suit transfers and exact controls after acceptance, direct 3NT description, natural rebids and game choices | 23+ balanced and selected distributional game forces. First/second-seat 2NT continuations and opener's later Keycard agreements need confirmation |
+| Horton 2D/2H/2S | Bid the actual opening, then use the same signoffs, 2NT enquiry, shape, shortage and Keycard tables as the focused drills | Four/five spades, four-plus diamonds/hearts/clubs respectively, 0–8. Whole auctions include weaker responders |
+| Passed hand | Third/fourth-seat club, diamond, major, strong 1NT, strong 2NT and strong 2C into 2NT | See [the passed-hand tables](passed-hand.md) for prior passes, vulnerability, response tables and gaps |
 | 2NT | Muppet and direct/delayed minor Stayman; major transfers/re-transfers; major/minor slam tries; cues, Kickback, queen and specific-suit enquiries; quantitative choices | 20–22 in 4333/4432/5332; responder 6–16. Subjective policies and remaining Exclusion/general-grand-try questions are disclosed in the [2NT tables](notrump-opening.md) |
 
 The diamond and major opening tables follow P0631–P0691, P0885–P0924,

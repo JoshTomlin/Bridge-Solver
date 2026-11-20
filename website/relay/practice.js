@@ -116,7 +116,7 @@ export function applyPracticeBid(session, bid) {
     // A documented but unimplemented continuation is also playable. Preserve
     // the public description; the fallback adds no partner response facts.
     if (result.coverageBoundary) {
-      if (isForcingOpeningCall(result)) return result;
+      if (result.sourceAmbiguity || isForcingOpeningCall(result)) return result;
       return acceptUndiscussedContract(result,bid,true);
     }
     const next=advanceOpeningPartner(result);

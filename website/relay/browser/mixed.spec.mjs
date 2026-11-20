@@ -24,8 +24,10 @@ async function ready(page,previousSeed) {
 async function expectMixed(page,family,seat) {
   const progress=await ready(page),s=progress.session;
   expect(progress.preferences.practiceMode).toBe('mixed');expect(progress.preferences.studyProfileId).toBe('');
-  expect(s.wholeAuction.humanSeat).toBe(seat);expect(s.wholeAuction.openingBid??'1C').toBe(family==='NT'?'2NT':`1${family}`);
-  expect(s.auction.some(c=>c.seat===seat)).toBe(false);expect(s.auction.length).toBeLessThanOrEqual(1);expect(s.pendingAsk).toBeNull();
+  expect(s.wholeAuction.humanSeat).toBe(seat);
+  if (family === 'PH') expect(s.wholeAuction.passedHand).toBe(true);
+  else expect(s.wholeAuction.openingBid??'1C').toBe(({NT:'2NT',WNT:'1NT','2C':'2C','2D':'2D','2H':'2H','2S':'2S'})[family]??`1${family}`);
+  expect(s.auction.some(c=>c.seat===seat && c.bid!=='Pass')).toBe(false);expect(s.auction.length).toBeLessThanOrEqual(family==='PH'?2:1);expect(s.pendingAsk).toBeNull();
   await expect(page.locator('#role-badge')).toHaveText(`${seat==='North'?'Opener':'Responder'} · Just bid`);
   await expect(page.locator('#family-settings')).toBeHidden();await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(13);
   await fitsScreen(page);return progress;
@@ -34,8 +36,9 @@ test.beforeEach(async({page})=>{
   await page.addInitScript(()=>{const original=crypto.randomUUID.bind(crypto);Object.defineProperty(crypto,'randomUUID',{value:()=>window.mixedSeeds?.shift()??original()})});
 });
 test('Just bid starts at the opening for both seats, saves every first call, undoes and advances',async({page})=>{
+  test.setTimeout(90000);
   await page.setViewportSize({width:390,height:844});await page.goto('relay.html');await ready(page);
-  const choices=[['C','North'],['D','South'],['H','North'],['NT','South']];
+  const choices=[['C','North'],['D','South'],['H','North'],['NT','South'],['WNT','South'],['2C','South'],['2D','North'],['PH','North']];
   const queue=choices.map(([f,s])=>seedFor(f,s));await page.evaluate(seeds=>{window.mixedSeeds=seeds},queue);
   await selectSetting(page,'#practice-mode','mixed');
   for(const [i,[family,seat]] of choices.entries()) {

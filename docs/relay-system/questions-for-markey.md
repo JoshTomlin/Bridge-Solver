@@ -132,3 +132,17 @@ implemented in the separate transfer/super-accept routes where P1370 applies.
 spades and six hearts, forcing. Are 2NT and 3H natural invitations, and
 3C/3D natural one-round forces with four-plus cards in the minor? The trainer
 uses those provisional meanings and treats the direct 1M–1NT as nonforcing.
+
+## Strong 2C and weak 1NT — 20 November 2026
+
+**Q15 — first/second-seat 2C rebids.** P1305 lists 2NT/3C/3D/3H as long-suit
+transfers without printing the suit mapping. Practice reads them as transfers
+to clubs/diamonds/hearts/spades respectively. Confirm that order, and which
+Stayman/transfer structure applies after a strong 2NT rebid in first or second
+seat. P1829 explicitly describes Puppet for the passed-hand branch. The
+first/second-seat trainer currently uses natural choices after the 2NT rebid.
+
+**Q16 — weak 1NT decisions.** P0217 leaves super-accept quality to judgement.
+Practice uses four-plus support with 9 or 13 HCP for automatic super-accepts
+and accepts natural invitations at 12–13. Human calls are graded on the shown
+shape. Detailed splinters, cue and keycard follow-ups remain incomplete.
