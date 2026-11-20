@@ -29,7 +29,7 @@ export const isBalancedStrongTwo = hand => {
 export const STRONG_TWO_NOTES = [
   '2♣ is game forcing, 23+ balanced or a distributional game force. The generator includes both. A longer-suit opening is a judgement call.',
   'Control replies count two for an ace and one for a king. The long-suit transfers are ordered clubs, diamonds, hearts, spades. Responder never uses Keycard.',
-  'The first/second-seat notes give control replies and long-suit transfers. The later 2NT rebid and suit rebids use natural contract choices here. The passed-hand Puppet agreements are a separate route.',
+  'After a control reply and a 2NT rebid, use Muppet, transfers and minor Stayman as over a 2NT opening. The trainer accepts quantitative 4NT with 25+; this is a practice threshold. In third or fourth seat, the separate Puppet agreement applies.',
 ];
 
 export function strongTwoRows({node, major, auction}) {
@@ -38,7 +38,7 @@ export function strongTwoRows({node, major, auction}) {
     case 'open': return [row('2C','23+ balanced, or a distributional game force','P1300','respond')];
     case 'respond': return [
       ...controlReplies,
-      ...Object.entries(transfers).map(([bid,suit]) => row(bid,`Transfer to six-plus ${names[suit]}, 0–2 controls`,'P1305','strong-transfer',
+      ...Object.entries(transfers).map(([bid,suit]) => row(bid,`Transfer to six-plus ${names[suit]}, 0–2 controls`,'P1305; partnership confirmation','strong-transfer',
         [length(suit,6),controls(0,1,2)],{major:suit})),
       row('3NT','9+ HCP, 0/1 controls, 4333 or 4432','P1306','strong-game',
         [points(9),controls(0,1),{type:'shapes',values:NT_SHAPES.filter(shape=>!shape.includes('5'))}]),
@@ -50,7 +50,7 @@ export function strongTwoRows({node, major, auction}) {
     ];
     case 'strong-controls': return [0,1,2].map((count,i)=>row(nextBid(last,i+1),`${count} control${count===1?'':'s'}`,'P1305','strong-game',[controlCount(count)]));
     case 'strong-rebid': return [
-      row('2NT','Natural strong balanced rebid, 23+','P1300; natural continuation','strong-game',[points(23),balanced]),
+      row('2NT','23+ balanced; use the 2NT opening continuations','P1300; partnership confirmation','respond',[points(23),balanced]),
       ...suits.flatMap(s=>[2,3,4].map(level=>row(`${level}${s}`,`Natural strong ${names[s]} suit`,'Natural continuation',level===4&&['H','S'].includes(s)?'strong-game':'strong-fit',[length(s,5)],{major:s}))),
       ...games(),
     ];

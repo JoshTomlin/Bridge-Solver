@@ -275,6 +275,9 @@ test('strong 2C uses control replies, suit transfers and the exact post-acceptan
   const noControl = 'SQ SJ S9 S8 HQ HT DQ D8 CQ CT C9 C6 C5';
   let session = advanceOpeningPartner(deal('2C', north, noControl));
   assert.equal(session.auction[0].bid,'2C');
+  for (const [bid, suit] of [['2NT','clubs'], ['3C','diamonds'], ['3D','hearts'], ['3H','spades']]) {
+    assert.match(availablePracticeActions(session).find(action => action.bid === bid).label, new RegExp(`six-plus ${suit}`));
+  }
   assert.throws(() => applyPracticeBid(session,'Pass'), /2C is forcing/);
   assert.throws(() => applyPracticeBid(session,'2H'), /2 or 5 controls/);
   session = applyPracticeBid(session,'2D');
@@ -289,6 +292,35 @@ test('strong 2C uses control replies, suit transfers and the exact post-acceptan
   const answer = applyPracticeBid(transfer,'3S');
   assert.deepEqual(answer.auction.map(call=>call.bid),['2C','2NT','3C','3S','5C']);
   assert.equal(applyPracticeBid(answer,'Pass').contract.declarer,'North');
+});
+
+test('first/second-seat 2C–controls–2NT uses the direct 2NT enquiries, including from an older save', () => {
+  const north = 'SA SK S2 HA HK H3 DA DK D2 CK CJ C8 C7';
+  const south = 'SQ SJ S9 S8 HQ HT DQ D8 CQ CT C9 C6 C5';
+  const before = advanceOpeningPartner(deal('2C', north, south));
+  const rebid = applyPracticeBid(before, '2D');
+  const legacy = { ...rebid, opening: { ...rebid.opening, node: 'strong-game' } };
+  const store = storage();
+  savePracticeProgress({ session:legacy, history:[before], preferences:{practiceMode:'auction'} }, store);
+  const restored = loadPracticeProgress(store).progress.session;
+  const meanings = new Map(availablePracticeActions(restored).map(row=>[row.bid,row.label]));
+  assert.match(meanings.get('3C'),/Muppet Stayman/);
+  assert.match(meanings.get('3D'),/hearts; transfer/);
+  assert.match(meanings.get('3H'),/spades; transfer/);
+  assert.match(meanings.get('3S'),/Minor-suit Stayman/);
+  assert.throws(() => applyPracticeBid(restored,'Pass'),/2NT is forcing/);
+
+  const muppet = applyPracticeBid(restored,'3C');
+  assert.deepEqual(muppet.auction.map(c=>c.bid),['2C','2D','2NT','3C','3H']);
+  assert.throws(() => applyPracticeBid(muppet,'Pass'),/3H is forcing/);
+  const puppet = applyPracticeBid(muppet,'3S');
+  assert.deepEqual(puppet.auction.map(c=>c.bid),['2C','2D','2NT','3C','3H','3S','3NT']);
+  assert.equal(applyPracticeBid(puppet,'Pass').contract.bid,'3NT');
+  const minor = applyPracticeBid(restored,'3S');
+  assert.equal(minor.auction.at(-1).bid,'4C');
+  assert.equal(availablePracticeActions(minor).some(row=>row.bid==='4D'),false,'P1309 reserves Keycard for opener');
+  assert.equal(applyPracticeBid(minor,'5C').contract.bid,'5C');
+  assert.equal(applyPracticeBid(restored,'4NT').auction.at(-1).bid,'6NT');
 });
 
 test('weak 1NT Stayman can invite and stop in notrump on a minimum', () => {

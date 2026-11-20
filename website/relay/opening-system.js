@@ -4,7 +4,7 @@
 // own cards and the public auction, never the sampling stratum or other hand.
 import { DECK, PRACTICE_PROFILES, createPractice, practiceStartState, availableActions, applyBid,
   handFeatures, makeRng, matchesConstraints, bidIndex } from './core.js';
-import { NT_SHAPES, ntOpeningActions, applyNtOpeningCall, ntOpeningPartnerBid, validateNtOpening } from './nt-opening.js';
+import { NT_SHAPES, usesTwoNotrump, ntOpeningActions, applyNtOpeningCall, ntOpeningPartnerBid, validateNtOpening } from './nt-opening.js';
 import { declarerFor } from './profile-utils.js';
 import { entryContinuations } from './bid-reference.js';
 import { PASSED_FAMILIES } from './passed-hand.js';
@@ -29,6 +29,8 @@ export function isForcingOpeningCall(session) {
   const last = session.auction.at(-1);
   if (last?.forcing) return true;
   if (session.opening.system === 'passed' && ['controls','strong-rebid'].includes(session.opening.node)) return true;
+  if (session.opening.system === '2C' && usesTwoNotrump('2C', session.auction))
+    return !session.finished && !ntOpeningActions(session).some(row => row.bid === 'Pass');
   if (extraOpenings[session.opening.system] && session.opening.node !== 'open')
     return !extraActions(session).some(row => row.bid === 'Pass');
   // Saves from before the flag was stored still have their original opening and response.
@@ -184,7 +186,7 @@ function majorResponse(major, f) {
 
 export function systemOpeningPartnerBid(context) {
   const { system, node, major, auction, hand }=context;
-  if(system==='2NT')return ntOpeningPartnerBid(context);
+  if (usesTwoNotrump(system, auction)) return ntOpeningPartnerBid(context);
   if (extraOpenings[system]) {
     if (node === 'open') return system;
     const choices = extraActions(context).filter(row => matchesConstraints(hand,row.facts,'C'));
@@ -348,7 +350,7 @@ function openingActionsTable(session) {
 }
 
 export function systemOpeningActions(session) {
-  if(session.opening.system==='2NT')return ntOpeningActions(session);
+  if (usesTwoNotrump(session.opening.system, session.auction)) return ntOpeningActions(session);
   if (extraOpenings[session.opening.system]) return extraActions(session);
   if (hortonBid(session.opening.system)) {
     const bid = session.opening.system;
@@ -406,7 +408,7 @@ function openingFactsForCall(session,bid) {
 }
 
 export function applySystemOpeningCall(session,bid) {
-  if(session.opening.system==='2NT')return applyNtOpeningCall(session,bid);
+  if (usesTwoNotrump(session.opening.system, session.auction)) return applyNtOpeningCall(session,bid);
   const { system,node,major,seat } = session.opening;
   const option = systemOpeningActions(session).find(call => call.bid === bid);
   const next = { ...session, opening: { ...session.opening }, constraints: [...session.constraints],
@@ -524,6 +526,7 @@ export function validateSystemOpeningSession(session) {
   if (session.opening) {
     const { system,node,seat }=session.opening;
     if (system!==whole.openingBid || !['North','South'].includes(seat) || typeof node!=='string') throw new Error('Saved opening node is invalid.');
+    if (usesTwoNotrump(system, session.auction)) return validateNtOpening(session);
     if (extraOpenings[system] || hortonBid(system)) {
       if (hortonBid(system) && node !== 'open') throw new Error('Saved Horton opening node is invalid.');
       systemOpeningActions(session);

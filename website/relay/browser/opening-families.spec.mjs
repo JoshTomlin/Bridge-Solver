@@ -84,6 +84,23 @@ test('a human major opener answers the first Jacoby question and keeps their phy
   expect((await saved(page)).session.auction).toEqual([]);
 });
 
+test('strong 2C–control reply–2NT offers Muppet and retains the original calls on reload and undo',async({page})=>{
+  const initial = fixture('2C','SA SK S2 HA HK H3 DA DK D2 CK CJ C8 C7','SQ SJ S9 S8 HQ HT DQ D8 CQ CT C9 C6 C5','South');
+  await load(page,initial,'2C');
+  await clickBid(page,'2D');
+  const rebid=await saved(page);
+  expect(rebid.session.auction.map(call=>call.bid)).toEqual(['2C','2D','2NT']);
+  await expect(page.locator('[data-bid="3C"]')).toHaveAttribute('data-discussed','true');
+  await expect(page.locator('[data-bid="Pass"]')).toHaveCount(0);
+  await page.reload();await ready(page);expect(await saved(page)).toEqual(rebid);
+  await clickBid(page,'3C');
+  expect((await saved(page)).session.auction.map(call=>call.bid)).toEqual(['2C','2D','2NT','3C','3H']);
+  await clickBid(page,'3S');await clickBid(page,'Pass');
+  expect((await saved(page)).session.contract.bid).toBe('3NT');
+  await page.click('#undo-bid');await page.click('#undo-bid');await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(rebid.session);
+});
+
 test('opening-family selection, mixed openings, seed replay and reopening retain their settings',async({page})=>{
   test.setTimeout(90000);
   await page.goto('relay.html');await ready(page);

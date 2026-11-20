@@ -7,6 +7,12 @@ This is the first/second-seat **20–22 2NT opening**, separate from the Horton
 Both hands stay fixed. Either physical seat can ask or answer keycards;
 each call, public constraint and actual first bidder of a strain is retained.
 
+Josh confirmed the same continuations after **2C–2D/2H/2S–2NT** in first or
+second seat. That 2NT rebid shows **23+ balanced** and retains the control
+reply and both hands. Opener alone asks Keycard (P1309). The bot treats 25+
+as a maximum for slam invitations after this rebid. Third/fourth-seat
+**2C–control reply–2NT** continues with Puppet under P1829.
+
 ## Implemented routes
 
 | Route | Continuations |

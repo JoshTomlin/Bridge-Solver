@@ -1,4 +1,4 @@
-// First/second-seat 20–22 2NT continuations, P1311–P1429.
+// First/second-seat 2NT continuations, P1311–P1429, also used after a strong 2C rebid.
 // Options contain public facts only. A checker/bot receives the acting hand,
 // never the other hand. Shared KC/queen/suit ladders retain their own facts.
 import { handFeatures, matchesConstraints, bidIndex } from './core.js';
@@ -40,8 +40,19 @@ const northNodes = ['open','muppet','fit-major','both-majors','puppet-nt','trans
   'nt-54-try','nt-54-force','nt-55-try','nt-55-force','nt-minors-shortage','nt-quant'];
 const variableNodes = ['final','nt-cue','nt-answer','nt-continue'];
 
+export function usesTwoNotrump(system, auction) {
+  return system === '2NT' || (system === '2C' && auction[0]?.bid === '2C'
+    && ['2D', '2H', '2S'].includes(auction[1]?.bid) && auction[2]?.bid === '2NT');
+}
+
+function resumeTwoNotrump(ctx) {
+  // Earlier saves had natural game choices at this exact rebid.
+  return ctx.system === '2C' && ctx.node === 'strong-game' && ctx.auction.length === 3
+    ? { ...ctx, node: 'respond' } : ctx;
+}
+
 function context(session) {
-  return {...session.opening,auction:session.auction,publicConstraints:session.openingConstraintsBySeat ?? {North:[],South:[]}};
+  return resumeTwoNotrump({...session.opening,auction:session.auction,publicConstraints:session.openingConstraintsBySeat ?? {North:[],South:[]}});
 }
 function relayState(ctx,trump=ctx.major) {
   return {familyId:'opening-2NT',phase:'keycard',trump,major:trump,balanced:null,shortageSuit:null,
@@ -189,7 +200,14 @@ function legalRows(ctx) {
     }
   }
   const unique=new Map();
-  for(const item of rows)if((item.bid==='Pass'||!last||bidIndex(item.bid)>bidIndex(last.bid))&&!unique.has(item.bid))unique.set(item.bid,item);
+  for (const item of rows) {
+    if (ctx.system === '2C') {
+      // P1309 reserves keycard for opener, including after the notrump rebid.
+      if (ctx.seat === 'South' && (item.relayAction || item.next === 'boundary')) continue;
+      if (item.bid === 'Pass' && last && bidIndex(last.bid) < bidIndex(last.bid.endsWith('NT') ? '3NT' : game(last.bid.slice(1)))) continue;
+    }
+    if ((item.bid === 'Pass' || !last || bidIndex(item.bid) > bidIndex(last.bid)) && !unique.has(item.bid)) unique.set(item.bid,item);
+  }
   return [...unique.values()];
 }
 export function ntOpeningActions(session) { return legalRows(context(session)); }
@@ -247,16 +265,17 @@ export function applyNtOpeningCall(session,bid) {
   return freeze(next);
 }
 
-/** Disclosed practice policy: low hands choose game; 11+ responder explores
- * a fit, then asks the shared questions. Quant invitations are accepted with
- * 22, declined with 20/21. Human judgement is not graded by these cutoffs. */
-export function ntOpeningPartnerBid(ctx) {
+/** Disclosed practice policy: 11+ responder explores a fit. Accept a quant
+ * invitation with 22 over the opening or 25+ after the strong 2C rebid. */
+export function ntOpeningPartnerBid(input) {
+  const ctx = resumeTwoNotrump(input);
   const {node,major,hand}=ctx,f=shape(hand),n=f.lengths;
   const options=legalRows(ctx);
   const admissible=options.filter(r=>matchesConstraints(hand,r.facts,major||'C'));
   const has=bid=>admissible.some(r=>r.bid===bid);
   const choose=(...bids)=>bids.find(has);
   const slam=f.hcp>=11;
+  const maximum = ctx.system === '2C' ? f.hcp >= 25 : f.hcp === 22;
   let bid;
   if(node==='open')bid='2NT';
   else if(node==='respond')bid=Math.max(n.S,n.H)>=5?(n.S>n.H?'3H':'3D')
@@ -280,7 +299,11 @@ export function ntOpeningPartnerBid(ctx) {
   else if(node==='shown-minor')bid=major?(slam?choose(['4H','4S'].includes(ctx.minorReply??ctx.auction.at(-1).bid)?'4NT':kickback(major),game(major)):game(major))
     :slam&&n.C>=5?'4C':slam&&n.D>=5?'4D':'Pass';
   else if(node==='nt-delayed-minors')bid=n.C>=4&&n.D>=4?'4D':n.C>=5?'4H':n.D>=5?'4S':'4NT';
-  else if(node==='nt-delayed-minor-choice')bid=ctx.minorPair?(n.C>=n.D?'4H':'4S'):choose(major==='C'?'4S':'5C',game(major));
+  else if(node==='nt-delayed-minor-choice') {
+    const preferredMinor = n.C >= n.D ? 'C' : 'D';
+    bid = ctx.minorPair ? choose(preferredMinor === 'C' ? '4H' : '4S', game(preferredMinor))
+      : choose(major==='C'?'4S':'5C',game(major));
+  }
   else if(node==='nt-muppet-no-fit')bid=slam&&n.C>=5?'4C':slam&&n.D>=5?'4D':'Pass';
   else if(node==='nt-find-minor')bid=choose('6C','6D','6NT');
   else if(node==='nt-minor-invite')bid=n[major]>=3?admissible.find(r=>r.relayAction)?.bid??game(major):'4NT';
@@ -292,9 +315,9 @@ export function ntOpeningPartnerBid(ctx) {
   else if(node==='nt-54-force')bid=n.S===3?admissible.find(r=>r.next==='nt-cue')?.bid:'4NT';
   else if(node==='nt-55-try')bid='4S';
   else if(node==='nt-55-force')bid='4NT';
-  else if(node==='nt-minors-shortage')bid=f.hcp===22?'4NT':n.C>=n.D?'5C':'5D';
+  else if(node==='nt-minors-shortage')bid=maximum?'4NT':n.C>=n.D?'5C':'5D';
   else if(node==='nt-minors-choice')bid=n.C>=n.D?'6C':'6D';
-  else if(node==='nt-quant')bid=f.hcp===22?'6NT':'Pass';
+  else if(node==='nt-quant')bid=maximum?'6NT':'Pass';
   else if(node==='nt-answer')bid=resolveAnswer(ctx,hand).auction.at(-1).bid;
   else if(node==='nt-continue')bid=admissible.find(r=>r.relayAction)?.bid??choose(game(major),`6${major}`,`7${major}`,'6NT','7NT','Pass');
   else if(node==='nt-cue')bid=admissible.find(r=>r.relayAction)?.bid??choose(game(major),`6${major}`,'Pass');
@@ -304,8 +327,8 @@ export function ntOpeningPartnerBid(ctx) {
 }
 
 export function validateNtOpening(session) {
-  const o=session.opening;
-  if(!o)return;
+  if(!session.opening)return;
+  const o=context(session);
   if(!NT_NODES.includes(o.node))throw new Error('Saved opening node is invalid.');
   if(!variableNodes.includes(o.node)&&o.seat!==(northNodes.includes(o.node)?'North':'South'))throw new Error('Saved opening seat is invalid.');
   if(o.major!==null && !Object.hasOwn(names,o.major))throw new Error('Saved opening suit is invalid.');
