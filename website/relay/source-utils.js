@@ -57,6 +57,17 @@ export function explicitKeycardResponses(bid, trump, shortageSuit, extra = [], s
 }
 
 export const control = suit => anyOf([{ type: 'card', suit, rank: 'A' }], [{ type: 'card', suit, rank: 'K' }], [length(suit, 0, 1)]);
+
+// P0425 uses the identical 3D enquiry after either route to major shortage.
+export function diamondSupportAsk(shortageSuit, maxDiamonds) {
+  const steps = explicitKeycardResponses('3D', 'D', shortageSuit, [length('D', 3)], ['3NT']);
+  const doubleton = { bid: '3NT', label: 'Two diamonds; to play', constraints: [length('D', 2)],
+    nextNode: 'diamond-doubleton', state: { threeNTToPlay: true } };
+  return { bid: '3D', kind: 'relay', trump: 'D', source: 'P0425',
+    label: 'Show five diamonds and ask Shortage Keycard if opener has three',
+    playerConstraints: [length('D', 5, maxDiamonds)], responses: [...steps.slice(0, 2), doubleton, ...steps.slice(2)] };
+}
+export const diamondDoubletonNode = { label: 'Opener has two diamonds', help: 'Opener offers 3NT to play.', actions: [] };
 export const noControl = suit => [{ type: 'card', suit, rank: 'A', present: false }, { type: 'card', suit, rank: 'K', present: false }, length(suit, 2, 13)];
 
 /** A disclosed cheapest-control practice policy after a forcing agreement. */

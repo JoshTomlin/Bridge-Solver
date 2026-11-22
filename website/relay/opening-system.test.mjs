@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createTrainingPractice, practiceView, applyPracticeBid, availablePracticeActions, practiceCalls } from './practice.js';
-import { applyBid, handFeatures } from './core.js';
+import { applyBid, handFeatures, DECK, RANKS } from './core.js';
 import { advanceOpeningPartner, openingPartnerBid } from './opening-practice.js';
 import { savePracticeProgress, loadPracticeProgress } from './progress.js';
+import { auctionCallDetails } from './auction-study.js';
 const copy = value => JSON.parse(JSON.stringify(value));
 const storage = () => ({ getItem(){return this.value??null},setItem(key,value){this.value=value} });
 const policy = session => session.opening
@@ -30,7 +31,10 @@ test('new opening families complete from either seat, preserving hands, progress
       assert.deepEqual(practiceView(session).auction.slice(0,earlier.length).map(call=>[call.seat,call.bid]),earlier,'Handover preserves every actual earlier bid');
     }
     assert.equal(session.finished,true,`${family}/${i}`);
-    assert.equal(session.coverageBoundary,undefined,`${family}/${i}: ${session.auction.map(call=>call.bid).join(' ')}`);
+    if (session.sourceAmbiguity) {
+      assert.match(session.auction.map(call => call.bid).join(' '), /^1C 2C (2H|2S|3D 3H)$/);
+      assert.equal(session.contract, null);
+    } else assert.equal(session.coverageBoundary,undefined,`${family}/${i}: ${session.auction.map(call=>call.bid).join(' ')}`);
     roots.add(session.auction.find(call=>call.bid!=='Pass').bid);routes.add(session.familyId);
     const store=storage();savePracticeProgress({session,history,preferences:{practiceMode:'auction',openingFamily:family}},store);
     assert.equal(loadPracticeProgress(store).error,undefined,'Completed games retain the full undo history');
@@ -152,6 +156,49 @@ test('a human major opener makes the opening and the first Jacoby answer without
   assert.equal(session.auction[2].bid,'3S');
   assert.equal(session.auction.filter(call=>call.bid==='2NT').length,1);
   assert.equal(practiceView(session).playerSeat,'North');
+});
+
+test('whole-auction balanced Jacoby ranges and historical meanings start at 12–14 in both seats', () => {
+  const examples = [
+    [12, 'SK ST S6 S5 HA HQ HJ H4 H2 D9 D5 CQ C4', '3H', '12–14 HCP'],
+    [13, 'S8 S4 S3 HA HQ H6 H5 H4 DK DT D6 CK CJ', '3H', '12–14 HCP'],
+    [14, 'SK ST S6 S5 HA HQ HJ H4 H2 DK D5 CJ C4', '3H', '12–14 HCP'],
+    [15, 'SK ST S6 S5 HA HQ HJ H4 H2 DK D5 CQ C4', '3S', '15–17 HCP'],
+    [17, 'SK ST S6 S5 HA HQ HJ H4 H2 DK DQ CQ C4', '3S', '15–17 HCP'],
+    [18, 'SK ST S6 S5 HA HQ HJ H4 H2 DA DQ CQ C4', '3NT', '18–19 HCP'],
+    [19, 'SK ST S6 S5 HA HQ HJ H4 H2 DK DA CQ C4', '3NT', '18–19 HCP'],
+  ];
+  const expected = [{bid:'3H',label:'12–14 HCP'}, {bid:'3S',label:'15–17 HCP'}, {bid:'3NT',label:'18–19 HCP'}];
+  for (const major of ['H','S']) for (const humanSeat of ['North','South']) for (const [points,holding,reply,meaning] of examples) {
+    const north = holding.split(' ').map(card => major === 'H' ? card : `${card[0] === 'H' ? 'S' : card[0] === 'S' ? 'H' : card[0]}${card[1]}`);
+    const remaining = DECK.filter(card => !north.includes(card));
+    const support = remaining.filter(card => card[0] === major).slice(0,4);
+    const sideCards = remaining.filter(card => card[0] !== major).sort((a,b) => RANKS.indexOf(a[1])-RANKS.indexOf(b[1]));
+    const south = Array.from({length:sideCards.length-8},(_,offset) => [...support,...sideCards.slice(offset,offset+9)])
+      .find(hand => { const points = handFeatures(hand,major).hcp; return points>=14 && points<=19; });
+    assert.ok(south,'Responder stays within the whole-auction 14–19 practice subset');
+    assert.equal(handFeatures(north,major).hcp, points);
+    let session = deal(major,north.join(' '),south.join(' '),humanSeat);
+    const history = [], original = copy(practiceView(session));
+    const step = bid => {
+      if (!session.opening || session.opening.seat === humanSeat) history.push(session);
+      session = applyPracticeBid(session,bid);
+    };
+    step(`1${major}`);
+    step(humanSeat === 'North' ? '3C' : '2NT');
+    const ladder = humanSeat === 'North' ? session.pendingAsk.responseLadder : availablePracticeActions(session).find(row => row.bid === '3D').responseLadder;
+    assert.deepEqual(ladder,expected);
+    step(humanSeat === 'North' ? reply : '3D');
+    assert.deepEqual(session.auction.map(call => call.bid),[`1${major}`,'2NT','3C','3D',reply]);
+    assert.equal(session.auction.at(-1).meaning,meaning);
+    assert.deepEqual(auctionCallDetails(session,history,3).alternatives,expected);
+    assert.deepEqual(practiceView(session).playerHand,original.playerHand);
+    assert.deepEqual(practiceView(session).partnerHand,original.partnerHand);
+    const store = storage(); savePracticeProgress({session,history,preferences:{practiceMode:'auction',openingFamily:major}},store);
+    const restored = loadPracticeProgress(store);
+    assert.equal(restored.error,undefined);
+    assert.deepEqual(restored.progress.session,copy(session));
+  }
 });
 
 test('2NT Muppet answers and game contracts follow the supplied source, including first-strain declarer', () => {
@@ -346,4 +393,97 @@ test('after a weak notrump transfer, a new-suit jump shows shortage and the lowe
   assert.match(availablePracticeActions(session).find(row=>row.bid==='3S').label,/spades shortage/);
   assert.throws(() => applyPracticeBid(session,'2S'), /natural spades/);
   assert.equal(applyPracticeBid(session,'3S').auction.at(-1).bid,'4H');
+});
+
+test('a natural major response of 1NT can lead to opener’s six-card rebid or be passed', () => {
+  const north = 'SA S2 HK HQ H8 H7 H5 H4 DK DQ D9 D2 C8';
+  const south = 'SK S8 S3 HA H2 DT D8 D5 C9 C7 C6 C5 C4';
+  const response = advanceOpeningPartner(deal('H', north, south));
+  const after = applyPracticeBid(response, '1NT');
+  assert.deepEqual(after.auction.map(call => call.bid), ['1H','1NT','2H']);
+  assert.equal(applyPracticeBid(after, 'Pass').contract.bid, '2H');
+  const opener = open(deal('H', north, south, 'North'), '1H');
+  assert.equal(opener.auction.at(-1).bid, '1NT');
+  assert.match(practiceCalls(opener).find(row => row.bid === '2NT').source, /provisional/);
+  assert.equal(applyPracticeBid(opener, 'Pass').contract.bid, '1NT');
+});
+
+test('a weak club response to 1D lets opener correct and a direct 3D can be declined', () => {
+  const north = 'SQ S5 S2 HK H9 H3 DA DJ D9 D8 D6 D2 C3';
+  const longClubs = 'SK S9 S3 H8 H7 H4 D7 D5 CQ C9 C7 C5 C2';
+  const weakClubs = applyPracticeBid(advanceOpeningPartner(deal('D', north, longClubs)), '2C');
+  assert.deepEqual(weakClubs.auction.map(call => call.bid), ['1D','2C','2D']);
+  assert.equal(applyPracticeBid(weakClubs, 'Pass').contract.declarer, 'North');
+
+  const diamondInvite = 'ST SJ S4 HQ H8 DK DQ DT D7 D5 CQ C9 C2';
+  const invite = applyPracticeBid(advanceOpeningPartner(deal('D', north, diamondInvite)), '3D');
+  assert.deepEqual(invite.auction.map(call => call.bid), ['1D','3D','Pass']);
+  assert.equal(invite.contract.bid, '3D');
+});
+
+test('1D–2NT uses a five-card raise and the Jacoby shortage and range ladder in both seats', () => {
+  const south = 'SK SJ S4 HA H8 DK DQ DT D7 D5 CQ C9 C2';
+  const clubShort = 'SQ S5 S2 HK H9 H3 DA DJ D9 D8 D6 D2 C3';
+  const before = advanceOpeningPartner(deal('D', clubShort, south));
+  const raised = applyPracticeBid(before, '2NT');
+  assert.deepEqual(raised.auction.map(call => call.bid), ['1D','2NT','3S']);
+  assert.match(raised.auction[2].meaning, /Club shortage 9–11/);
+  assert.equal(applyPracticeBid(raised, '3NT').contract.bid, '3NT');
+  assert.match(practiceCalls(raised).find(row => row.bid === '4C').label, /Shortage Keycard in Diamonds/);
+  const keycard = applyPracticeBid(raised, '4C');
+  assert.equal(keycard.auction.at(-1).bid, '4S');
+
+  const opener = open(deal('D', clubShort, south, 'North'), '1D');
+  assert.equal(opener.pendingAsk.bid, '2NT');
+  const answered = applyPracticeBid(opener, '3S');
+  assert.deepEqual(answered.auction.slice(0, 3), raised.auction);
+  assert.deepEqual(practiceView(answered).playerHand, clubShort.split(' '));
+  const store = storage();
+  savePracticeProgress({ session: answered, history: [opener], preferences: {practiceMode:'mixed'} }, store);
+  assert.deepEqual(loadPracticeProgress(store).progress.session, copy(answered));
+
+  const heartShort = 'SA SQ S5 S2 H3 DA DJ D9 D6 D2 CK C8 C3';
+  const middling = applyPracticeBid(advanceOpeningPartner(deal('D', heartShort, south)), '2NT');
+  assert.equal(middling.auction.at(-1).bid, '3D');
+  assert.equal(practiceCalls(middling).find(row => row.bid === '3NT').kind, 'signoff');
+  const ranged = applyPracticeBid(middling, '3H');
+  assert.equal(ranged.auction.at(-1).bid, '3NT');
+  assert.equal(ranged.auction.at(-1).meaning, '12–14');
+  const fourDiamonds = south.replace('D5','C4');
+  assert.throws(() => applyPracticeBid(advanceOpeningPartner(deal('D', heartShort, fourDiamonds)), '2NT'), /five-plus diamonds/);
+});
+
+test('the 2NT bot can show five-five majors and stops in hearts with two-two support', () => {
+  const responder = 'SQ SJ S7 S5 S2 HQ HJ H9 H7 H6 D8 C9 C4'.split(' ');
+  const opening = { system:'2NT', node:'respond', auction:[{bid:'2NT'}], hand:responder };
+  assert.equal(openingPartnerBid(opening), '3H');
+  assert.equal(openingPartnerBid({...opening,node:'after-transfer',major:'S',auction:[{bid:'2NT'},{bid:'3H'},{bid:'3S'}]}),'4H');
+  assert.equal(openingPartnerBid({...opening,node:'after-transfer',major:'H',auction:[{bid:'2NT'},{bid:'3D'},{bid:'3H'}]}),'3NT');
+  const opener = 'SA SK HA HK DA DK D9 D7 CQ CJ CT C8 C7'.split(' ');
+  assert.equal(openingPartnerBid({...opening,node:'nt-55-game',major:'S',hand:opener,
+    auction:[{bid:'2NT'},{bid:'3H'},{bid:'3S'},{bid:'4H'}]}),'Pass');
+});
+
+test('a flat invitation with a five-card major goes through weak-notrump Stayman', () => {
+  const north = 'SK S8 S3 HK H8 H3 DQ D8 D3 CJ C9 C7 C3';
+  const south = 'SQ S9 S5 S4 S2 HA HJ H2 DK D5 DA CT C2';
+  const opener = open(deal('WNT', north, south, 'North'), '1NT');
+  assert.equal(opener.auction.at(-1).bid, '2C');
+  assert.equal(applyPracticeBid(opener, '2D').auction.at(-1).bid, '2NT');
+  const transfer = applyPracticeBid(advanceOpeningPartner(deal('WNT', north, south)), '2H');
+  assert.equal(transfer.auction.at(-1).bid, '2S');
+  assert.equal(practiceCalls(transfer).find(row => row.bid === '2NT').discussed, false);
+});
+
+test('weak 1C–1NT is playable in both seats and opener can invite naturally', () => {
+  const north = 'SA S8 S2 HA H8 H2 DA D9 D2 CK CQ C9 C3';
+  const south = 'SK S9 S3 HK H7 H5 DJ D8 D5 CT C7 C5 C2';
+  const responder = advanceOpeningPartner(deal('C', north, south));
+  const invited = applyPracticeBid(responder,'1NT');
+  assert.deepEqual(invited.auction.map(call=>call.bid),['1C','1NT','2NT']);
+  assert.equal(applyPracticeBid(invited,'3NT').contract.declarer,'South');
+
+  const opening = open(deal('C',north,south,'North'),'1C');
+  assert.equal(opening.auction.at(-1).bid,'1NT');
+  assert.equal(applyPracticeBid(opening,'Pass').contract.bid,'1NT');
 });

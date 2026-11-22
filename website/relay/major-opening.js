@@ -138,6 +138,8 @@ export function ordinaryMajorRows({system,node,auction}) {
     case 'major-club-resolve': {
       const limited=last==='2D',declined=last===`2${m}`,second=last===`2${om}`;
       if(!limited&&!declined&&!second) return [
+        ...(last==='3D'?[force(`3${m}`, 'Three-card raise or balanced game force with a doubleton in the major',
+          'P1520', [OR([L(m,3,3)], [P(12),B,L(m,2,2)])], 'major-describe')]:[]),
         ...(last==='3NT'?[r('Pass','Play 3NT','P1522',[],'finish')]:[]),...games(),
         ...(last==='3C'?[r('4D','Keycards in clubs','P1517',[],'boundary')]:[])];
       return [
@@ -280,6 +282,7 @@ export function ordinaryMajorPartnerBid(context,hand) {
   if(node.endsWith('-answer')) return rows.find(r=>matchesConstraints(hand,r.facts,m))?.bid;
   if(node.endsWith('-enquiry')) return '3C';
   if(node==='major-club-resolve') {
+    if(last==='3D' && truthful(`3${m}`)) return `3${m}`;
     if(last==='3NT') return f.lengths[m]>=3?`4${m}`:'Pass';
     if(last===`2${m}`&&f.hcp<=11) return 'Pass';
     if(last==='2D'&&f.lengths[m]===3&&f.hcp<=11) return `2${m}`;

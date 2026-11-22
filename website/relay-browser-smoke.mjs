@@ -114,7 +114,7 @@ try {
     assert.equal(await page.locator('#assessment-open').isVisible(), false);
     assert.equal(await page.locator('#partner-hand .card-backs').count(), 1);
     const humanSeat = practice.partnerSeat;
-    assert.match(await page.locator('#player-seat').textContent(), new RegExp(`${humanSeat}.*Teller`));
+    assert.match(await page.locator('#player-seat').textContent(), /South.*Teller/);
     for (let turn = 0; !practice.finished && turn < 20; turn += 1) {
       const resolved = applyBid(practice, practice.pendingAsk.bid);
       const answer = resolved.auction.slice(practice.auction.length).find(call => call.seat === humanSeat).bid;

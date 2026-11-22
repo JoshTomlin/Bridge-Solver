@@ -26,6 +26,11 @@ Minimum/subminimum paths return to opener's suit; the heart minimum passes
 with 17–19. Source-permitted invitation slam cues are not compulsory here.
 Responder's 3NT is to play when available as a final-contract action.
 
+R0031/R0033/R0042/R0044/R0051 also retain **3S requesting 3NT** after the
+minimum return or shortage answer, where still available. A 3S keycard step
+keeps priority. The executable actions and historical alternatives now include
+these source choices; the menu is not limited to the random generated route.
+
 ### Exact first shortage replies
 
 `Lower` = 14–16 and `upper` = 17–19 in the minor-opening rows. A bare
@@ -67,6 +72,8 @@ below 16 are included in the lower-strength fit answer of their reverse entry.
 
 Exactly three in the major, six-plus in the minor; no second four-card suit.
 Diamond 14/15 hands with three-card support use the separate 1NT support route.
+Responder can also stop in their own five-card major with 3M (weak, 0–6 after
+clubs or 5–7 after diamonds), following P0309/P0356/P0657.
 
 | Agreed minor / ask | No shortage | High shortage | Low shortage, lower | Low shortage, upper |
 |---|---|---|---|---|
@@ -83,6 +90,11 @@ Diamond 14/15 hands with three-card support use the separate 1NT support route.
 The first row deliberately retains R0120's explicit full-range diamond-shortage
 answer, despite R0107's broader low-shortage rule. With a major agreed, 3NT
 can be an asking call. With a minor agreed, responder's 3NT is to play.
+
+Two explicit asking exceptions take priority over generic game skips:
+**1C–1D–2NT–3S–4D: 4H is heart SKC** (R0120), and
+**1D–1S–2NT–3H–4D: 4H offers to play, 4S is spade SKC** (R0169).
+These calls remain enquiries even though they coincide with the agreed game.
 
 ## Playable-game strength distinction
 

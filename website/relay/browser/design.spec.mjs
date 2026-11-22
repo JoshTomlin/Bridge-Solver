@@ -12,7 +12,7 @@ async function ready(page) {
   await expect(page.locator('#dds-status')).toHaveText('DDS ready');
 }
 function longAuction() {
-  let session = createTrainingPractice({ profileId: 'dappleton-h-baron-c', role: 'teller', seed: 'relay-1' });
+  let session = createTrainingPractice({ profileId: 'dappleton-h-baron-c', role: 'teller', seed: 'relay-67' });
   const states = [];
   for (let turn = 0; !session.finished && turn < 25; turn++) {
     states.push(session);

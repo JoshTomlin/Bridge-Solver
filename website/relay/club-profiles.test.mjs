@@ -11,15 +11,18 @@ const lengthsOf = shape => Object.fromEntries(SUITS.map((suit, index) => [suit, 
 
 // Independent feature-level checks exhaust the declarative shape/strength
 // universe without relying on generated deals to happen to visit every answer.
-function featureMatches(shape, points, constraints) {
+function featureMatches(shape, points, constraints, keycards, queen) {
   const lengths = lengthsOf(shape);
   return constraints.every(constraint => {
     switch (constraint.type) {
       case 'hcp': return points >= constraint.min && points <= constraint.max;
-      case 'length': return lengths[constraint.suit] >= constraint.min && lengths[constraint.suit] <= constraint.max;
+      case 'length': return constraint.equals === undefined
+        ? lengths[constraint.suit] >= constraint.min && lengths[constraint.suit] <= constraint.max : lengths[constraint.suit] === constraint.equals;
+      case 'keycardOptions': return constraint.values.includes(keycards);
+      case 'trumpQueen': return queen === constraint.value;
       case 'balanced': return SUITS.every(suit => lengths[suit] >= 2) === constraint.value;
       case 'shapes': return constraint.values.includes(shape);
-      case 'anyOf': return constraint.options.some(option => featureMatches(shape, points, option));
+      case 'anyOf': return constraint.options.some(option => featureMatches(shape, points, option, keycards, queen));
       default: throw new Error(`Add an independent check for profile predicate ${constraint.type}.`);
     }
   });
@@ -57,7 +60,7 @@ test('club definitions have unique source-labelled entries, correct seats and le
       if (action.kind === 'keycard') continue;
       for (const [index, response] of action.responses.entries()) {
         assert.ok(bidIndex(response.bid ?? nextBid(action.bid, index + 1)) > bidIndex(action.bid));
-        assert.ok(response.nextNode || response.phase === 'keycard', `${profile.id}: named supported destination`);
+        assert.ok(response.nextNode || ['keycard','post-keycard','void-keycard'].includes(response.phase), `${profile.id}: named supported destination`);
       }
     }
   }
@@ -72,6 +75,16 @@ test('every admitted shape and point count has exactly one answer to each initia
         if (!featureMatches(shape, points, profile.partnerConstraints)) continue;
         admitted += 1;
         for (const action of node.actions.filter(action => action.kind === 'relay')) {
+          if (action.source === 'P0425') {
+            for (const count of [0,1,2,3,4,5]) for (const queen of [true,false]) {
+              const matches = action.responses.filter(response => featureMatches(shape, points, response.constraints, count, queen));
+              assert.equal(matches.length, 1);
+              const n = lengthsOf(shape);
+              const expected = n.D === 2 ? '3NT' : Math.min(n.S,n.H) === 0 ? '3H' : ['3S','4C',queen ? '4H' : '4D'][count % 3];
+              assert.equal(matches[0].bid, expected);
+            }
+            continue;
+          }
           const answers = action.responses.filter(response => featureMatches(shape, points, response.constraints));
           assert.equal(answers.length, 1, `${profile.id}, ${shape}, ${points} HCP, ${action.bid}`);
           const state = answers[0].state;

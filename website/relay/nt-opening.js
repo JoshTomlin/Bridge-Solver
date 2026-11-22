@@ -143,7 +143,7 @@ function ntTable(ctx) {
       agree('4D','S','Spade fit; decent for slam',[length('S',4)],{retransfers:true}),
       row('4H','Heart fit; poor for slam','nt-after-game',[length('H',3)],{updates:{major:'H'}}),
       row('4S','Spade fit; poor for slam','nt-after-game',[length('S',4)],{updates:{major:'S'}})];
-    case 'nt-55-game': return [row('Pass','Play 4H','finish',[length('H',3)]),row('4S','Choose spades','final',[length('S',3)])];
+    case 'nt-55-game': return [row('Pass','Play 4H','finish'),row('4S','Choose spades','final',[length('S',3)])];
     case 'nt-54-try': return [row('4S','Three spades; play 4S','final',[length('S',3,3)]),play('4NT')];
     case 'nt-54-force': return [row('4NT','No spade fit','nt-minors-choice',[length('S',0,2)]),
       ...['5C','5D','5H'].map(bid=>({...cue(bid,'S'),facts:[length('S',3,3),control(bid.slice(1))]}))];
@@ -278,7 +278,7 @@ export function ntOpeningPartnerBid(input) {
   const maximum = ctx.system === '2C' ? f.hcp >= 25 : f.hcp === 22;
   let bid;
   if(node==='open')bid='2NT';
-  else if(node==='respond')bid=Math.max(n.S,n.H)>=5?(n.S>n.H?'3H':'3D')
+  else if(node==='respond')bid=Math.max(n.S,n.H)>=5?(n.S>=5 && (n.S>n.H || n.H>=5)?'3H':'3D')
     :Math.max(n.S,n.H)>=4?'3C':slam&&(n.C>=4||n.D>=4)?'3S':'3NT';
   else if(node==='muppet')bid=n.S===5?'3S':n.H===5?'3NT':Math.max(n.S,n.H)===4?'3D':'3H';
   else if(node==='four-major')bid=n.S===4&&n.H===4&&slam?'4C':n.S===4?'3H':n.H===4?'3S':'3NT';
@@ -290,7 +290,8 @@ export function ntOpeningPartnerBid(input) {
   else if(node==='nt-after-puppet')bid=slam&&n.S>=5&&n.H>=5?'4H':slam&&Math.max(n.C,n.D)>=4?'4C':'Pass';
   else if(node==='shown-five')bid=n[major]>=3?(slam?choose(kickback(major),`4${major}`):`4${major}`):choose('3NT','Pass');
   else if(node==='transfer')bid=n[major]>=4?(major==='H'?'3S':'4C'):`3${major}`;
-  else if(node==='after-transfer')bid=slam&&n.C>=4?'4C':slam&&n.D>=4?'4D':major==='H'&&n.S===4?'3S':major==='S'&&n.H>=5?'4H':n[major]>=6?`4${major}`:'3NT';
+  else if(node==='after-transfer')bid=(slam?choose('4C','4D'):null)
+    ??choose(major==='H'?'3S':'4H',n[major]>=6?`4${major}`:'3NT');
   else if(node==='pick-game')bid=n[major]>=3?`4${major}`:'Pass';
   else if(node==='super-fit')bid=slam?choose(kickback(major),major==='H'?'4D':'4H',game(major)):choose(major==='H'?'4D':'4H',game(major));
   else if(node==='retransfer')bid=`4${major}`;
@@ -310,7 +311,7 @@ export function ntOpeningPartnerBid(input) {
   else if(node==='nt-transfer-minor')bid=n[ctx.minor]>=4?admissible.find(r=>r.relayAction?.trump===ctx.minor)?.bid??choose('5C',game(ctx.minor))
     :n[major]>=3?choose(kickback(major),`4${major}`):major==='S'?choose('4S'):choose('4NT','4H');
   else if(node==='nt-major-shape')bid=n.S>=4?'4S':n.H>=3?'4H':'3NT';
-  else if(node==='nt-55-game')bid=n.H>=3?'Pass':'4S';
+  else if(node==='nt-55-game')bid=n.S>n.H?choose('4S','Pass'):'Pass';
   else if(node==='nt-54-try')bid=n.S===3?'4S':'4NT';
   else if(node==='nt-54-force')bid=n.S===3?admissible.find(r=>r.next==='nt-cue')?.bid:'4NT';
   else if(node==='nt-55-try')bid='4S';

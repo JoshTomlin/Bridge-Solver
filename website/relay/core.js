@@ -165,6 +165,10 @@ function lastBid(session) {
   return session.auction.findLast(entry => entry.bid !== 'Pass').bid;
 }
 
+function majorRanges(session) {
+  return session.balanced === true ? SYSTEM.balancedRanges : SYSTEM.ranges;
+}
+
 function openingConstraints(major) {
   return [
     { type: 'length', suit: major, min: SYSTEM.opening.minMajorLength, label: `At least ${SYSTEM.opening.minMajorLength} ${SUIT_NAMES[major].toLowerCase()}` },
@@ -174,7 +178,7 @@ function openingConstraints(major) {
   ];
 }
 
-function constraintLabel(constraint) {
+export function constraintLabel(constraint) {
   if (constraint.label) return constraint.label;
   const interval = constraint.equals ?? (constraint.min === constraint.max ? constraint.min
     : constraint.min === undefined ? `at most ${constraint.max}`
@@ -229,15 +233,24 @@ export function practiceStartState({ profileId, major = 'S', seed = '' } = {}) {
   };
 }
 
-function createFamilyPractice(profile, seed) {
+export function createFamilyPractice(profile, seed, extraPlayerConstraints = []) {
   const trump = profile.defaultTrump;
   validateTrump(trump);
   const seedValue = String(seed);
   const rng = makeRng(`${profile.id}:${seedValue}`);
   const base = practiceStartState({ profileId: profile.id, seed: seedValue });
-  const constraints = base.constraints;
+  const playerConstraints = [...(profile.playerConstraints ?? []), ...extraPlayerConstraints];
+  const hands = drawConstrainedPair(base, playerConstraints, rng, (player, partner) =>
+    matchesInitialResponse(base.auction, handFeatures(player, trump), base.playerSeat)
+    && matchesInitialResponse(base.auction, handFeatures(partner, trump), base.partnerSeat));
+  return freeze({ ...base, ...hands });
+}
+
+/** Deal fixed hands for a drill. The partner hand is proposed by shape first. */
+export function drawConstrainedPair(base, playerConstraints, rng, accepts = () => true) {
+  const { constraints, trump } = base;
   const proposal = shapeWeights(base, DECK);
-  if (!proposal.totalWeight) throw new Error(`No legal practice shapes for ${profile.name}.`);
+  if (!proposal.totalWeight) throw new Error('No legal practice shapes for this deal.');
   const pools = Object.fromEntries(SUITS.map(suit => [suit, DECK.filter(card => card[0] === suit)]));
   // Each partner hand satisfying the public shape restrictions has equal
   // proposal probability. Reject the entire pair if either hand fails its
@@ -247,10 +260,9 @@ function createFamilyPractice(profile, seed) {
     if (!matchesConstraints(partnerHand, constraints, trump)) continue;
     const known = new Set(partnerHand);
     const playerHand = drawCards(DECK.filter(card => !known.has(card)), 13, rng, true);
-    if (!matchesConstraints(playerHand, profile.playerConstraints ?? [], trump)) continue;
-    if (!matchesInitialResponse(base.auction, handFeatures(playerHand,trump),base.playerSeat)
-        || !matchesInitialResponse(base.auction, handFeatures(partnerHand,trump),base.partnerSeat)) continue;
-    return freeze({ ...base, playerHand: sortedHand(playerHand), partnerHand: sortedHand(partnerHand) });
+    if (!matchesConstraints(playerHand, playerConstraints, trump)) continue;
+    if (!accepts(playerHand, partnerHand)) continue;
+    return { playerHand: sortedHand(playerHand), partnerHand: sortedHand(partnerHand) };
   }
   throw new Error('No practice deal found within the generation limit; choose another seed.');
 }
@@ -264,6 +276,7 @@ function mergeFamilyState(session, state = {}) {
 
 function prepareFamilyAction(session, action) {
   if (!action.bid || compareBids(action.bid, lastBid(session)) <= 0) return null;
+  if (action.kind === 'handover') return action;
   if (action.kind === 'keycard') {
     const next = mergeFamilyState(session, { ...action.state,
       ...(action.trump ? { trump: action.trump } : {}),
@@ -296,6 +309,11 @@ function familyActions(session) {
     for (let bid = nextBid(lastBid(session)); bid; bid = nextBid(bid)) contracts.add(bid);
   }
   const assigned = new Set(actions.map(action => action.bid));
+  if (session.source3NTTransfer && session.phase === 'keycard' && compareBids(lastBid(session), '3S') < 0 && !assigned.has('3S')) {
+    actions.push({ bid: '3S', kind: 'transfer-to-3nt', label: 'Request opener to play 3NT', source: 'Reordering R0031/R0042/R0051',
+      responseLadder: [{ bid: '3NT', label: 'Accept the transfer to 3NT' }] });
+    assigned.add('3S');
+  }
   // The asking hand controls the final contract. An artificial answer is
   // still passable; source-defined strength escapes move beyond the normal
   // response ladder when the lower game answer must be avoided (R0105–R0108).
@@ -308,7 +326,7 @@ function familyActions(session) {
   return freeze(actions);
 }
 
-function applyFamilyBid(session, bid) {
+function applyFamilyBid(session, bid, chosenReply) {
   const action = availableActions(session).find(candidate => candidate.bid === bid);
   if (!action) throw new Error(`${bid} is not an available action at this point in the auction.`);
   if (action.playerConstraints && !matchesConstraints(session.playerHand, action.playerConstraints, action.trump ?? session.trump)) {
@@ -316,6 +334,29 @@ function applyFamilyBid(session, bid) {
   }
   let next = mergeFamilyState(session, action.state);
   next.weakExitAllowed = false;
+  if (action.kind === 'transfer-to-3nt') {
+    return freeze({ ...next, phase: 'family', nodeId: 'play', threeNTToPlay: true,
+      auction: [...session.auction,
+        { seat: session.playerSeat, bid, meaning: action.label, responseLadder: action.responseLadder, source: action.source },
+        { seat: session.partnerSeat, bid: '3NT', meaning: 'Accept the transfer to 3NT', source: action.source }],
+    });
+  }
+  if (action.kind === 'handover') {
+    const profile = getPracticeProfile(session.familyId);
+    const constraints = (session.relayRolesSwapped ? profile.partnerConstraints : profile.playerConstraints)
+      .map(constraint => ({ ...constraint, label: constraintLabel(constraint) }));
+    return freeze({ ...next,
+      auction: [...session.auction, { seat: session.playerSeat, bid, meaning: action.label, source: action.source }],
+      playerSeat: session.partnerSeat, partnerSeat: session.playerSeat,
+      playerHand: session.partnerHand, partnerHand: session.playerHand,
+      practiceRole: session.practiceRole === 'asker' ? 'teller' : session.practiceRole === 'teller' ? 'asker' : undefined,
+      initialPracticeRole: session.initialPracticeRole ?? session.practiceRole,
+      relayRolesSwapped: !session.relayRolesSwapped,
+      describedConstraints: { ...session.describedConstraints, [session.partnerSeat]: session.constraints },
+      constraints, phase: 'family', nodeId: action.nextNode, pendingAsk: null,
+      shortageSuit: null, balanced: null, lastResponseLadder: null,
+    });
+  }
   if (action.kind === 'signoff') {
     next.auction = [...session.auction, { seat: session.playerSeat, bid, meaning: action.label }];
     const contractBid = bid === 'Pass' ? lastBid(session) : bid;
@@ -326,7 +367,13 @@ function applyFamilyBid(session, bid) {
   }
   if (action.familyKeycard) return freeze(applyPostRangeBid(next, bid, action));
   if (session.phase !== 'family') return freeze(applyPostRangeBid(next, bid));
-  const matches = action.responses.filter(response => matchesConstraints(session.partnerHand, response.constraints ?? [], next.trump));
+  // A natural invitation leaves the decision with opener. The bot's
+  // acceptance policy never becomes a public fact about a human's hand.
+  const inviteReply = action.kind === 'invitation'
+    ? chosenReply ?? (matchesConstraints(session.partnerHand, action.acceptIf, next.trump) ? action.acceptBid : 'Pass')
+    : null;
+  const matches = action.responses.filter(response => inviteReply ? response.bid === inviteReply
+    : matchesConstraints(session.partnerHand, response.constraints ?? [], next.trump));
   if (matches.length !== 1) throw new Error(`Relay definition must give exactly one answer for the fixed partner hand (found ${matches.length}).`);
   const response = matches[0];
   next = mergeFamilyState(next, response.state);
@@ -414,7 +461,7 @@ export function availableActions(session) {
     actions.push({
       bid,
       label: 'Ask opener’s HCP range', kind: 'relay', source: 'P1476–P1477',
-      responseLadder: SYSTEM.ranges.map((range, index) => ({
+      responseLadder: majorRanges(session).map((range, index) => ({
         bid: stepBid(bid, index + 1, { ...SYSTEM.rangeResponses, major: session.major }), label: range.label,
       })),
     });
@@ -445,8 +492,8 @@ function shapeResponse(session) {
 }
 
 /** Accept only currently displayed actions and return a new, frozen session. */
-export function applyBid(session, bid) {
-  if (session.familyId && !session.familyId.startsWith('major-')) return applyFamilyBid(session, bid);
+export function applyBid(session, bid, chosenReply) {
+  if (session.familyId && !session.familyId.startsWith('major-')) return applyFamilyBid(session, bid, chosenReply);
   const action = availableActions(session).find(candidate => candidate.bid === bid);
   if (!action) throw new Error(`${bid} is not an available action at this point in the auction.`);
   if (action.kind !== 'signoff' && session.phase !== 'raise' && session.phase !== 'range') {
@@ -489,16 +536,17 @@ export function applyBid(session, bid) {
   } else if (session.phase === 'range') {
     const hcp = handFeatures(session.partnerHand, session.major).hcp;
     addRange(next, hcp, 'P1476');
-    const range = SYSTEM.ranges[next.rangeIndex];
+    const range = majorRanges(next)[next.rangeIndex];
     next.auction.push({ seat: 'North', bid: stepBid(bid, next.rangeIndex + 1, { ...SYSTEM.rangeResponses, major: session.major }), meaning: range.label, source: 'P1476' });
   }
   return freeze(next);
 }
 
 function addRange(session, hcp, source) {
-  const rangeIndex = SYSTEM.ranges.findIndex(range => hcp >= range.min && hcp <= range.max);
+  const ranges = majorRanges(session);
+  const rangeIndex = ranges.findIndex(range => hcp >= range.min && hcp <= range.max);
   if (rangeIndex < 0) throw new Error('Partner strength falls outside the training ranges.');
-  const range = SYSTEM.ranges[rangeIndex];
+  const range = ranges[rangeIndex];
   session.rangeIndex = rangeIndex;
   session.constraints.push({ type: 'hcp', min: range.min, max: range.max, label: range.label, source });
   session.phase = 'keycard';

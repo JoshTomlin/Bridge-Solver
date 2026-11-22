@@ -16,17 +16,28 @@ the fixed hidden hand. Sources: P1467–P1477 and subsequent user clarifications
 | 3NT | Low shortage: clubs, 12–14 | Already knows range; next eligible ask is SKC |
 | 4C | Low shortage: clubs, 15–17 | Already knows range; next eligible ask is SKC |
 | 4D | Low shortage: clubs, 18–19 | Already knows range; next eligible ask is SKC |
-| 4M | 9–10 balanced with a great suit | **Source only:** suit-quality judgement not generated |
+| 4M | Weak balanced with a great suit: 9–11 per subsequent clarification | **Source only:** suit-quality judgement not generated |
 
 | Shape answer | Range ask | 9–11 | 12–14 | 15–17 | 18–19 |
 |---|---|---|---|---|---|
-| 3C no shortage | 3D | 3H | 3S | 3NT | 4C |
+| 3C no shortage | 3D | — | 3H | 3S | 3NT |
 | 3D middle shortage | 3H | 3S | 3NT | 4C | 4D |
 | 3H high shortage | 3S | 3NT | 4C | 4D | 4H |
 
 The low-shortage row rolls shape and range together; do not ask range again.
-No-shortage practice hands have at least 13 HCP, so the first no-shortage
-range rung is retained in the table but cannot be selected by a generated hand.
+On 11 November 2026 the partnership confirmed that the balanced range ladder
+starts at **12–14**. Balanced 9–11 hands open 1NT; great-suit exceptions jump
+directly to 4M instead of describing a balanced hand with 3C. The impossible
+9–11 rung is removed, so 3H/3S/3NT show 12–14/15–17/18–19. No-shortage practice
+hands and compatible samples now admit 12-counts. Shortage ladders retain all
+four ranges. The original P1474 gives 9–10 for the great-suit jump; the later
+clarification covers weak balanced 9–11 hands.
+
+This same three-step balanced ladder applies when starting from the opening
+in Whole auction or Just bid. Historical alternatives, hover meanings and
+saved sessions must retain it across the handover into Jacoby. Regression
+fixtures check 12/13/14/15/17/18/19 in both majors and both human seats; the
+phone tests also check the displayed alternatives and reopening/undo.
 
 | Reservation | Rule |
 |---|---|
@@ -36,8 +47,28 @@ range rung is retained in the table but cannot be selected by a generated hand.
 | 3NT after shortage | Can be an artificial answer/ask according to the branch; do not infer an offer to play |
 | Immediate 1M–3NT | Minor-suit hand in the notes; not a trainer shortcut to a 3NT contract |
 
-Practice restrictions: opener 9–19, five-plus major, side suits at most four,
-at most one shortage; responder four-plus trumps and 12+ HCP. Opening-choice
+## Automatic asker's slam decisions
+
+Josh confirmed on 17 November 2026 that the bot counts the agreed trump queen
+as half a keycard. After the keycard answers, its partnership total controls
+the next decision:
+
+| Known total | Bot continuation |
+|---|---|
+| Strictly below 4½ | Sign off in the agreed game, or the lowest legal trump contract if already past game |
+| Four/five keycards, queen unknown | Ask for the queen when available and relevant |
+| 4½ or five | Sign off in the agreed small slam |
+| All five plus the queen | Grand investigation permitted |
+
+Anything beyond the queen enquiry is a grand try. The bot uses only its own
+cards and public answers. It does not turn an unresolved 0/3 alternative into
+the higher count by looking at the teller's cards. Side-suit questions seek
+third-round control; a negative answer stops at six. Known third-round controls
+in either hand can avoid redundant questions. With all needed controls shown,
+the bot can bid seven. Human askers retain their source-defined choices.
+
+Practice restrictions: opener 9–19 (12+ without shortage), five-plus major,
+side suits at most four, at most one shortage; responder four-plus trumps and 12+ HCP. Opening-choice
 judgements, two shortages and a five-card side suit are excluded.
 
 ## Keycards

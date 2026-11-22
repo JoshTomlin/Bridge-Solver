@@ -2,6 +2,83 @@
 
 [System-table index](README.md) · [Exercise catalogue](scenario-catalog.md)
 
+The [22 October 2026 source/code audit](audit-2026-10-22.md) supplements this
+coverage record with reproduced discrepancies and questions requiring partnership
+clarification. The direct club known-shortage diamond-SKC ladder now skips the reserved 3NT response (P0425). The artificial-3NT passing concern
+was resolved by Josh: the asker may pass any relay answer; Q1 in
+[questions for Markey](questions-for-markey.md) supersedes that old invariant. See [implementation.md](implementation.md) for
+the bid-tree and sampling algorithms.
+
+## Whole-auction reachability, 22 November 2026
+
+Just Bid chooses an opening group and a seat independently. It deals
+first/second-seat openings and unopposed third/fourth-seat openings with
+prior passes. The human makes their first available call. The same real
+auction can reach each of the 63 study entries from either seat, including
+Dappleton and club Baron auctions where the asker changes. The mix is
+weighted by opening group and practice route. Individual branches can be rare.
+
+### Which auctions can you actually be dealt?
+
+An entry in the reference or a focused exercise with the first three bids
+already on the table does not establish that either player can bid those
+calls in a whole auction. This check traced the deal generator, both bots,
+the playable calls and the transition into the next decision.
+
+| Auction | What changed |
+|---|---|
+| 1C–1S | Previously every generated responder had a four/five-card major. Now one third of club draws target the artificial response, normally (7)8+ without a four-card major. Opener can rebid 1NT or 2C balanced, or 3D (9–13) or 2NT (14–16) with both minors. The latter two reuse the focused shortage and keycard exercises with the actual cards. Known major-shortage hands use the 2H/2S rebids described below. The bot agrees its longer minor and prefers clubs with equal lengths. The opener therefore gets to answer either shortage ask. |
+| 1C–2C | A single-suited positive diamond hand meets all five opener rebids. Responder can pass the 2D preference with 10–13. After the 3D raise, 3H asks opener for shortage. The shortage asks pause at the missing reply table. |
+| 1C–1NT and direct weak jumps | Weak 1NT and natural jumps at two and three are dealt. After a two-level jump, only 2NT invites. The 1NT response has provisional natural rebids because its opener table is missing. |
+| 1C–1D/1H | The existing Bourke/fourth-suit, split-range, reordered and mini–mega exercises can be reached through the transfer and opener’s actual rebid. |
+| 1C–1S–1NT/2C | The two Baron exercises and the strong 2C–2D description can be reached from the opening, including the known diamond-short and strong unbalanced opener hands. |
+| 1D–2C/3D/2NT | Weak long clubs, invitational diamond support, and a five-plus-diamond game force respectively. The 2NT route uses Jacoby shortage and range replies. Weak-club and invitational rebids are provisional natural practice. |
+| 1M–1NT and 1M–3m | The nonforcing 1NT response and six-plus-card minor invitations are dealt. The 1NT rebids are provisional natural practice. |
+| 1C–1S–2H/2S | The direct major-shortage rebids are dealt. After 3D, two diamonds give 3NT to play. With three diamonds the SKC steps skip 3NT. Direct and strong routes share the same reply table. |
+| 1C–1S–1NT vs 1C–1S–2C | Over 1NT responder can pass, sign off in 2C/2D or bid 3NT. Over 2C, 2D requests 3NT or an unbalanced description. The whole-auction 2C branch currently deals balanced openers and lets opener declare 3NT. The reference also lists the other source continuations. |
+| 1H–1S | Jump-rebid exercises supplied this entry. Ordinary 12–17 balanced 1NT and natural clubs/strong balanced 2C now have a deal-generation route into the existing continuations. |
+| 1M–2C–3D–3M | Responder can show the three-card raise or a balanced game force with a doubleton (P1520). Both fit types reach the game choice in either seat. |
+| Horton Twos | Responder can invite in a shown suit or use direct Kickback. Over 2S, 3S and 4C mildly invite, 4D asks for club keycards and 4NT asks for spade keycards. Both roles use the 0/1/2 ladder. A human opener can accept or decline an invitation. |
+
+With club selected, replay seeds `opening-audit-0`, `opening-audit-1`,
+`opening-audit-3` and `opening-audit-48` to practise the 2C, 1NT, 3D and
+2NT rebids respectively. With Horton 2S selected, `opening-audit-2` gives
+a direct club Kickback opportunity and `opening-audit-83` a club invitation.
+The same seed gives the same two hands from either seat.
+
+With club selected, replay `opening-audit-11`, `64`, `20`, `88` and `19`
+(use the same `opening-audit-` prefix for each) for the five opener rebids
+after the positive 2C, in ascending bid order. Seed 4 gives the weak heart
+jump and 2NT invitation. Seed 2 gives 1C–1S–2S–3D–3NT with two diamonds.
+
+### Remaining gaps and source decisions
+
+| Agreement | Current boundary |
+|---|---|
+| Positive diamonds after 1C–2C | The notes give the shortage asks after 2H/2S or 3D–3H without their answer order. The trainer pauses with the original cards and Undo available. See Q17. |
+| Other artificial 1S rebids (P0383, P0387, P0389–P0390) | The remaining direct long-club and two-suiter branches still need complete early and later continuations. |
+| Horton forcing jumps and Last Train | Range/shape, invitations and direct keycards are playable. Forcing-jump cue meanings and Last Train continuations still need a full table. |
+| Weak 1NT and 2NT | Weak-1NT competitive methods and further slam continuations remain incomplete. Exclusion replies after 2NT are unconfirmed (Q13). |
+| Passed hand | Third/fourth-seat uncontested openings are dealt. P1780, some subsequent rebids, and competitive continuations remain incomplete. |
+| Extreme shapes and judgement | Two-shortage hands and some opening exceptions fall outside individual relay subsets. Additional natural rebids and partnership-specific slam decisions need examples. |
+
+Question numbers refer to [questions for Markey](questions-for-markey.md).
+
+### Corrections from the current audit
+
+- The detailed five-plus-diamonds agreement in P1468 takes precedence over the shorthand four-plus in P0643. After 1D–2NT, responder’s 3NT is to play. A range *answer* can still be 3NT (P1475–P1477).
+- A balanced invitation over the weak 1NT opening goes through Stayman, including 5332 hands with a five-card major (P0206). A direct 2NT rebid after a transfer no longer claims to invite in notrump.
+- The strong-2NT bot can show both five-card majors through the spade transfer. It no longer tries the exact-five-hearts/four-spades description on a five-five hand (P1372/P1389).
+- The 1D generator now checks the same opening shapes as the bid validator. A balanced 5422 hand with five diamonds is excluded from 1D practice (P0633).
+- Confirmed that the opening and partner’s automatic responses receive only the acting hand and public auction. Fixed seeds exercise both seats, the original auction prefix, same cards, roles, save and Undo at relay transitions.
+
+Sources are the [club response tables](../system-sources/main-notes.txt#L228),
+[diamond responses](../system-sources/main-notes.txt#L608),
+[major responses](../system-sources/main-notes.txt#L845), and
+[Horton Twos](../system-sources/main-notes.txt#L1013). The separate
+2S **response** showing solid clubs after 1D–1NT–2m is still a gap in the
+[revised minor relays](minor-relays.md).
+
 ## Current coverage
 
 This is the state after the source archive/rebid extension, documentation
@@ -18,7 +95,7 @@ publicly disclosed practice subset, not every source-note continuation.
 | Horton | 3 | Main/minimum enquiries, shape, shortage, zero/one/two KC and queen rule | Minimum threshold provisional; Last Train/cue and competitive replies incomplete |
 | Reordered opener rebids | 13 | Five no-support single-suiters, four three-card-support entries, four reverses, strength escapes | Some natural continuations and discretionary bidding over a final contract excluded |
 | Reordered mini–mega | 10 | New high/low bid positions, partscore escape, non-serious/control route | Opener-takes-control keycard, Exclusion and extreme-shape upgrades excluded |
-| Whole-auction openings | Whole auction and Just bid | First/second-seat 1C/1D/1M, weak 1NT, strong 2C, Horton twos and strong 2NT | See [opening coverage](opening-auctions.md) for playable routes and pending slam/competitive agreements |
+| Whole-auction openings | Whole auction and Just bid | First/second-seat 1C/1D/1M, weak 1NT, strong 2C, Horton twos and strong 2NT. All 63 study profiles reachable from the opening in either seat | See [opening coverage](opening-auctions.md) for playable routes and pending slam/competitive agreements |
 | Passed-hand openings | Whole auction and Just bid | Uncontested third/fourth-seat 1C, 1D, 1M, strong 1NT, strong 2NT and 2C/2NT, with prior passes and vulnerability | See [passed-hand coverage](passed-hand.md); P1780 and detailed later continuations remain incomplete |
 | **Total relay entries** | **63** | See the generated catalogue for exact selectable prefixes | Opening mode has explicit source-backed subsets |
 
@@ -54,6 +131,7 @@ from `website/build.js`; generated `website/dist/` and build logs are ignored.
 | Ask skips 4M, answer counts 4M in 1M–2NT | User confirmed, including void follow-up ask |
 | Balanced KC and rare five keycards | User confirmed ordinary ladder without void, retaining 2/5 possibilities |
 | Public length compression | User confirmed; four cards cannot produce Kx; no hidden-card compression |
+| Balanced Jacoby range replies | User confirmed 11 November: after 1M–2NT–3C–3D, 3H/3S/3NT = 12–14/15–17/18–19. Balanced 9–11 hands take 1NT or the direct great-suit 4M route; balanced practice floor is 12 |
 | Two unknown specific suits | High then low; three use middle/high/low |
 | Strong club 2C–2D | Balanced always 3NT; 16+ unbalanced, per user clarification |
 | July revisions | User confirmed precedence over matching Bourke/fourth-suit sections |

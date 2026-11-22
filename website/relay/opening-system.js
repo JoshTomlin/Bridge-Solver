@@ -2,11 +2,13 @@
 // P0885–P0924, P1311–P1429; revised July minor relays and reordered rebids.
 // The sampler may stratify exercises; the bidding policy receives only its
 // own cards and the public auction, never the sampling stratum or other hand.
-import { DECK, PRACTICE_PROFILES, createPractice, practiceStartState, availableActions, applyBid,
+import { DECK, PRACTICE_PROFILES, createPractice, createFamilyPractice, getPracticeProfile, practiceStartState, availableActions, applyBid,
   handFeatures, makeRng, matchesConstraints, bidIndex } from './core.js';
 import { NT_SHAPES, usesTwoNotrump, ntOpeningActions, applyNtOpeningCall, ntOpeningPartnerBid, validateNtOpening } from './nt-opening.js';
 import { declarerFor } from './profile-utils.js';
 import { entryContinuations } from './bid-reference.js';
+import { DIAMOND_RAISE } from './diamond-raise.js';
+import { naturalOpeningNode, naturalOpeningActions, naturalOpeningPartnerBid } from './natural-opening.js';
 import { PASSED_FAMILIES } from './passed-hand.js';
 import { weakNotrumpRows, weakNotrumpPartner, weakNotrumpFacts, WEAK_NT_NOTES } from './weak-notrump.js';
 import { strongTwoRows, strongTwoPartner, strongTwoEligible, isBalancedStrongTwo, STRONG_TWO_NOTES } from './strong-club-two.js';
@@ -19,7 +21,7 @@ const features = hand => handFeatures(hand, 'C');
 const ntShapes=NT_SHAPES;
 const action = (bid, label, source) => ({ bid, label, source, kind: 'opening' });
 const forcingResponses = {
-  '1D': ['1H', '1S', '1NT'],
+  '1D': ['1H', '1S', '1NT', '2NT'],
   '1H': ['1S', '2C', '2D'],
   '1S': ['2C', '2D', '2H'],
 };
@@ -76,10 +78,10 @@ export const SYSTEM_OPENING_NOTES = [
   ...STRONG_TWO_NOTES,
   '2♦/2♥/2♠ Horton openings describe spades and diamonds/hearts/clubs respectively. Whole auction uses the same response tables as the Horton drill.',
   'Whole auction: first/second-seat, uncontested. Both hands are fixed before the opening; your physical seat stays fixed when the asker changes.',
-  '1D uses 9–19 openers with either a weak 5–8 diamond raise or a clear 14–19 response. It connects the two 1NT range entries, July minor rebids, support enquiries and reordered rebids. Routes outside the current tables use the labelled contract-choice fallback.',
+  '1D includes the weak club response, invitational diamond raise, five-plus diamond game-force with 2NT, and the existing 1NT, major-response and reordered routes.',
   '1M includes three-way 2C, natural 2D and 1S–2H responses, Jacoby, weak raises and 1H–1S rebids with a range enquiry over 1NT. New-suit responses are forcing where indicated. The direct 1NT response is nonforcing.',
   'After 1S–2H–2S, 2NT and 3H are treated as natural invitations, and a new minor is natural and forcing for one round. These natural continuations fill out the notes’ explicit 3S route.',
-  'Ordinary major practice uses a game-first partner. For limit-raise judgement it declines with 9–11 and accepts with 12+; this is a practice policy, not a partnership rule. Human acceptance alternatives are not graded by that cutoff.',
+  'Direct 1M–1NT continuations and later natural weak-raise decisions use provisional natural practice choices. Ordinary major practice uses a game-first partner. For limit-raise judgement it declines with 9–11 and accepts with 12+; this is a practice policy, not a partnership rule. Human acceptance alternatives are not graded by that cutoff.',
   '2NT is 20–22 in 4333/4432/5332 shapes; responder is 6–16. Muppet, major transfers, minor Stayman, cue bids and Kickback continue into queen and specific-suit enquiries. Human slam-quality judgements are not graded.',
   'The 2NT practice partner explores a fit with 11+ responder points, then follows the shared keycard questions. It accepts quantitative invitations with 22 and declines with 20/21; these are practice policies, not partnership thresholds. Exclusion reply ladders remain unconfirmed.',
 ];
@@ -104,7 +106,7 @@ function physicalHands(session) {
   return { [session.playerSeat]: session.playerHand, [session.partnerSeat]: session.partnerHand };
 }
 
-function startRelay(session, profileId) {
+export function startRelay(session, profileId) {
   const base = practiceStartState({ profileId, seed: session.seed });
   const hands = physicalHands(session);
   if (!matchesConstraints(hands[base.partnerSeat], base.constraints, base.trump)) return openingBoundary(session);
@@ -115,14 +117,13 @@ function startRelay(session, profileId) {
     wholeAuction: session.wholeAuction, openingFacts: session.openingFacts, pendingAsk: null });
 }
 
-function joinJacoby(session) {
-  // The human opener must answer the 2NT question themselves. The recall
-  // controller keeps that question pending, so it is never answered twice.
+export function joinOpeningRelay(session, profileId) {
+  // Keep the first question pending when the human is the teller.
   const question = session.auction.at(-1);
-  const base = startRelay({ ...session, auction: session.auction.slice(0,-1) }, `major-${session.opening.major}`);
-  if (base.coverageBoundary) return base;
-  const ladder = availableActions(base).find(option => option.bid === '2NT');
-  return base.practiceRole === 'asker' ? applyBid(base, '2NT')
+  const base = startRelay({ ...session, auction: session.auction.slice(0,-1) }, profileId);
+  if (base.coverageBoundary) return openingBoundary(session);
+  const ladder = availableActions(base).find(option => option.bid === question.bid);
+  return base.practiceRole === 'asker' ? applyBid(base, question.bid)
     : freezeOpening({ ...base, pendingAsk: { ...ladder, label: question.meaning } });
 }
 
@@ -142,8 +143,23 @@ export function openingBoundary(session) {
     unsupportedReason: 'This continuation is not implemented yet. Your bid has not been graded as a system error. Undo to explore another route.' });
 }
 
-function diamondRebid(auction, f) {
+function diamondOpeningEligible(f) {
+  if (f.hcp < 9 || f.lengths.D < 4) return false;
+  if (f.balanced) return f.lengths.D >= 6 && f.hcp >= 12;
+  return f.lengths.D >= 5 || f.shape.join('') === '4441';
+}
+
+const diamondProfiles = PRACTICE_PROFILES.filter(profile => profile.initialAuction?.[0].bid === '1D');
+const diamondReorders = diamondProfiles.filter(profile => profile.id.startsWith('rebid-'));
+
+function diamondRebid(auction, hand, f = features(hand)) {
   const response = auction[1].bid;
+  const reordered = diamondReorders.find(profile => profile.initialAuction[1].bid === response
+    && matchesConstraints(hand,profile.partnerConstraints,profile.defaultTrump));
+  return reordered?.initialAuction[2].bid ?? basicDiamondRebid(response,f);
+}
+
+function basicDiamondRebid(response, f) {
   if (response === '1NT') {
     if (f.hcp <= 11) return '2D';
     if (f.hcp <= 15) return '2C';
@@ -174,13 +190,30 @@ function diamondRebid(auction, f) {
 
 function majorResponse(major, f) {
   if (f.lengths[major] >= 4 && f.hcp >= 12) return '2NT';
+  if (major === 'H' && f.lengths.S >= 6 && f.hcp <= 7) return f.lengths.S >= 7 ? '3S' : '2S';
   if (major === 'H' && f.lengths.S >= 4 && (f.lengths.H <= 2 || f.lengths.S === 4 && f.lengths.H === 3 && f.hcp >= 10 && f.hcp <= 11)
       && !(f.balanced && f.hcp >= 12) && !(f.lengths.S >= 6 && f.hcp <= 7)) return '1S';
   if (f.lengths[major] >= 4 && f.hcp >= 10) return `3${major}`;
   if (f.lengths[major] >= 3) return f.hcp <= 9 ? `2${major}` : '2C';
   if (f.hcp >= 12 && (f.lengths[major]===2 && isMajorBalanced(f) || f.lengths.C >= 5)) return '2C';
+  if (f.hcp >= 9 && f.hcp <= 11) {
+    const minor = f.lengths.C >= f.lengths.D ? 'C' : 'D';
+    if (f.lengths[minor] >= 6) return `3${minor}`;
+  }
   if (f.lengths.D >= 5 && f.hcp >= 10) return '2D';
+  if (f.hcp >= 10 && isMajorBalanced(f) && f.lengths[major] === 2 && f.lengths.C < 4) return '2C';
   if (major === 'S' && f.lengths.H >= 5 && f.hcp >= 10) return '2H';
+  return '1NT';
+}
+
+function diamondResponse(f) {
+  const { hcp, lengths:n } = f;
+  const majors = Math.max(n.H,n.S);
+  if (majors >= 5) return n.S > n.H ? '1S' : '1H';
+  if (majors >= 4) return hcp >= 14 ? '1NT' : n.H >= 4 ? '1H' : '1S';
+  if (hcp >= 14 && n.D >= 5) return '2NT';
+  if (hcp >= 9 && hcp <= 12 && n.D >= 5) return '3D';
+  if (hcp <= 9) return (n.C >= 6 || n.C === 5 && n.D <= 2) ? '2C' : '2D';
   return '1NT';
 }
 
@@ -196,16 +229,13 @@ export function systemOpeningPartnerBid(context) {
   }
   const f = features(hand);
   if (node === 'open') return system;
+  const naturalNode = naturalOpeningNode(node, auction);
+  if (naturalNode) return naturalOpeningPartnerBid(naturalNode, auction, hand);
   if (node === 'weak-raise' || node === 'final') return 'Pass';
   if (MAJOR_NODES.includes(node) || system === '1H' && node === 'rebid') return ordinaryMajorPartnerBid(context,hand);
   if (system === '1D') {
-    if (node === 'respond') {
-      if (f.hcp<=9 && f.lengths.H<=3 && f.lengths.S<=3) return f.lengths.D>=3?'2D':'2C';
-      if (Math.max(f.lengths.H, f.lengths.S) >= 5) return f.lengths.S > f.lengths.H ? '1S' : '1H';
-      if (f.hcp >= 14 || Math.max(f.lengths.H, f.lengths.S) < 4) return '1NT';
-      return f.lengths.H >= 4 ? '1H' : '1S';
-    }
-    return diamondRebid(auction, f);
+    if (node === 'respond') return diamondResponse(f);
+    return diamondRebid(auction, hand, f);
   }
   if (node === 'respond') return majorResponse(system.slice(1), f);
   throw new Error('No automated continuation for this opening node.');
@@ -233,8 +263,19 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
   let hands;
   if (horton) {
     const profileId = `horton-${openingBid[1].toLowerCase()}`;
-    const base = practiceStartState({profileId});
-    hands = drawJoint(rng, (n,s,north) => s.hcp >= 4 && s.hcp <= 24 && matchesConstraints(north,base.constraints,'S'));
+    const fitDraw = makeRng(`horton-fit:${seed}`)();
+    if (fitDraw < 0.2) {
+      const second = getPracticeProfile(profileId).initialState.hortonSecondSuit;
+      const [trump, otherShown] = fitDraw < 0.1 ? ['S', second] : [second, 'S'];
+      const deal = createFamilyPractice(getPracticeProfile(profileId), seed, [
+        {type:'length', suit:trump, min:5}, {type:'length', suit:otherShown, max:4},
+        {type:'hcp', min:19}, {type:'keycards', trump, min:3},
+      ]);
+      hands = { North:deal.partnerHand, South:deal.playerHand };
+    } else {
+      const base = practiceStartState({profileId});
+      hands = drawJoint(rng, (n,s,north) => s.hcp >= 4 && s.hcp <= 24 && matchesConstraints(north,base.constraints,'S'));
+    }
   } else if (openingBid === '1NT') {
     hands = drawJoint(rng, (n,s,north) => matchesConstraints(north,weakNotrumpFacts,'C') && s.hcp <= 22);
   } else if (openingBid === '2C') {
@@ -248,19 +289,36 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
     if (n.hcp < 20 || n.hcp > 22 || !['4333','4432','5332'].includes(shape) || s.hcp < 6 || s.hcp > 16) return false;
     return true;
   });
+  else if (openingBid === '1D' && makeRng(`direct-diamond:${seed}`)() < 0.3) {
+    const route = ['2C','3D','2NT'][Math.floor(rng()*3)];
+    hands = drawJoint(rng, (n,s,north) => matchesConstraints(north,DIAMOND_RAISE.partnerConstraints,'D')
+      && s.hcp >= 5 && s.hcp <= 19 && diamondResponse(s) === route);
+  }
+  else if (['1H','1S'].includes(openingBid) && makeRng(`natural-major:${seed}`)() < 0.24) {
+    const major = openingBid[1];
+    const routes = ['1NT','1NT','3C','3D',...(major === 'H' ? ['2S','3S'] : [])];
+    const route = routes[Math.floor(rng()*routes.length)];
+    hands = drawJoint(rng,(n,s,sampledNorth,sampledSouth) => {
+      if(n.hcp<9 || n.hcp>19 || n.lengths[major]<5 || n.lengths[other(major)]>4
+        || n.balanced && n.hcp<12 || s.hcp<5 || s.hcp>11 || majorResponse(major,s)!==route) return false;
+      return route!=='1NT' || matchesConstraints(sampledSouth,majorResponseFacts(major,route),major);
+    });
+  }
   else if (['1H','1S'].includes(openingBid) && makeRng(`ordinary-major:${seed}`)() < 0.6) {
     const major=openingBid.slice(1);
-    const targets=major==='H'?['2C','2D']:['2C','2D','2H'];
+    const targets=major==='H'?['2C','2D','1S']:['2C','2D','2H'];
     const target=targets[Math.floor(rng()*targets.length)];
     hands=drawJoint(rng,(n,s,north)=>{
       if(n.hcp<9||n.hcp>19||n.lengths[major]<5||n.lengths[other(major)]>4||n.balanced&&n.hcp<12||s.hcp<10||s.hcp>19) return false;
       if(majorResponse(major,s)!==target) return false;
       if(target==='2D' && s.lengths.D>=6 && s.hcp<12) return false;
       // Restrict generation to complete mechanical routes, including each NT enquiry.
-      const node=target==='2C'?'major-club-rebid':target==='2D'?'major-diamond-rebid':'major-heart-rebid';
+      const node=target==='1S'?'rebid':target==='2C'?'major-club-rebid':target==='2D'?'major-diamond-rebid':'major-heart-rebid';
       const context={system:openingBid,node,auction:[{bid:openingBid},{bid:target}]};
       const rebid=ordinaryMajorPartnerBid(context, north);
-      return !!rebid;
+      // The jump-rebid drills already supply 1H–1S hands. This draw gives
+      // the natural 1NT range enquiry and 2C resolver an entry from the deal.
+      return target === '1S' ? ['1NT','2C'].includes(rebid) : Boolean(rebid);
     });
   }
   else if (rng() < 0.2) hands = drawJoint(rng, (n,s) => {
@@ -271,7 +329,7 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
   });
   else {
     const major = openingBid.slice(1);
-    const candidates = openingBid === '1D' ? PRACTICE_PROFILES.filter(p => p.initialAuction?.[0].bid === '1D')
+    const candidates = openingBid === '1D' ? diamondProfiles
       : openingBid === '1H' && rng() < 0.3 ? PRACTICE_PROFILES.filter(p => p.id === 'rebid-single-h-s' || p.id.startsWith('rebid-splinter-h-s-'))
       : [PRACTICE_PROFILES.find(p => p.id === `major-${major}`)];
     for (let attempt = 0; attempt < 320; attempt++) {
@@ -279,12 +337,16 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
       const deal = createPractice({ profileId: profile.id, seed: `${seed}:opening:${attempt}` });
       const pair = { [deal.playerSeat]: deal.playerHand, [deal.partnerSeat]: deal.partnerHand };
       const n = features(pair.North), s = features(pair.South);
-      if (s.hcp < 14 || s.hcp > 19) continue;
+      // A naturally forcing spade response to a strong diamond/heart reverse
+      // can be lighter than the ordinary game-force practice sample.
+      const minimum = profile.id === 'rebid-reverse-d-s-h' ? 10 : 14;
+      if (s.hcp < minimum || s.hcp > 19) continue;
       if (openingBid === '1D') {
-        if (n.hcp > 19 || s.lengths.H >= 4 && s.lengths.S >= 4 && Math.max(s.lengths.H,s.lengths.S) >= 5) continue;
-        const response = systemOpeningPartnerBid({ system: openingBid, node: 'respond', hand: pair.South, auction: [] });
+        if (n.hcp > 19 || !diamondOpeningEligible(n) || s.lengths.H >= 4 && s.lengths.S >= 4 && Math.max(s.lengths.H,s.lengths.S) >= 5) continue;
+        const response = diamondResponse(s);
+        if (!['1H','1S','1NT'].includes(response)) continue;
         const auction = [{seat:'North',bid:'1D'},{seat:'South',bid:response}];
-        const rebid = diamondRebid(auction,n);
+        const rebid = diamondRebid(auction,pair.North,n);
         auction.push({seat:'North',bid:rebid});
         const target = prefixProfile(auction);
         if (!target || !matchesConstraints(pair.North, practiceStartState({profileId:target.id}).constraints, target.defaultTrump)) continue;
@@ -302,9 +364,9 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
   const m=openingBid.slice(1);
   const southRestriction=openingBid==='2NT'?{type:'hcp',min:6,max:16,label:'Responder: 6–16 in this practice subset'}
     : {type:'anyOf',label:openingBid==='1D'?'Responder: weak raise or clear game force in this practice subset':'Responder: weak raise or 10–19 in this practice subset',options:openingBid==='1D'
-      ?[[hcp(5,8),length('D',4,13),length('H',0,3),length('S',0,3)],[hcp(14,19)]]
-      :[[hcp(5,8),length(m,3,3),length(other(m),0,3)],[hcp(14,19),length(m,4,13)],[hcp(10,19)],
-        ...(m==='H'?[[hcp(14,19),length('S',4,13),length('H',0,2),{type:'balanced',value:false}]]:[])]};
+      ?[[hcp(5,8),length('D',4,13),length('H',0,3),length('S',0,3)],[hcp(5,9),length('C',5,13)],[hcp(9,12),length('D',4,13)],[hcp(10,13),length('S',4,13)],[hcp(14,19)]]
+      :[[hcp(5,8),length(m,3,3),length(other(m),0,3)],[hcp(5,9),length(m,0,2)],[hcp(14,19),length(m,4,13)],[hcp(10,19)],
+        ...(m==='H'?[[hcp(5,7),length('S',6,8)],[hcp(14,19),length('S',4,13),length('H',0,2),{type:'balanced',value:false}]]:[])]};
   const trump = horton ? 'S' : extra || openingBid === '2NT' ? 'C' : m;
   const initialSouth = extra || horton ? [] : [southRestriction];
   return freezeOpening({ familyId: `opening-${openingBid}`, systemId: 'outback-acol', seed,
@@ -357,6 +419,8 @@ export function systemOpeningActions(session) {
     const second = { '2D':'diamonds', '2H':'hearts', '2S':'clubs' }[bid];
     return [action(bid,`Horton: four/five spades, four-plus ${second}, 0–8`,'P1060–P1065')];
   }
+  const naturalNode = naturalOpeningNode(session.opening.node, session.auction);
+  if (naturalNode) return naturalOpeningActions(naturalNode, session.auction);
   const choices=openingActionsTable(session);
   const last=session.auction.findLast(call=>call.bid!=='Pass');
   if ((session.opening.system==='2NT' || MAJOR_NODES.includes(session.opening.node)) && session.opening.seat==='South' && last?.seat==='North') {
@@ -381,8 +445,13 @@ function openingFactsForCall(session,bid) {
     if (bid==='1H'||bid==='1S') return [points(5),length(bid.slice(1),4)];
     if (bid==='1NT') return [{type:'anyOf',options:[[points(10),length('H',0,3),length('S',0,3)],[points(14),length('H',0,4),length('S',0,4)]]}];
     if (bid==='2D') return [points(5,9),length('D',3)];
+    if (bid==='2C') return [points(5,9),length('C',5)];
+    if (bid==='3D') return [points(9,12),length('D',4)];
+    if (bid==='2NT') return [points(12),length('D',5)];
   }
   if (['1H','1S'].includes(system) && node==='respond' && (['1NT','2C','2D'].includes(bid) || system==='1S'&&bid==='2H')) return majorResponseFacts(major,bid);
+  const naturalNode = naturalOpeningNode(node, session.auction);
+  if (naturalNode) return naturalOpeningActions(naturalNode, session.auction).find(row => row.bid === bid)?.facts ?? [];
   const ordinary = ordinaryMajorOptions({...session.opening,auction:session.auction});
   if (ordinary) return ordinary.find(row => row.bid === bid)?.facts ?? [];
   if (system!=='2NT' && node==='respond') {
@@ -443,7 +512,7 @@ export function applySystemOpeningCall(session,bid) {
   if (node === 'open') {
     if (system === '2NT') { next.balanced=true;next.shortageSuit=null; }
     if (system === '2NT') require(f.hcp>=20 && f.hcp<=22 && ntShapes.includes(['S','H','D','C'].map(suit=>f.lengths[suit]).join('')),'The 2NT opening shows 20–22 balanced in this subset.');
-    else if (system === '1D') require(f.hcp>=9 && f.lengths.D>=4 && (!f.balanced || f.lengths.D>=6 && f.hcp>=12),'This diamond opening needs diamonds and an admitted unbalanced/long-diamond hand.');
+    else if (system === '1D') require(diamondOpeningEligible(f),'This diamond opening needs diamonds and an admitted unbalanced/long-diamond hand.');
     else require(f.hcp>=9 && f.lengths[major]>=5 && (!f.balanced || f.hcp>=12),'A major opening requires five-plus cards and opening values; weak balanced hands open 1NT.');
     return move('respond');
   }
@@ -464,6 +533,10 @@ export function applySystemOpeningCall(session,bid) {
     return move(row.next);
   }
 
+  if (naturalOpeningNode(node, session.auction)) {
+    require(matchesConstraints(hand,option.facts,major), `This call shows ${option.label.toLowerCase()}.`);
+    return option.next === 'finish' ? finishOpening(next) : move(option.next);
+  }
   if (node === 'weak-raise' || node === 'final') return bid === 'Pass' ? finishOpening(next) : move('final');
   if (system === '1D' && node === 'respond') {
     if (bid === '1H' || bid === '1S') {
@@ -474,11 +547,14 @@ export function applySystemOpeningCall(session,bid) {
     }
     if (bid === '1NT') { require(f.hcp>=10 && Math.max(f.lengths.H,f.lengths.S)<5 && (Math.max(f.lengths.H,f.lengths.S)<4 || f.hcp>=14),'The 1NT enquiry needs 10+, no five-card major, and game-forcing values with a four-card major.'); return move('rebid',{major:null}); }
     if (bid === '2D') { require(f.hcp>=5 && f.hcp<=9 && f.lengths.D>=3,'A simple diamond raise shows 5–9 and three/four-plus diamonds.'); return move('weak-raise',{major:'D'}); }
-    if (bid === '2C') require(f.hcp>=5 && f.hcp<=9 && f.lengths.C>=5,'The 2C response shows 5–9 and five-plus clubs.');
+    if (['2C','3D','2NT'].includes(bid)) {
+      require(matchesConstraints(hand, openingFactsForCall(session,bid), 'D'), `This response shows ${option.label.toLowerCase()}.`);
+      return bid === '2NT' ? joinOpeningRelay(next, DIAMOND_RAISE.id) : move('ordinary-rebid');
+    }
     return openingBoundary(next);
   }
   if (system !== '2NT' && node === 'respond') {
-    if (bid === '2NT') { require(f.hcp>=12 && f.lengths[major]>=4,'Jacoby 2NT needs four-plus support and game-forcing values (12+ in this subset).'); return joinJacoby(next); }
+    if (bid === '2NT') { require(f.hcp>=12 && f.lengths[major]>=4,'Jacoby 2NT needs four-plus support and game-forcing values (12+ in this subset).'); return joinOpeningRelay(next, `major-${major}`); }
     if (bid === `2${major}`) { require(f.hcp>=5 && f.hcp<=9 && f.lengths[major]>=3,'A simple major raise shows 5–9 with three-plus support.'); return move('weak-raise'); }
     if (bid === `3${major}` || ['3C','3D'].includes(bid) || system === '1S' && bid === '3H') {
       require(matchesConstraints(physicalHands(session)[seat], openingFactsForCall(session,bid), major), `This invitation shows ${option.label.toLowerCase()}.`);
@@ -503,12 +579,12 @@ export function applySystemOpeningCall(session,bid) {
       if(bid==='2C') return move('major-club-rebid');
       if(bid==='2D') return move('major-diamond-rebid');
       if(bid==='2H' && major==='S') return move('major-heart-rebid');
-      if(bid==='1NT') return move('weak-raise');
+      if(bid==='1NT') return move('ordinary-rebid');
     }
     return openingBoundary(next);
   }
   if (system !== '2NT') {
-    const expected = diamondRebid(session.auction,f);
+    const expected = diamondRebid(session.auction,hand,f);
     const target = prefixProfile(next.auction);
     require(bid===expected || target && matchesConstraints(physicalHands(session).North,practiceStartState({profileId:target.id}).constraints,target.defaultTrump),`This rebid does not match the shown shape/range. The source route for this hand is ${expected}.`);
     return target ? startRelay(next,target.id) : openingBoundary(next);
@@ -531,6 +607,12 @@ export function validateSystemOpeningSession(session) {
       if (hortonBid(system) && node !== 'open') throw new Error('Saved Horton opening node is invalid.');
       systemOpeningActions(session);
       if (!session.finished && seat !== whole.humanSeat) throw new Error('Saved opening turn is invalid.');
+      return;
+    }
+    if (naturalOpeningNode(node, session.auction)) {
+      const last = session.auction.at(-1);
+      if (seat === last?.seat || !session.finished && seat !== whole.humanSeat) throw new Error('Saved opening turn is invalid.');
+      systemOpeningActions(session);
       return;
     }
     const nodes=system==='2NT'?['open','respond','muppet','four-major','fit-major','both-majors','no-major','puppet-nt','shown-five','transfer','after-transfer','pick-game','super-fit','retransfer','minor-stayman','shown-minor','final']:[ 'open','respond','rebid','weak-raise','final',...(['1H','1S'].includes(system)?MAJOR_NODES:[]) ];

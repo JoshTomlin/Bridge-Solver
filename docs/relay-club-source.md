@@ -134,8 +134,32 @@ Here responder South normally describes shape; opener North normally chooses tru
 | 3C | Transfer to 3D: exactly five diamonds; four spades directly, five-plus via the puppet; some slam interest | Corresponding rule with hearts | P0454, P0467 |
 | 3D | Three-suited, short hearts: 4144/4054/4045; 5044 via puppet | Three-suited, short spades: 1444/0454/0445; 0544 via puppet | P0455, P0468 |
 | 3H | Solid six-plus spades | Solid six-plus hearts | P0456, P0469 |
-| 3S | Requests 3NT | Requests 3NT | P0457, P0470 |
-| 3NT | To play | To play | P0458, P0471 |
+| 3S | Direct: requests 3NT. Via puppet: five-plus spades, choice of 3NT/4S | Corresponding hearts rule | P0457, P0470; Josh, 18 November 2026 |
+| 3NT | Direct: to play. Via puppet: five-plus spades, choice of 3NT/4S | Corresponding hearts rule | P0458, P0471; Josh, 18 November 2026 |
+
+**Partnership clarification, 18 November 2026:** after the 2C–2D puppet,
+both 3NT and 3S show five-plus in the transferred major and let opener choose
+between 3NT and 4M. Over 3NT opener passes or bids 4M; over 3S opener bids
+3NT or 4M immediately. These are game-choice routes without a minor-suit slam
+promise. This explicit clarification supersedes reading the printed “3NT to
+play” as a mandatory signoff in the puppet context. A direct 3NT is still to
+play and a direct 3S requests 3NT.
+
+Direct 3H is the **solid** six-plus-major hand (P0456/P0469). The **non-solid**
+six-plus slam try goes through 2C (P0449/P0462); the corresponding 3H slot
+after the puppet carries that long-major description. There is no invented
+AKQJT9 quality test in whole-auction practice. The source 3D, 3H and 3S meanings
+are available after both balanced ranges, including the 14–17 transfer acceptance.
+
+The bot's game preference uses its own major length: three-card support
+selects 4M opposite the shown five cards, otherwise 3NT. Human opener may
+choose either game. The responder bot takes the game-choice route with a
+five-card major and fewer than three ace/king controls, retaining the existing
+minor-interest routes otherwise. These are disclosed practice policies, not
+new partnership judgement thresholds. Declarer follows the actual first bid
+of the strain: e.g. after an 18/19 1NT rebid, responder's artificial 3S makes
+responder the first spade bidder if opener chooses 4S. It does not change who
+first bid notrump.
 
 The phrase “via the puppet” cannot be converted into a universal extra 2C–2D prefix without checking bid legality: 2C cannot be repeated after opener's 2D acceptance, and the heart branch uses 2H as its invitation. Preserve the actual continuation family at that point.
 
@@ -186,7 +210,7 @@ After South's 3H solid-six-major description, North 3S asks shortage; 3NT is to 
 
 ## Additional explicitly defined club entry
 
-After `1C–2C` (responder's six-plus diamonds), opener 2H asks shortage, then strength in 10–12 / 13–15 / 16+ ranges, then SKC. Opener 2S instead shows six-plus decent clubs and asks the corresponding shortage/strength questions. Opener 2D is zero–two diamonds/unbalanced and to play opposite 10–13; 3C is 9–11 with six/seven clubs, probably short diamonds; 3D is three-plus diamonds/unbalanced 9–12 and step asks shortage. **P0437–P0442.** Suit agreement and the treatment of the alternative club entry need a separate scenario definition; do not merge it into 1C–1S.
+After `1C–2C` (responder's six-plus diamonds), opener 2H asks shortage, then strength in 10–12 / 13–15 / 16+ ranges, then SKC. Opener 2S instead shows six-plus decent clubs and asks the corresponding shortage/strength questions. Opener 2D is zero–two diamonds/unbalanced and to play opposite 10–13; 3C is 9–11 with six/seven clubs, probably short diamonds; 3D is three-plus diamonds/unbalanced 9–12 and step asks shortage. **P0437–P0442.** All five opener rebids are now dealt in whole-auction practice. The reply steps to the shortage asks and the suit set by 2S remain open in [Q17](relay-system/questions-for-markey.md).
 
 ## Source issues and safe boundaries
 

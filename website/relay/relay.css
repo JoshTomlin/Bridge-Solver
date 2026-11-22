@@ -128,7 +128,15 @@ summary { font-weight: 500; min-height: 28px; }.replay-options { margin-top: 20p
 .practice-mode-field { margin-bottom: 14px; }
 .context-toggle { display: flex; align-items: center; min-height: 40px; padding: 4px 0; background: none; color: var(--accent); font-size: 12px; }
 .context-toggle::before { content: '+'; width: 20px; font-size: 16px; }.context-toggle[aria-expanded=true]::before { content: '−'; }
+.saved-hands { list-style: none; padding: 0; margin: 18px 0 0; }
+.saved-hand { width: 100%; display: grid; gap: 5px; padding: 16px 0; border-top: 1px solid var(--line); background: none; text-align: left; }
+.saved-hand strong { color: var(--ink); font-size: 14px; font-weight: 550; }.saved-hand span { color: var(--accent); font-size: 12px; }.saved-hand small { color: var(--muted); font-size: 11px; }
+.record-actions { display: flex; flex-wrap: wrap; gap: 8px; }.record-hands { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+.record-hands h3 { font-size: 13px; font-weight: 500; margin: 0 0 10px; }.record-hand { display: grid; gap: 3px; }.record-hand .suit-holding { font-size: 15px; }
+#saved-hand-seed { overflow-wrap: anywhere; }#saved-hand-text { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--ink); font: 12px/1.6 ui-monospace, monospace; resize: vertical; }
+#hand-history-save-status:empty { display: none; }
 @media (max-width: 420px) { .hand-lines { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .record-hands { grid-template-columns: 1fr; } }
 
 .bid-feedback-banner { padding-right: 56px; }
 .bid-feedback-banner p { margin: 0; }

@@ -151,3 +151,24 @@ test('weak heart raises retain their public strength and support facts',()=>{
   assert.ok(session.openingConstraintsBySeat.South.some(f=>f.type==='hcp'&&f.min===5&&f.max===9));
   assert.ok(session.openingConstraintsBySeat.South.some(f=>f.type==='length'&&f.suit==='H'&&f.min===3));
 });
+
+test('P1520 restores the three-card raise or balanced game-forcing doubleton after the non-solid rebid', () => {
+  const opener = 'SA S8 HK HQ HJ HT H9 H8 DQ D7 D5 CK C7';
+  for (const major of ['H','S']) for (const hand of [
+    'SK S7 S4 HA H7 H3 DJ D8 D4 CQ CJ C6 C3',
+    'SK SJ S4 HA H7 DA D8 D4 CQ CJ C6 C3 C2',
+  ]) {
+    const n = major === 'H' ? opener : swap(opener);
+    const s = major === 'H' ? hand : swap(hand);
+    const start = fixture(major,n,s);
+    const rebid = applyPracticeBid(start,'2C');
+    assert.deepEqual(rebid.auction.map(row=>row.bid), [`1${major}`,'2C','3D']);
+    const support = applyPracticeBid(rebid,`3${major}`);
+    assert.deepEqual(support.auction.slice(3,5).map(row=>row.bid), [`3${major}`,`4${major}`]);
+    assert.equal(support.auction[3].source, 'P1520');
+    restore(support,[start,rebid]);
+    const other = fixture(major,n,s,'North');
+    const withSupport = applyPracticeBid(applyPracticeBid(other,`1${major}`),'3D');
+    assert.equal(withSupport.auction.at(-1).bid, `3${major}`);
+  }
+});

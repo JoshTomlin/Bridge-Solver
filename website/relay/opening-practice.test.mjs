@@ -34,6 +34,11 @@ test('source example tests 1D and 3C before joining diamond shortage and keycard
   assert.deepEqual(json(session), original);
   session = applyPracticeBid(session, '1D');
   assert.deepEqual(session.auction.map(call => call.bid), ['1C', '1D', '1NT']);
+  const botRebid = auctionCallDetails({ ...session, playerHand: ['hidden'], partnerHand: ['hidden'] }, [], 2);
+  assert.ok(botRebid.callAlternatives.some(option => option.bid === '1H'));
+  assert.ok(botRebid.callAlternatives.some(option => option.bid === '1NT'));
+  assert.match(botRebid.callAlternatives.find(option => option.bid === '1H').label, /14–17/);
+  assert.match(botRebid.callAlternatives.find(option => option.bid === '1NT').label, /18\/19/);
   assert.equal(session.constraints.length, 1);
   assert.equal(session.constraints[0].min, 4);
   assert.throws(() => applyPracticeBid(session, '2NT'), /five Clubs/);
@@ -83,10 +88,10 @@ test('public bid choices never identify the right opening response using hidden 
 
 test('a legal continuation beyond coverage accepts the contract without invented facts and remains undoable', () => {
   const initial = fixture();
-  const next = applyPracticeBid(initial, '2D');
+  const next = applyPracticeBid(initial, '4NT');
   assert.equal(next.coverageBoundary, false);
   assert.equal(next.revealed, false);
-  assert.equal(next.contract.bid,'2D');
+  assert.equal(next.contract.bid,'4NT');
   assert.deepEqual(next.constraints, initial.constraints);
   assert.deepEqual(next.partnerHand, initial.partnerHand);
   assert.match(next.unsupportedReason, /partner passes/);
@@ -95,9 +100,9 @@ test('a legal continuation beyond coverage accepts the contract without invented
 
 test('generated opening games preserve every earlier hand and save across the transition into a relay family', () => {
   const routes = new Set(), endings = new Set();
-  for (const humanSeat of ['North', 'South']) for (let i = 0; i < 16; i++) {
+  for (const humanSeat of ['North', 'South']) for (let i = 0; i < 140; i++) {
     let session = createTrainingPractice({ auctionMode: true, seed: `opening-walk-${i}`, humanSeat });
-    const history = [], original = json(session);
+    const history = [], original = json(practiceView(session));
     for (let turn = 0; !session.finished && turn < 30; turn++) {
       const storage = { setItem(key, value) { this.value = value; }, getItem() { return this.value; } };
       savePracticeProgress({ session, history, preferences: { practiceMode: 'auction' } }, storage);
@@ -112,8 +117,8 @@ test('generated opening games preserve every earlier hand and save across the tr
       else bid = (availablePracticeActions(session).find(action => action.kind === 'relay') ?? availablePracticeActions(session).find(action => action.kind === 'signoff')).bid;
       history.push(session);
       session = applyPracticeBid(session, bid);
-      assert.deepEqual(session.playerHand, original.playerHand);
-      assert.deepEqual(session.partnerHand, original.partnerHand);
+      assert.deepEqual(practiceView(session).playerHand, original.playerHand);
+      assert.deepEqual(practiceView(session).partnerHand, original.partnerHand);
       assert.equal(practiceView(session).playerSeat, humanSeat);
       routes.add(session.familyId);
     }

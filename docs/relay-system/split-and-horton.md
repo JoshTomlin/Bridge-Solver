@@ -119,6 +119,20 @@ Vulnerable nine-count and poor-six-spade exceptions are excluded.
 | 2H | Spades + hearts | Four hearts selects this entry |
 | 2S | Spades + clubs | No four hearts or four diamonds; avoids the subjective minor-opening choice |
 
+Responder can bypass the 2NT enquiry. Direct Kickback is 4NT for spades,
+4H for diamonds after 2D, 5C for hearts after 2H, and 4D for clubs after
+2S. The three replies show 0, 1 and 2 keycards (P1070, P1085–P1118, P1289).
+After 2S, a direct 4H is natural and to play.
+
+3S mildly invites in spades over any Horton opening. After 2S, 4C mildly
+invites 5C. After 2H, 3H invites 4H. After 2D, 3D invites 4D and 4D invites
+5D. P1067 leaves acceptance to judgement, including vulnerability, extra
+trump length and working honours. A human opener may take either action.
+The bot invites with 12–15 and five or more cards in its preferred suit.
+It accepts with at least six points and five trumps. With 19+, five trumps
+and three keycards in that suit it uses direct Kickback. These thresholds
+control the bot and add no point-count facts to the auction.
+
 **Provisional minimum policy:** 0–4 HCP minimum, 5–8 nonminimum. The source
 does not define the threshold numerically. It is exported as `HORTON_POLICY`
 and can change without changing the source shape schedule.

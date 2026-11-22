@@ -88,7 +88,7 @@ export function weakNotrumpRows({ node, major, auction }) {
       const newSuits = suits.filter(s => s !== major);
       const levelFor = suit => major === 'H' && suit === 'S' ? 2 : 3;
       return [
-        pass(last), row('2NT','Natural game invitation','Natural continuation','invite'),
+        pass(last),
         row(`3${major}`,`Six-plus ${names[major]}, invitational`,'Natural continuation','invite',[length(major,6)]),
         ...newSuits.map(s => row(`${levelFor(s)}${s}`, major==='S'&&s==='H'?'Five-five majors, game force':`Natural ${names[s]}, game force`,
           'P0214/P0219','transfer-fit',[length(s,major==='S'&&s==='H'?5:4)],{second:s})),
@@ -147,6 +147,7 @@ export function weakNotrumpPartner({node, major, second, auction, hand}, choices
   switch (node) {
     case 'respond': {
       const longest = n.S>n.H?'S':'H';
+      if (['3334','2344','2335'].includes(shapeKind(n)) && f.hcp>=12 && f.hcp<=14) return '2C';
       if (n[longest]>=5) return longest==='S'?'2H':'2D';
       if (f.hcp>=17 || Math.max(n.H,n.S)===4 || f.hcp>=12 && f.hcp<=14 || f.hcp<=7 && ['3334','2344'].includes(shapeKind(n))) return f.hcp>=17?'2S':'2C';
       if (f.hcp>=15) return '3NT';
@@ -160,7 +161,7 @@ export function weakNotrumpPartner({node, major, second, auction, hand}, choices
     case 'correct-hearts': return pick('2S','Pass');
     case 'transfer': return f.hcp===13||f.hcp===9 ? pick('2NT',`2${major}`) : `2${major}`;
     case 'transfer-continue':
-      return f.hcp>=15 ? n[major]>=6?game(major):'3NT' : f.hcp>=12?'2NT':'Pass';
+      return f.hcp>=15 ? n[major]>=6?game(major):'3NT' : f.hcp>=12&&n[major]>=6?`3${major}`:'Pass';
     case 'super-accept': return f.hcp>=13?game(major):`3${major}`;
     case 'super-detail': return f.hcp===13 ? major==='H'?'3S':'3NT' : `3${major}`;
     case 'retransfer': return `3${major}`;

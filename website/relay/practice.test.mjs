@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPractice, applyBid, revealPractice, PRACTICE_PROFILES } from './core.js';
+import { createPractice, applyBid, revealPractice, PRACTICE_PROFILES, availableActions, handFeatures } from './core.js';
 import { createTrainingPractice, availablePracticeActions, applyPracticeBid, practiceView, advanceAsker } from './practice.js';
+import { tableView } from './seat-view.js';
+import { auctionCallDetails } from './auction-study.js';
+import { savePracticeProgress, loadPracticeProgress } from './progress.js';
 
 test('role changes which fixed hand is visible, including Dappleton’s reversed seats', () => {
   for (const profileId of ['major-S', 'minor-d-h-c', 'dappleton-h-d-four-major']) {
@@ -32,6 +35,64 @@ test('asker practice retains the original source interpreter and final-contract 
   assert.equal(final.contract.bid, '6S');
   assert.equal(final.contract.declarer, 'North');
   assert.equal(final.finished, true);
+});
+
+test('teller accepts the screenshot 14-count as the first balanced Jacoby range step', () => {
+  const initial = createTrainingPractice({ major: 'H', role: 'teller', seed: 'balanced-teller' });
+  const fixed = {
+    ...initial,
+    partnerHand: 'SK ST S6 S5 HA HQ HJ H4 H2 DK D5 CJ C4'.split(' '),
+    playerHand: 'SA SQ SJ S9 HK HT H9 H8 DA DQ D8 C9 C8'.split(' '),
+  };
+  const shape = applyPracticeBid(fixed, '3C');
+  assert.equal(shape.pendingAsk.bid, '3D');
+  assert.deepEqual(availablePracticeActions(shape).map(({ bid, label }) => [bid, label]), [
+    ['3H', '12–14 HCP'], ['3S', '15–17 HCP'], ['3NT', '18–19 HCP'],
+  ]);
+  const before = JSON.stringify(shape);
+  assert.throws(() => applyPracticeBid(shape, '3S'), /does not match your hand/);
+  assert.equal(JSON.stringify(shape), before);
+  const ranged = applyPracticeBid(shape, '3H');
+  assert.equal(ranged.auction.at(-1).meaning, '12–14 HCP');
+  assert.equal(ranged.pendingAsk.bid, '3S');
+  assert.deepEqual(ranged.partnerHand, fixed.partnerHand);
+});
+
+test('Baron minor agreement hands the shortage enquiry to opener while the human stays South with the same cards', () => {
+  const south = 'SK HQ H8 DA DK D9 D5 CQ CT C7 C4 C3 C2'.split(' ');
+  const cases = [
+    ['1nt', 'SA S9 S2 HK H3 H2 DQ DJ D8 D3 CK CJ C8', '3C', '3D', '3H'],
+    ['2c', 'SA SQ S2 HK H3 H2 DQ DJ D8 D3 CA CK C8', '3C', '3D', '3H'],
+    ['1nt', 'SA S9 S2 HK H3 H2 DQ DJ D8 CK CJ C8 C5', '2NT', '3C', '3D'],
+    ['2c', 'SA SQ S2 HK H3 H2 DQ DJ D8 CA CK C8 C5', '2NT', '3C', '3D'],
+  ];
+  for (const [rebid, north, answer, agreement, shortageAsk] of cases) {
+    const initial = { ...createTrainingPractice({ profileId: `club-1s-${rebid}-baron`, seed: 'baron-handover' }),
+      partnerHand: north.split(' '), playerHand: south };
+    assert.equal(new Set([...initial.partnerHand, ...south]).size, 26);
+    const before = applyPracticeBid(initial, '2S');
+    assert.equal(before.auction.at(-1).bid, answer);
+    const session = applyPracticeBid(before, agreement);
+    assert.equal(session.practiceRole, 'teller');
+    assert.equal(session.pendingAsk.bid, shortageAsk);
+    assert.equal(tableView(session).playerSeat, 'South');
+    assert.deepEqual(tableView(session).playerHand, south);
+    assert.deepEqual(tableView(session).partnerHand, initial.partnerHand);
+    assert.deepEqual(session.pendingAsk.responseLadder.map(response => response.label), ['High shortage: spades', 'Low shortage: hearts']);
+    const shown = applyPracticeBid(session, session.pendingAsk.responseLadder[0].bid);
+    assert.equal(shown.shortageSuit, 'S');
+    assert.deepEqual(tableView(shown).playerHand, south);
+    const historical = auctionCallDetails(shown, [initial, before, session], 3);
+    assert.equal(historical.question.bid, '2S');
+    assert.equal(historical.playedBid, answer);
+    assert.ok(historical.alternatives.some(option => option.bid === answer));
+    const storage = { data: null, setItem(key, value) { this.data = value; }, getItem() { return this.data; } };
+    savePracticeProgress({ session: shown, history: [initial, before, session] }, storage);
+    const restored = loadPracticeProgress(storage);
+    assert.equal(restored.error, undefined);
+    assert.deepEqual(tableView(restored.progress.session), JSON.parse(JSON.stringify(tableView(shown))));
+    assert.deepEqual(tableView(applyPracticeBid(before, agreement)).playerHand, south, 'Undo replays with the original physical hand');
+  }
 });
 
 test('wrong teller responses leave the question, cards, auction and facts unchanged', () => {
@@ -80,6 +141,15 @@ test('all 63 exercises support teller answers through source questions and termi
     for (let turn = 0; !session.finished && turn < 20; turn += 1) {
       const pending = session.pendingAsk;
       assert.ok(pending, profile.id);
+      const action = availableActions(session).find(action => action.bid === pending.bid);
+      if (action?.askType === 'suit' || pending.kind === 'signoff' && pending.bid.startsWith('7')) {
+        // The actual fixed hand is an independent test oracle. Production
+        // selection is allowed only the asker's own hand and public answers.
+        const own = handFeatures(session.playerHand, session.trump);
+        const partner = handFeatures(session.partnerHand, session.trump);
+        assert.equal(own.keycards + partner.keycards, 5, `${profile.id}: no grand try with a missing keycard`);
+        assert.ok(own.trumpQueen || partner.trumpQueen, `${profile.id}: no grand try without the queen`);
+      }
       const expected = applyBid(session, pending.bid);
       const answer = expected.auction.slice(session.auction.length).find(call => call.seat === session.partnerSeat);
       assert.ok(answer, profile.id);

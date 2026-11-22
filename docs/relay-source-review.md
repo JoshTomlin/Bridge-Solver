@@ -54,6 +54,13 @@ trigger the prototype's extra range ask. Balanced, middle-shortage and
 high-shortage responses do have a subsequent range ask. After strength comes
 Shortage Keycard.
 
+**11 November 2026 clarification:** after `1M–2NT–3C–3D`, balanced replies
+start at 12–14: **3H = 12–14, 3S = 15–17, 3NT = 18–19**. Weak balanced 9–11
+hands open 1NT, while great-suit exceptions jump directly to 4M (extending the
+older P1474 wording of 9–10). They cannot consume a range step after 3C. This
+clarification supersedes using all four P1476 ranges in the balanced branch;
+shortage branches keep all four. The practice/sampling balanced floor is 12.
+
 P1477: responder's 3NT offers to play after the diamond start or a balanced
 description, and the relay step becomes 4C. A relay ask that would be 4M moves
 to 4M+1. The user confirmed that only asks skip 4M: after

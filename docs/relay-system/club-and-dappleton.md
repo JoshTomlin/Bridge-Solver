@@ -13,7 +13,8 @@ opening-response trainer. The exercises start at the fixed prefixes below.
 | 1H | Four-plus spades |
 | 1S | (7)8+, usually no four-card major; excludes the 10+ single-suited six-plus diamond response |
 | 1NT | 0–6(7), usually no good four-card major |
-| 2C | 10+, six-plus diamonds, single-suited; **source only** |
+| 2C | 10+, six-plus diamonds, single-suited. The [whole-auction table](opening-auctions.md#first--and-second-seat-1-suit-responses) covers opener’s five rebids. |
+| 2D/2H/2S | Six or seven in the bid suit, 0–6(7). Natural continuations with 2NT invitational. |
 
 Do not apply the natural-response [rebid reordering](reordered-rebids.md) to
 the artificial 1C–1S route.
@@ -25,10 +26,10 @@ narrowed by each exercise's public practice constraints.
 
 | Opener's rebid after 1C–1S | Enabled route | Practice subset |
 |---|---|---|
-| 1NT | 2S Baron, then 4D ordinary club Kickback | 14–15 no shortage, or 14–16 diamond shortage |
-| 2C | 2S Baron, then 4D ordinary club Kickback | 16–19 no shortage, or 17–19 unbalanced; separate 2D resolution below |
-| 2H | 3C club SKC or 3D diamond SKC | 14–16, spade shortage, exactly three diamonds |
-| 2S | 3C club SKC or 3D diamond SKC | 14–16, heart shortage, exactly three diamonds |
+| 1NT | 2S Baron, then agree the shown minor or 4D ordinary club Kickback | 14–15 no shortage, or 14–16 diamond shortage |
+| 2C | 2S Baron, then agree the shown minor or 4D ordinary club Kickback | 16–19 no shortage, or 17–19 unbalanced; separate 2D resolution below |
+| 2H | 3C club SKC or 3D diamond SKC | 14–16, spade shortage, two or three diamonds |
+| 2S | 3C club SKC or 3D diamond SKC | 14–16, heart shortage, two or three diamonds |
 | 2NT | 3C agrees clubs; 3D agrees diamonds; high/low shortage | 14–16, five/six clubs, exactly four diamonds |
 | 3D | 3H agrees clubs; 3S agrees diamonds; high/low shortage | 9–13, five/six clubs, exactly four diamonds |
 
@@ -48,11 +49,18 @@ goes to SKC with the selected minor agreed.
 | 3S | Strong 2C-prefix only: 17–19, spade shortage |
 | 3NT | Diamond shortage; 14–16 after 1NT, 17–19 after 2C |
 
-This exercise gives South six clubs/four diamonds, 12–20, and follows the
+This exercise gives responder six clubs/four diamonds, 12–20, and offers the
 explicit 4D club-Kickback continuation. It excludes ambiguous double-four-minor
 and special long-minor balanced responses. Ordinary Kickback does not add a
-void rung even when the Baron reply has shown shortage. The source's later
-swaps of describing hand are not all implemented.
+void rung even when the Baron reply has shown shortage.
+
+After opener's **2NT** club answer, **3C agrees clubs** and opener's **3D asks
+responder's shortage** (P0409). After opener's **3C** diamond answer, **3D agrees
+diamonds** and opener's **3H asks responder's shortage** (P0410). These handovers
+are implemented for both the 1NT and 2C entries. With the disclosed 6C/4D
+responder shape, replies are high spade shortage then low heart shortage,
+followed by SKC. The human stays South with the same cards when the asking
+role changes. Other responder-description branches remain incomplete.
 
 ### Strong resolution: 1C–1S–2C–2D
 
@@ -76,7 +84,7 @@ The long-club exercise uses a single-shortage subset, which makes its remaining
 general opening definition. The two-minor description is relocated to 3D;
 there is no old 2NT two-minor answer after this resolution.
 
-| After strong 2M, South 3D with five diamonds | North's answer |
+| After either route to 2M, South 3D with five diamonds | North's answer |
 |---|---|
 | Exactly two diamonds | 3NT to play |
 | Three diamonds, known shortage is void | 3H |
@@ -85,10 +93,8 @@ there is no old 2NT two-minor answer after this resolution.
 | Three diamonds, singleton shortage and 2/5 without Q | 4D |
 | Three diamonds, singleton shortage and 2/5 with Q | 4H |
 
-Here **3NT is reserved for the doubleton reply** and is excluded from the
-three-diamond SKC answer ladder. This is an explicit exception to ordinary
-consecutive response counting. Direct 2M exercises restrict opener to three
-diamonds; the doubleton branch is exercised through the strong resolution.
+Both routes use the same response table. Opener offers **3NT to play with two
+diamonds** and skips 3NT when answering diamond SKC with three. [P0425](../system-sources/main-notes.txt#L400)
 
 ## Dappleton: who is asking
 
@@ -112,6 +118,27 @@ exceptional four-card-major escapes are excluded here.
 The optional five-major agreement requires North to have exactly three in the
 major and exactly three in the shown minor; “good” major support remains a
 player judgement. All transfer routes exclude a second four-card major.
+
+### Game choice after the puppet — confirmed 18 November 2026
+
+These routes work after either **14–17** (1M transfer acceptance) or
+**18/19** (1NT rebid), in both majors:
+
+| Responder after 2C–2D | Meaning | Opener's choice |
+|---|---|---|
+| 3NT | Five-plus major, choice of games | Pass or 4M |
+| 3S | Five-plus major, choice of games; opener can declare 3NT | 3NT or 4M |
+
+No minor or slam interest is promised. The bot prefers 4M with three-card
+support; a human opener can choose either game. A direct 3NT without the
+puppet is to play; direct 3S requests opener's 3NT. Declarer is always the
+first actual bidder of the strain, including artificial bids.
+
+Other descriptions in the same menus are **3D three-suited with shortage in
+the other major**, and **direct 3H a solid six-plus major**. A non-solid six-plus
+slam try goes through the puppet. Their natural game choices are playable;
+the detailed shortage-ask follow-ups after these descriptions are source-only
+at present, including the 3S shortage ask after a 3H description (P0524).
 
 | Hidden South's known major/minor | Shortage answer alphabet | Outside suits to compare |
 |---|---|---|
@@ -163,7 +190,7 @@ Dappleton exercises** in total: eight transfers plus four Baron entries.
 | Three-suited and solid-major descriptions | Source mapped; no general generated exercise |
 | Six-card-minor Baron, long-club opener replies, quantitative declines | Outside the four fixed Baron entries |
 | Strong balanced 3NT followed by responder's 5332 continuation | Separate continuation not implemented |
-| 1C–2C six-diamond response and its range relay | Distinct source family; not implemented |
+| 1C–2C six-diamond response and its range relay | Whole auctions reach all five opener rebids. The shortage reply order before the strength relay awaits clarification. |
 
 The detailed source map preserves the wider tables and remaining ambiguities;
 the catalogue records exactly which prefixes the app offers.

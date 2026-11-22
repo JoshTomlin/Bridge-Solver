@@ -26,6 +26,8 @@ algorithms; use the result reports when you want a concrete measured example.
 | [Relay system tables](relay-system/README.md) | Readable family-by-family bidding tables, response ladders and practice qualifications |
 | [Relay exercise catalogue](relay-system/scenario-catalog.md) | Generated inventory of all 63 entries, prefixes, initial calls and asking roles |
 | [Relay coverage and remaining work](relay-system/coverage.md) | Delivered behaviour, unresolved partnership decisions, source boundaries and backlog |
+| [Relay bid-tree implementation](relay-system/implementation.md) | How reusable profiles, public constraints, shared continuations and combinatorial sampling work |
+| [Relay source/code audit — 22 October 2026](relay-system/audit-2026-10-22.md) | Concrete inconsistencies, source questions and ordinary coverage gaps before extreme shapes |
 | [Relay maintenance](relay-maintenance.md) | Engine contracts, documentation/source update workflow and verification commands |
 | [Partnership system sources](system-sources/README.md) | Retained Word originals, searchable notes, July email content and source precedence |
 | [Advanced relay source review](relay-advanced-source.md) | Strong club, split-range and Horton tables and practice policies |

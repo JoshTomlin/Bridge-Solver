@@ -247,7 +247,7 @@ export function postRangeActions(session) {
       const ask = nextAsk(after, session, true);
       if (!ask) break;
       addAction(actions, ask, suitResponseLadder(session, suit),
-        { label: `Ask about ${NAMES[suit].toLowerCase()}`, askType: 'suit', askSuit: suit, suitIndex }, session);
+        { label: `Grand try: ask about ${NAMES[suit].toLowerCase()}`, askType: 'suit', grandTry: true, askSuit: suit, suitIndex }, session);
       after = ask;
     }
   }

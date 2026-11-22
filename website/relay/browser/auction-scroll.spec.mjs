@@ -3,7 +3,7 @@ import { applyBid } from '../core.js';
 import { createTrainingPractice, applyPracticeBid } from '../practice.js';
 import { closeSheets, fitsScreen } from './helpers.mjs';
 function longProgress() {
-  let session = createTrainingPractice({ profileId: 'dappleton-h-baron-c', role: 'teller', seed: 'relay-1' });
+  let session = createTrainingPractice({ profileId: 'dappleton-h-baron-c', role: 'teller', seed: 'relay-67' });
   const states = [];
   for (let turn = 0; !session.finished && turn < 25; turn++) {
     states.push(session);
@@ -13,7 +13,7 @@ function longProgress() {
   return { version: 1, session: states.at(-1), history: states.slice(0,-1), preferences: {} };
 }
 test('long auctions scroll to the opening and back without moving the page or changing progress', async ({ page, context, browserName }, info) => {
-  await page.setViewportSize({ width: 390, height: 667 });
+  await page.setViewportSize({ width: 390, height: 625 });
   const progress = longProgress();
   await page.addInitScript(progress => {
     if (!localStorage.getItem('bridge-lab.relay-progress.v1')) localStorage.setItem('bridge-lab.relay-progress.v1', JSON.stringify(progress));

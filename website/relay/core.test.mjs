@@ -82,7 +82,7 @@ test('system balanced includes 6–3–2–2; the sampler uses explicit training
   assert.equal(matchesConstraints(longSide, initial.constraints, 'S'), false);
   const allowedVoid = 'SA SK SQ SJ S9 S8 HA H3 H2 C9 C4 C3 C2'.split(' ');
   assert.equal(matchesConstraints(allowedVoid, initial.constraints, 'S'), true);
-  assert.equal(initial.training.minBalancedHcp, 13);
+  assert.equal(initial.training.minBalancedHcp, 12);
   assert.equal(initial.training.maxSideSuitLength, 4);
 });
 
@@ -131,7 +131,7 @@ test('low-shortage strength rolls into the first answer for both majors', () => 
 
 test('balanced, middle and high shortage use source-defined range ladders', () => {
   const ladders = {
-    balanced: { shapeBid: '3C', ask: '3D', answers: ['3H', '3S', '3NT', '4C'] },
+    balanced: { shapeBid: '3C', ask: '3D', answers: [null, '3H', '3S', '3NT'] },
     middle: { shapeBid: '3D', ask: '3H', answers: ['3S', '3NT', '4C', '4D'] },
     high: { shapeBid: '3H', ask: '3S', answers: ['3NT', '4C', '4D', '4H'] },
   };
@@ -156,6 +156,59 @@ test('balanced, middle and high shortage use source-defined range ladders', () =
   }
 });
 
+test('balanced Jacoby ranges compress publicly at 12–14 and replay boundary hands in both majors', () => {
+  const boundaryHands = [
+    [12, 'SK ST S6 S5 HA HQ HJ H4 H2 D9 D5 CQ C4', '3H', '12–14 HCP'],
+    [13, 'S8 S4 S3 HA HQ H6 H5 H4 DK DT D6 CK CJ', '3H', '12–14 HCP'],
+    [14, 'SK ST S6 S5 HA HQ HJ H4 H2 DK D5 CJ C4', '3H', '12–14 HCP'],
+    [15, 'SK ST S6 S5 HA HQ HJ H4 H2 DK D5 CQ C4', '3S', '15–17 HCP'],
+    [17, 'SK ST S6 S5 HA HQ HJ H4 H2 DK DQ CQ C4', '3S', '15–17 HCP'],
+    [18, 'SK ST S6 S5 HA HQ HJ H4 H2 DA DQ CQ C4', '3NT', '18–19 HCP'],
+    [19, 'SK ST S6 S5 HA HQ HJ H4 H2 DK DA CQ C4', '3NT', '18–19 HCP'],
+  ];
+  const ladder = [
+    { bid: '3H', label: '12–14 HCP' },
+    { bid: '3S', label: '15–17 HCP' },
+    { bid: '3NT', label: '18–19 HCP' },
+  ];
+  for (const major of ['H', 'S']) for (const [hcp, cards, bid, label] of boundaryHands) {
+    const partnerHand = cards.split(' ').map(card => major === 'H' ? card
+      : `${card[0] === 'S' ? 'H' : card[0] === 'H' ? 'S' : card[0]}${card[1]}`);
+    const remaining = DECK.filter(card => !partnerHand.includes(card));
+    const trumps = remaining.filter(card => card[0] === major).slice(0, 4);
+    const sideCards = remaining.filter(card => !trumps.includes(card))
+      .sort((left, right) => RANKS.indexOf(left[1]) - RANKS.indexOf(right[1]));
+    const playerHand = [...trumps, ...sideCards.slice(0, 9)];
+    const initial = { ...createPractice({ major, seed: 'balanced-boundaries' }), partnerHand, playerHand };
+    assert.equal(handFeatures(partnerHand, major).hcp, hcp);
+    assert.equal(matchesConstraints(partnerHand, initial.constraints, major), true);
+    assert.ok(handFeatures(playerHand, major).hcp >= 12);
+    assert.equal(new Set([...partnerHand, ...playerHand]).size, 26);
+    const shape = applyBid(initial, '2NT');
+    assert.equal(shape.auction.at(-1).bid, '3C');
+    assert.deepEqual(availableActions(shape).find(action => action.bid === '3D').responseLadder, ladder);
+    assert.deepEqual(availableActions({ ...shape, playerHand: ['unknown'], partnerHand: ['unknown'] }), availableActions(shape));
+    const answer = applyBid(shape, '3D');
+    assert.equal(answer.auction.at(-1).bid, bid);
+    assert.equal(answer.auction.at(-1).meaning, label);
+    assert.equal(answer.constraints.at(-1).label, label);
+    assert.equal(matchesConstraints(partnerHand, answer.constraints, major), true);
+    assert.deepEqual(answer.partnerHand, partnerHand);
+    const keycard = availableActions(answer).find(action => action.kind === 'relay');
+    assert.ok(keycard);
+    assert.equal(keycard.bid, bid === '3H' ? '3S' : '4C', 'Balanced asker 3NT stays an offer to play');
+    assert.doesNotThrow(() => applyBid(answer, keycard.bid));
+    if (hcp === 12) {
+      const sample = sampleCompatible(answer, { count: 24, seed: 'balanced-range-replay' });
+      assert.equal(sample.complete, true);
+      for (const hand of sample.hands) {
+        assert.ok(handFeatures(hand, major).hcp >= 12 && handFeatures(hand, major).hcp <= 14);
+        assert.equal(applyBid({ ...shape, partnerHand: hand }, '3D').auction.at(-1).bid, '3H');
+      }
+    }
+  }
+});
+
 test('3NT and game are contextual relay steps; opener may answer 4M', () => {
   assert.equal(SYSTEM.rangeResponses.skipMajorGame, false);
   assert.equal(nextBid('3S'), '3NT');
@@ -170,9 +223,9 @@ test('3NT and game are contextual relay steps; opener may answer 4M', () => {
   const balanced = applyBid(example('S', 'balanced', 1), '2NT');
   assert.equal(availableActions(balanced).find(action => action.bid === '3NT').kind, 'signoff');
   const balancedRange = applyBid(balanced, '3D');
-  assert.equal(balancedRange.auction.at(-1).bid, '3S');
+  assert.equal(balancedRange.auction.at(-1).bid, '3H');
   assert.equal(availableActions(balancedRange).find(action => action.bid === '3NT').kind, 'signoff');
-  assert.equal(availableActions(balancedRange).find(action => action.kind === 'relay').bid, '4C');
+  assert.equal(availableActions(balancedRange).find(action => action.kind === 'relay').bid, '3S');
   const highHeart = rangeResponse(example('H', 'high', 3));
   assert.equal(highHeart.auction.at(-1).bid, '4H');
   assert.equal(availableActions(highHeart).find(action => action.kind === 'relay').bid, '4S');
@@ -210,7 +263,7 @@ test('the asker may pass a range or shortage answer without changing its artific
   assert.equal(finished.contract.declarer, 'North');
   assert.equal(finished.auction.at(-1).seat, 'South');
   assert.deepEqual(finished.constraints, range.constraints);
-  const balanced = rangeResponse(example('S', 'balanced', 2));
+  const balanced = rangeResponse(example('S', 'balanced', 3));
   assert.equal(balanced.auction.at(-1).bid, '3NT');
   assert.equal(applyBid(balanced, 'Pass').contract.declarer, 'South');
   const low = applyBid(example('S', 'low', 1), '2NT');

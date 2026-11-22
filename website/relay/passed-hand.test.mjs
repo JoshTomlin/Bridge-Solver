@@ -7,6 +7,7 @@ import { openingPartnerBid } from './opening-practice.js';
 import { tableView } from './seat-view.js';
 import { auctionRounds } from './table-ui.js';
 import { savePracticeProgress, loadPracticeProgress } from './progress.js';
+import { createHandRecord, recordedCallDetails, loadHandHistory, saveHandHistory } from './hand-history.js';
 
 const cards = text => text.split(' ').flatMap((holding, i) => holding === '-' ? [] : [...holding].map(rank => 'SHDC'[i] + rank));
 const southDefault = cards('K32 Q32 J32 9876');
@@ -140,6 +141,14 @@ test('third/fourth-seat auctions display exactly two/three prior passes in eithe
     const opening = calls.findIndex(call => call.bid === '1C');
     assert.equal(calls.slice(0, opening).filter(call => call.bid === 'Pass').length, position - 1);
     assert.equal(view.playerSeat, 'South');
+    const record = createHandRecord(session, [], { id: `passed-${position}-${humanSeat}` });
+    const storage = { setItem(key, value) { this.value = value; }, getItem() { return this.value; } };
+    saveHandHistory([record], storage);
+    const loaded = loadHandHistory(storage).records[0];
+    assert.deepEqual(loaded, record);
+    assert.equal(recordedCallDetails(loaded, 1).dealerSeat, view.dealerSeat);
+    const archived = auctionRounds(loaded.auction, false, loaded.dealerSeat).flat().filter(Boolean);
+    assert.equal(archived.findIndex(call => call.bid === '1C'), position - 1);
   }
 });
 

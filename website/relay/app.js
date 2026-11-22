@@ -1,6 +1,6 @@
-import { tableView, tableSeat, tableCallDetails } from './seat-view.js';
 import { revealPractice, handFeatures, SUITS, RANKS, getPracticeProfile, practiceNode } from './core.js';
-import { availablePracticeActions, practiceCalls, applyPracticeBid, practiceView as sourceView } from './practice.js';
+import { availablePracticeActions, practiceCalls, applyPracticeBid } from './practice.js';
+import { tableView as practiceView, tableSeat, tableContract, tableCallDetails } from './seat-view.js';
 import { createEvaluationDeals, fillOpponentHands, defaultContracts } from './evaluation.js';
 import { loadPracticeProgress, savePracticeProgress } from './progress.js';
 import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile } from './families.js';
@@ -10,6 +10,7 @@ import { attachBidPreview } from './bid-preview.js';
 import { shortBidDescription } from './bid-descriptions.js';
 import { setupInstall } from './install.js';
 import { OPENING_NOTES, SYSTEM_OPENING_NOTES, PASSED_NOTES, openingTitle, openingBidFor, openingFamilyFor, isOpeningFamily } from './opening-practice.js';
+import { setupHandHistory } from './hand-history-ui.js';
 
 const byId = (id) => document.getElementById(id);
 const symbols = { S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' };
@@ -24,8 +25,6 @@ let ddsReady = false;
 let job = 0;
 let committedStudyProfileId = '';
 let committedPracticeMode = 'focused';
-const practiceView = session => session.wholeAuction?.passedHand ? tableView(session) : sourceView(session);
-const displaySeat = (session, seat) => session.wholeAuction?.passedHand ? tableSeat(session, seat) : seat;
 let committedOpeningFamily = 'C';
 let selectedLevel = null;
 let lastAuctionKey = '';
@@ -34,6 +33,7 @@ let auctionPinned = true;
 let bidPreview = null;
 let saveFailed = false;
 let studyContext = null;
+let currentHandId = null;
 
 class WorkerClient {
   constructor(file) {
@@ -84,7 +84,8 @@ function sampleStatus(message, error = false) {
 
 function persistProgress() {
   if (!session) return;
-  const saved = savePracticeProgress({ session, history, preferences: {
+  currentHandId ??= randomSeed();
+  const saved = savePracticeProgress({ session, history, handId: currentHandId, preferences: {
     showHints: byId('show-hints').checked,
     sampleCount: byId('sample-count').value,
     analysisBasis: byId('analysis-basis').value,
@@ -99,6 +100,7 @@ function persistProgress() {
     : 'Progress could not be saved in this browser. Keep this tab open to retain your auction.';
   saveFailed = !saved.ok;
   renderSaveBadge();
+  handArchive.save(session, history, currentHandId);
 }
 
 function renderSaveBadge() {
@@ -147,7 +149,7 @@ function renderStudyContext() {
 function renderAuction() {
   if (!session) return;
   const view = practiceView(session);
-  const rounds = auctionRounds(view.auction, session.finished || session.revealed, view.dealerSeat);
+  const rounds = auctionRounds(view.auction, session.finished || session.revealed, view.dealerSeat ?? view.playerSeat);
   const area = document.querySelector('.auction-area');
   const previousTop = area.scrollTop;
   const key = `${session.seed}:${JSON.stringify(rounds)}`;
@@ -160,7 +162,7 @@ function renderAuction() {
     heading.textContent = seat[0] + (seat === view.playerSeat ? ' · You' : '');
     heading.setAttribute('aria-label', `${seat}${seat === view.playerSeat ? ', you' : seat === view.partnerSeat ? ', partner' : ''}`);
     heading.classList.toggle('is-you', seat === view.playerSeat);
-    heading.classList.toggle('is-dealer', seat === (view.dealerSeat ?? view.auction[0]?.seat));
+    heading.classList.toggle('is-dealer', seat === view.auction[0]?.seat);
   }
   if (changed) auctionPinned = true;
   fitAuction();
@@ -245,20 +247,19 @@ function render() {
   byId('study-menu-title').textContent = mixed ? 'Current hand and replay' : 'Study a particular branch';
   for (const id of ['auction-family', 'practice-role', 'profile']) byId(id).disabled = busy || mixed;
   const studying = Boolean(committedStudyProfileId);
-  byId('practice-scope').textContent = session.wholeAuction?.passedHand
-    ? `${session.wholeAuction.openingSeatNumber === 3 ? 'Third' : 'Fourth'}-seat opening · ${session.wholeAuction.vulnerable ? 'Vulnerable' : 'Not vulnerable'} · Uncontested`
+  byId('practice-scope').textContent = session.wholeAuction?.passedHand ? `${session.wholeAuction.openingSeatNumber === 3 ? 'Third' : 'Fourth'}-seat opening · ${session.wholeAuction.vulnerable ? 'Vulnerable' : 'Not vulnerable'} · Uncontested`
     : committedPracticeMode === 'auction' ? 'Bid from the opening · Random opener/responder · Coverage in System notes.'
     : committedPracticeMode === 'mixed' ? 'From the opening · Random supported opening and seat.' : studying ? 'Branch study' : 'Random branch';
   byId('new-deal').setAttribute('aria-label', studying ? 'Next study hand' : 'New hand');
   byId('active-branch').textContent = `Current branch: ${bidLabel(profile.name)}`;
   byId('system-assumptions').innerHTML = [...(profile.assumptions ?? []), ...(profile.limitations ?? [])].map(text => `<li>${escapeHtml(bidLabel(text))}</li>`).join('');
   byId('role-help').textContent = session.opening ? 'Bid every call for your seat, starting from the opening. Partner uses their own hand and the auction. First-release coverage is listed in System notes.' : teller
-    ? 'Describe your hand. Partner follows supported questions in source order, then takes the lowest supported final contract. This is recall practice, not an optimal bidding policy.'
+    ? 'Describe your hand. Partner uses its own cards and your answers: below 4½ keycards stops in game; 4½ or 5 bids slam; all five plus the queen permits grand tries.'
     : 'Ask, interpret partner’s answers, then choose and assess your contract.';
   byId('partner-seat').textContent = `${view.partnerSeat} · Partner`;
   const roleName = session.opening ? session.wholeAuction.humanSeat === 'North' ? 'Opener' : 'Responder' : teller ? 'Teller' : 'Asker';
   byId('player-seat').textContent = `${view.playerSeat} · You · ${roleName}`;
-  byId('partner-info-title').textContent = `${view.partnerSeat} · Partner · ${session.opening ? session.wholeAuction.humanSeat === 'South' ? 'Opener' : 'Responder' : teller ? 'Asker' : 'Teller'}`;
+  byId('partner-info-title').textContent = `${view.partnerSeat} · Partner · ${session.opening ? session.wholeAuction.humanSeat === 'North' ? 'Responder' : 'Opener' : teller ? 'Asker' : 'Teller'}`;
   byId('player-info-title').textContent = `${view.playerSeat} · You · ${roleName}`;
   const features = handFeatures(view.playerHand, session.major);
   byId('player-hand').innerHTML = `<div class="sr-only">${handMarkup(view.playerHand)}</div>${cardMarkup(view.playerHand)}`;
@@ -275,9 +276,9 @@ function render() {
   const facts = `<ul class="constraint-list">${session.constraints.map(constraint => `<li>${escapeHtml(bidLabel(constraint.label))}</li>`).join('')}</ul>`;
   byId('knowledge-title').textContent = teller ? 'Asking hand' : 'What the auction shows';
   byId('constraint-count').textContent = teller ? '' : `${session.constraints.length} facts`;
-  const openingFacts = seat => `<ul class="constraint-list">${session.openingFacts[seat].map(text => `<li>${escapeHtml(describeBid(text))}</li>`).join('')}</ul>`;
-  byId('knowledge').innerHTML = session.opening || session.wholeAuction && teller ? openingFacts(sourceView(session).partnerSeat) : teller ? '<p>Partner asks the questions. Their cards stay hidden until review.</p>' : facts;
-  byId('player-knowledge').innerHTML = session.opening ? openingFacts(sourceView(session).playerSeat) : teller ? `<h3>What you have told partner</h3>${facts}` : '';
+  const openingFacts = seat => `<ul class="constraint-list">${session.openingFacts[tableSeat(session, seat)].map(text => `<li>${escapeHtml(describeBid(text))}</li>`).join('')}</ul>`;
+  byId('knowledge').innerHTML = session.opening || session.wholeAuction && teller ? openingFacts(view.partnerSeat) : teller ? '<p>Partner asks the questions. Their cards stay hidden until review.</p>' : facts;
+  byId('player-knowledge').innerHTML = session.opening ? openingFacts(view.playerSeat) : teller ? `<h3>What you have told partner</h3>${facts}` : '';
   renderAuction();
   renderBidding(actions);
   byId('bidding-controls').hidden = stopped;
@@ -288,9 +289,9 @@ function render() {
   byId('review-next').classList.toggle('primary', !paused);
   byId('review-next').classList.toggle('secondary', paused);
   byId('phase-label').textContent = stopped ? 'Review' : 'Your turn';
-  byId('action-title').textContent = session.passedOut ? 'Passed out' : session.contract ? `${bidLabel(session.contract.bid)} · ${displaySeat(session, session.contract.declarer)}${session.undiscussedBid ? ' · Undiscussed' : ''}` : session.undiscussedBid ? `${bidLabel(session.undiscussedBid)} · ${session.coverageBoundary ? 'Not implemented' : 'Undiscussed'}`
+  byId('action-title').textContent = session.passedOut ? 'Passed out' : session.contract ? `${bidLabel(session.contract.bid)} · ${tableContract(session).declarer}${session.undiscussedBid ? ' · Undiscussed' : ''}` : session.sourceAmbiguity ? `${bidLabel(session.undiscussedBid)} · Continuation unconfirmed` : session.undiscussedBid ? `${bidLabel(session.undiscussedBid)} · ${session.coverageBoundary ? 'Not implemented' : 'Undiscussed'}`
     : stopped ? 'Hand revealed' : session.opening ? `${roleName} · Your call` : teller ? `Your response to ${bidLabel(session.pendingAsk?.bid ?? '')}` : 'Your call';
-  byId('table-state').textContent = busy ? 'Working…' : session.contract || session.passedOut ? 'Complete' : session.undiscussedBid ? 'Undiscussed' : stopped ? 'Complete' : 'Your turn';
+  byId('table-state').textContent = busy ? 'Working…' : session.contract || session.passedOut ? 'Complete' : session.sourceAmbiguity ? 'Paused' : session.undiscussedBid ? 'Undiscussed' : stopped ? 'Complete' : 'Your turn';
   byId('action-help').textContent = session.unsupportedReason || (session.opening ? 'Choose your call using your hand and the auction.' : teller ? describeBid(session.pendingAsk?.label ?? 'Auction complete.', session.trump ?? session.major)
     : practiceNode(session)?.help ?? 'Choose a relay question or a final contract.');
   byId('bid-meanings').innerHTML = actions.filter(action => action.kind !== 'signoff' || action.bid === 'Pass')
@@ -318,11 +319,11 @@ function render() {
     ? 'Both partnership hands stay fixed. Test many East/West layouts for a hindsight review.'
     : 'Use your cards and the auction. Partner’s actual hand is excluded from this estimate.';
   byId('sample-hands').textContent = revealedBasis ? 'Sample opponent layouts' : 'Sample hands';
-  const context = { trump: session.trump, playerSeat: session.playerSeat, partnerSeat: session.partnerSeat, auction: session.auction };
+  const context = { trump: session.trump, playerSeat: view.playerSeat, partnerSeat: view.partnerSeat, auction: view.auction };
   const candidate = byId('assessed-contract').value || session.contract?.bid;
   const lastContract = session.auction.findLast(call => call.bid !== 'Pass')?.bid;
   const otherContracts = actions.filter(action => action.kind === 'signoff').map(action => action.bid === 'Pass' ? lastContract : action.bid);
-  if (session.contract) otherContracts.push(session.contract);
+  if (session.contract) otherContracts.push(tableContract(session));
   const contracts = defaultContracts(context, candidate || undefined, otherContracts);
   byId('assessed-contract').innerHTML = contracts.map(contract => {
     const bid = `${contract.level}${contract.strain}`;
@@ -367,9 +368,9 @@ function restoreDealControls() {
   if (!session) return;
   byId('practice-mode').value = committedPracticeMode;
   byId('opening-family').value = committedOpeningFamily;
-  byId('passed-seat').value = String(session?.wholeAuction?.openingSeatNumber ?? 3);
-  byId('passed-vulnerability').value = session?.wholeAuction?.vulnerable ? 'v' : 'nv';
-  if (!isOpeningFamily(session)) byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
+  byId('passed-seat').value = String(session.wholeAuction?.openingSeatNumber ?? 3);
+  byId('passed-vulnerability').value = session.wholeAuction?.vulnerable ? 'v' : 'nv';
+  if (!session.wholeAuction && !isOpeningFamily(session)) byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
   byId('practice-role').value = session.practiceRole;
   populateStudyProfiles(committedStudyProfileId);
   byId('seed').value = session.seed;
@@ -389,20 +390,23 @@ async function dealHand({ replay = false } = {}) {
     } : {};
     if (mode === 'auction') {
       selection = { auctionMode: true, openingFamily: replay ? (committedOpeningFamily === 'all' ? openingFamilyFor(session) : committedOpeningFamily) : byId('opening-family').value,
-        openingSeatNumber:Number(byId('passed-seat').value), vulnerable:byId('passed-vulnerability').value === 'v', ...passedReplay, ...(replay && session?.wholeAuction ? { humanSeat: session.wholeAuction.humanSeat } : {}) };
+        openingSeatNumber: replay ? session?.wholeAuction?.openingSeatNumber ?? 3 : Number(byId('passed-seat').value),
+        vulnerable: replay ? session?.wholeAuction?.vulnerable === true : byId('passed-vulnerability').value === 'v',
+        ...(replay && session?.wholeAuction ? { humanSeat: session.wholeAuction.humanSeat } : {}) };
     } else if (mode === 'mixed') {
       selection = replay && session && !session.wholeAuction
-        ? { profileId: session.familyId, role: session.practiceRole } // Retain old saved drill replays.
+        ? { profileId: session.familyId, role: session.initialPracticeRole ?? session.practiceRole } // Retain old saved drill replays.
         : { auctionMode:true, openingFamily:replay && session?.wholeAuction ? openingFamilyFor(session) : 'all',
           ...passedReplay, ...(replay && session?.wholeAuction ? {humanSeat:session.wholeAuction.humanSeat}: {}) };
     } else {
       const familyId = byId('auction-family').value;
-      const replayProfile = replay && session && auctionFamilyForProfile(session.familyId).id === familyId ? session.familyId : '';
+      const replayProfile = replay && session && !session.wholeAuction && auctionFamilyForProfile(session.familyId).id === familyId ? session.familyId : '';
       selection = { profileId: selectFamilyProfile({ familyId, profileId: byId('profile').value || replayProfile, seed }).id,
-        role: byId('practice-role').value };
+        role: replay && session ? session.initialPracticeRole ?? session.practiceRole : byId('practice-role').value };
     }
     const next = await sampler.request({ command: 'deal', payload: { ...selection, seed } });
     if (currentJob !== job) return;
+    currentHandId = randomSeed();
     session = next.finished ? revealPractice(next) : next;
     committedPracticeMode = mode;
     if (mode === 'auction' && !replay) committedOpeningFamily = selection.openingFamily;
@@ -428,6 +432,7 @@ function chooseBid(bid) {
   if (busy || !session) return;
   try {
     const next = applyPracticeBid(session, bid);
+    if (next.practiceRole !== session.practiceRole) byId('practice-role').value = next.practiceRole;
     history.push(session);
     session = next.finished && (!next.undiscussedBid || next.contract || next.passedOut) ? revealPractice(next) : next;
     if (session.contract) {
@@ -498,11 +503,12 @@ async function analyze(withDds) {
     }
     showSamples(samples);
     if (withDds && samples.hands.length) {
-      const context = { trump: session.trump, playerSeat: session.playerSeat, partnerSeat: session.partnerSeat, auction: session.auction };
+      const view = practiceView(session);
+      const context = { trump: session.trump, playerSeat: view.playerSeat, partnerSeat: view.partnerSeat, auction: view.auction };
       const deals = createEvaluationDeals(session.playerHand, samples.hands, `${session.seed}:opponents`, context);
       const actualDeal = session.revealed && samples.basis !== 'revealed' ? fillOpponentHands(session.playerHand, session.partnerHand, `${session.seed}:actual`, context) : undefined;
       const contract = byId('assessed-contract').value;
-      const otherContracts = session.contract ? [session.contract] : [];
+      const otherContracts = session.contract ? [tableContract(session)] : [];
       const result = await evaluator.request({ deals, context, contract, otherContracts, actualDeal }, (progress) => sampleStatus(`Double-dummy evaluation · ${progress.completed} / ${progress.total} deals`));
       if (currentJob !== job) return;
       showSamples(samples);
@@ -536,6 +542,28 @@ async function probeDds() {
   byId('evaluate').disabled = busy || !ddsReady;
 }
 
+function showCallDetail(detail) {
+  if (!detail) return;
+  detail = tableCallDetails(session, detail);
+  const { call } = detail;
+  byId('bid-meaning-title').textContent = `${bidLabel(call.bid)} · ${call.seat}`;
+  byId('bid-meaning-text').textContent = describeBid(call.meaning || 'No further meaning is recorded for this call.');
+  byId('bid-meaning-dialog').querySelector('.bid-alternatives').hidden = Boolean(detail.isOpening || detail.auction?.length === 1 && !detail.question);
+  const choices = detail.callAlternatives ?? [];
+  byId('call-alternatives-section').hidden = !choices.length;
+  byId('call-alternatives').innerHTML = choices.map(option => `<dt class="${option.bid === call.bid ? 'is-played' : ''}">${escapeHtml(bidLabel(option.bid))}</dt><dd class="${option.bid === call.bid ? 'is-played' : ''}">${escapeHtml(describeBid(option.label))}${option.bid === call.bid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
+  byId('alternatives-question').textContent = detail.question ? `Responses to ${bidLabel(detail.question.bid)} · ${describeBid(detail.question.meaning)}` : '';
+  studyContext = { rows: auctionRounds(detail.auction, !detail.question, detail.dealerSeat ?? detail.auction[0]?.seat), expanded: false };
+  renderStudyContext();
+  byId('bid-alternatives').innerHTML = detail.alternatives.map(answer => `<dt class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.bid))}</dt><dd class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(describeBid(answer.label))}${answer.bid === detail.playedBid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
+  byId('alternatives-empty').hidden = detail.alternatives.length > 0 || choices.length > 0;
+  byId('alternatives-empty').textContent = call.meaning?.includes('Undiscussed')
+    ? 'This call is undiscussed in this exercise.'
+    : 'No response alternatives are recorded for this call.';
+  byId('bid-meaning-dialog').querySelector('.sheet-body').scrollTop = 0;
+  byId('bid-meaning-dialog').showModal();
+}
+
 document.addEventListener('click', event => {
   const opener = event.target.closest('[data-open]');
   if (opener) {
@@ -548,25 +576,8 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-close]')) event.target.closest('dialog').close();
   const callButton = event.target.closest('[data-call-index]');
   if (callButton && session) {
-    let detail = auctionCallDetails(session, history, Number(callButton.dataset.callIndex));
-    if (session.wholeAuction?.passedHand) detail = tableCallDetails(session, detail);
-    const { call } = detail;
-    byId('bid-meaning-title').textContent = `${bidLabel(call.bid)} · ${call.seat}`;
-    byId('bid-meaning-text').textContent = describeBid(call.meaning || 'No further meaning is recorded for this call.');
-    byId('bid-meaning-dialog').querySelector('.bid-alternatives').hidden = Boolean(detail.isOpening || detail.auction?.length === 1 && !detail.question);
-    const choices = detail.callAlternatives ?? [];
-    byId('call-alternatives-section').hidden = !choices.length;
-    byId('call-alternatives').innerHTML = choices.map(option => `<dt class="${option.bid === call.bid ? 'is-played' : ''}">${escapeHtml(bidLabel(option.bid))}</dt><dd class="${option.bid === call.bid ? 'is-played' : ''}">${escapeHtml(describeBid(option.label))}${option.bid === call.bid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
-    byId('alternatives-question').textContent = detail.question ? `Responses to ${bidLabel(detail.question.bid)} · ${describeBid(detail.question.meaning)}` : '';
-    studyContext = { rows: auctionRounds(detail.auction, !detail.question, detail.dealerSeat), expanded: false };
-    renderStudyContext();
-    byId('bid-alternatives').innerHTML = detail.alternatives.map(answer => `<dt class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(bidLabel(answer.bid))}</dt><dd class="${answer.bid === detail.playedBid ? 'is-played' : ''}">${escapeHtml(describeBid(answer.label))}${answer.bid === detail.playedBid ? '<span class="played-label">Played</span>' : ''}</dd>`).join('');
-    byId('alternatives-empty').hidden = detail.alternatives.length > 0 || choices.length > 0;
-    byId('alternatives-empty').textContent = call.meaning?.includes('Undiscussed')
-      ? 'This call is undiscussed in this exercise.'
-      : 'No response alternatives are recorded for this call.';
-    byId('bid-meaning-dialog').querySelector('.sheet-body').scrollTop = 0;
-    byId('bid-meaning-dialog').showModal();
+    const detail = auctionCallDetails(session, history, Number(callButton.dataset.callIndex));
+    showCallDetail(detail);
   }
 });
 byId('study-context-toggle').addEventListener('click', () => {
@@ -641,6 +652,7 @@ byId('reveal-hand').addEventListener('click', () => {
 });
 byId('undo-bid').addEventListener('click', () => {
   session = history.pop();
+  byId('practice-role').value = session.practiceRole;
   invalidateAnalysis();
   status('Previous auction state restored with the same partner hand.');
   render();
@@ -670,16 +682,17 @@ async function startPractice() {
   const saved = loadPracticeProgress();
   if (saved.progress) {
     ({ session, history } = saved.progress);
+    currentHandId = saved.progress.handId ?? randomSeed();
     const preferences = saved.progress.preferences;
     committedStudyProfileId = preferences.studyProfileId;
     committedPracticeMode = preferences.practiceMode;
     committedOpeningFamily = preferences.openingFamily ?? 'C';
+    byId('passed-seat').value = String(session.wholeAuction?.openingSeatNumber ?? 3);
+    byId('passed-vulnerability').value = session.wholeAuction?.vulnerable ? 'v' : 'nv';
     byId('practice-mode').value = committedPracticeMode;
   byId('opening-family').value = committedOpeningFamily;
-  byId('passed-seat').value = String(session?.wholeAuction?.openingSeatNumber ?? 3);
-  byId('passed-vulnerability').value = session?.wholeAuction?.vulnerable ? 'v' : 'nv';
     byId('practice-role').value = session.practiceRole;
-    if (!isOpeningFamily(session)) byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
+    if (!session.wholeAuction && !isOpeningFamily(session)) byId('auction-family').value = auctionFamilyForProfile(session.familyId).id;
     populateStudyProfiles(preferences.studyProfileId);
     byId('study-menu').open = Boolean(preferences.studyProfileId);
     byId('seed').value = session.seed;
@@ -702,6 +715,7 @@ async function startPractice() {
   }
 }
 
-startPractice();
+const handArchive = setupHandHistory({ getCurrentId: () => currentHandId, showCall: showCallDetail });
+startPractice().then(() => persistProgress());
 probeDds();
 setupInstall();

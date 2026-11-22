@@ -73,9 +73,9 @@ test('a long teller auction keeps bids and all cards on screen through completio
   await selectSetting(page, '#profile', 'dappleton-h-baron-c');
   await ready(page);
   await page.locator('.replay-options > summary').click();
-  await page.fill('#seed', 'relay-1');
+  await page.fill('#seed', 'relay-67');
   await page.click('#replay-deal');
-  await expect.poll(async () => (await progress(page)).session.seed).toBe('relay-1');
+  await expect.poll(async () => (await progress(page)).session.seed).toBe('relay-67');
   await ready(page);
   await closeSheets(page);
   const originalHand = await page.locator('#player-hand').innerHTML();

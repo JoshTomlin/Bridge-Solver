@@ -38,7 +38,11 @@ function majorAction(bid, c, solid = false) {
 
 function naturalNodes(c) {
   return {
-    play: playableNode(),
+    play: session => ({ ...playableNode(), actions: c.open !== 'H' && c.second !== 'H' && bidIndex(lastBid(session)) < bidIndex('3S') ? [{
+      bid: '3S', label: 'Request opener to play 3NT', kind: 'relay', source: 'Reordering R0033/R0044', responses: [
+        { bid: '3NT', label: 'Accept the transfer to 3NT', constraints: [], nextNode: 'play', state: { threeNTToPlay: true } },
+      ],
+    }] : [] }),
     'major-keycard': session => ({ label: 'Major fit established', help: 'Continue with ordinary Kickback or choose your contract.',
       actions: bidIndex(kickback(c.major)) > bidIndex(lastBid(session)) ? [{ bid: kickback(c.major), kind: 'keycard', trump: c.major, keycardMode: 'normal', label: `Kickback in ${name(c.major)}` }] : [] }),
   };
@@ -82,6 +86,7 @@ function singleProfile(entry, support = false) {
     shortageSuit, balanced: shortageSuit === null, strengthSplit, strengthKnown: Boolean(band),
     naturalMinorKeycardSuits: open === 'C' ? ['D'] : open === 'D' ? ['C'] : ['D', 'C'],
     relayPolicy: { skip3NT: trump === open, skipMajorGame: ['H', 'S'].includes(trump) },
+    source3NTTransfer: !support && open !== 'H',
   });
   const row = (bid, shortageSuit, trump, band) => {
     const fact = shortageSuit ? [length(shortageSuit, 0, 1), ...SUITS.filter(s => ![open, shortageSuit].includes(s)).map(s => length(s, 2, 3))]
@@ -123,8 +128,24 @@ function singleProfile(entry, support = false) {
       : major === 'H'
         ? [row('3NT', null, major), row('4C', high, major), row('4D', low, major, 'lower'), row('4H', low, major, 'upper')]
         : [row('3S', null, major), row('3NT', high, major), row('4C', low, major, 'lower'), row('4D', low, major, 'upper')];
+    if (open === 'C' && major === 'H' || open === 'D' && major === 'S') {
+      const special = majorRows.find(answer => answer.bid === '4D');
+      special.phase = 'family';
+      special.nextNode = 'source-keycard';
+      special.state = { ...special.state, sourceKeycardBid: open === 'C' ? '4H' : '4S' };
+      nodes['source-keycard'] = session => ({ label: 'Source-specific keycard continuation',
+        help: open === 'C' ? 'R0120 explicitly uses 4H as SKC in hearts.' : 'R0169 reserves 4H as an offer to play and uses 4S as SKC in spades.',
+        signoffs: open === 'D' ? ['4H'] : [],
+        actions: [{ bid: session.sourceKeycardBid, kind: 'keycard', trump: major, shortageSuit: low,
+          label: `Shortage Keycard in ${name(major)}`, source: open === 'C' ? 'Reordering R0120' : 'Reordering R0169' }],
+      });
+    }
     actions.push({ bid: majorAsk, label: `Ask shortage, agreeing ${name(major)}`, kind: 'relay', state: makeState(major, null), responses: majorRows });
     actions.push({ bid: open === 'C' ? '3C' : '3D', label: `Return to ${name(open)}`, kind: 'relay', responses: [{ bid: 'Pass', label: 'Play the selected minor', constraints: [] }] });
+    actions.push({ bid: `3${major}`, label: `Five ${name(major)}; weak, to play`, kind: 'relay', source: open === 'C' ? 'P0309/P0356' : 'P0657',
+      playerConstraints: [hcp(open === 'C' ? 0 : 5, open === 'C' ? 6 : 7), length(major, 5, 5)],
+      responses: [{ bid: 'Pass', label: 'Play responder’s five-card major', constraints: [] }],
+    });
   }
   nodes.entry = { label: support ? 'Six-card suit with three-card major support' : 'Reordered strong single-suit rebid',
     help: 'Use the source shortage enquiry, a natural minimum/invitation, or the major-suit/3NT continuation. Range is disclosed when a playable game answer requires it.', actions };
@@ -210,6 +231,11 @@ const splinterEntries = [
 
 function splinterProfile([open, major, response, rebid, shortage]) {
   const nodes = naturalNodes({ open, major });
+  const entryMeanings = [
+    `${name(open)} opening`,
+    `Shows four-plus ${name(major)}`,
+    `Mini–mega splinter in ${name(shortage)}; four ${name(major)}; 11–13 or 17–19 HCP`,
+  ];
   const strengths = anyOf([hcp(11, 13)], [hcp(17, 19)]);
   const megaCues = bid => cueResponses(bid, major, 'major-keycard').map(answer => ({ ...answer,
     constraints: [hcp(17, 19), ...answer.constraints] }));
@@ -235,7 +261,9 @@ function splinterProfile([open, major, response, rebid, shortage]) {
     id: `rebid-splinter-${open.toLowerCase()}-${major.toLowerCase()}-${shortage.toLowerCase()}`,
     name: `1${open}–${response}–${rebid} · mini–mega ${name(shortage)} shortage`, family: 'Reordered mini–mega splinters',
     source: 'Reordering R0002–R0021; main notes P1442–P1458', defaultTrump: major,
-    playerSeat: 'South', partnerSeat: 'North', initialAuction: prefix([`1${open}`, response, rebid]), initialState: relayState(major, { shortageSuit: shortage, balanced: false }), startNode: 'entry', nodes,
+    playerSeat: 'South', partnerSeat: 'North',
+    initialAuction: prefix([`1${open}`, response, rebid]).map((call, index) => ({ ...call, meaning: entryMeanings[index] })),
+    initialState: relayState(major, { shortageSuit: shortage, balanced: false }), startNode: 'entry', nodes,
     partnerConstraints: [strengths, shapeSet(n => n[major] === 4 && n[open] >= 5 && n[shortage] <= 1 && oneShortage(n, [open, major]))],
     playerConstraints: [hcp(5, 22), length(major, 4, 7)],
     assumptions: ['The reordering document replaces the older splinter bid positions: high and low splinters are the two calls immediately below 3M.',

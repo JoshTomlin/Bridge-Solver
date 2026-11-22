@@ -13,7 +13,7 @@ rules, readable tables and independent expected-auction tests together.
 |---|---|---|---|
 | Q1 — resolved | May the asker pass an artificial relay answer? | Example discussed: `1D–1S–2C–2H–2NT–3C–3NT`; the final North 3NT is 2/5 diamond keycards without the queen. R0105–R0108 explains the teller's strength escape beyond the normal response ladder. | Josh confirmed the asker is in charge and may pass. The earlier maintenance invariant saying artificial answers were forcing was incorrect. All relay answers are passable by the asker; original meanings, facts and source-specific strength escapes remain intact. |
 | Q2 | Does 16+ unbalanced apply to the 1C–1S–2C rebid generally, including Baron, or only to the 2D resolver? | P0382/P0402/P0412–P0414 retain 17+. Josh's latest response explicitly describes `1C–1S–2C–2D`: all unbalanced replies are 16+; 2NT and 3NT are balanced exceptions. | Resolver scope reconfirmed. Application to the separate 2S Baron continuation remains open. |
-| Q2a | What exact balanced hands bid 2NT after `1C–1S–2C–2D`? | Josh suggests a supermaximum, perhaps 20 balanced, and describes 3NT as standard 16–19 balanced. P0421 instead says the supermaximum is 19/20. An earlier user clarification removed the 2NT exception entirely. | Markey confirmation needed. Current resolver still sends 16–20 balanced to 3NT under that earlier clarification. No uncertain 2NT threshold has been invented. The new whole-auction slice is capped at 19 and does not enter this resolver. |
+| Q2a | What exact balanced hands bid 2NT after `1C–1S–2C–2D`? | Josh suggests a supermaximum, perhaps 20 balanced, and describes 3NT as standard 16–19 balanced. P0421 instead says the supermaximum is 19/20. An earlier user clarification removed the 2NT exception entirely. | Markey confirmation needed. The focused resolver sends 16–20 balanced to 3NT under the earlier clarification. The whole-auction 2C rebid now includes balanced 16–19 and follows the same 3NT treatment. |
 
 ### Josh's latest clarification
 
@@ -91,8 +91,10 @@ assign opener as declarer without a heart bid.
 **Q9 — 1M–1NT continuation table.** P0889 specifies 5–9 or 10/11 with
 four/five clubs, denying three-card support. No corresponding opener rebid
 table was found in the retained main notes or reordering document. Asked Josh
-whether 1NT is non-forcing with natural rebids or has special agreements.
-Until answered, the response has its stated meaning but continuation pauses.
+which opener rebids are natural and whether 2NT is a natural invitation.
+Josh already confirmed that the response is nonforcing. The trainer offers
+natural rebids labelled provisional; their exact ranges and forcing status
+remain open.
 
 **Q7 remains open.** Asked about using clear examples while leaving borderline
 limit-raise acceptance as judgement. No reply has been assumed. The ordinary
@@ -107,6 +109,49 @@ or four diamonds. Five-card support is excluded from generated minimum hands
 until its treatment is confirmed. P1036/P1043 explicitly allow six diamonds
 and three-card major support despite P0891's general denial of support; this
 specific exception is accepted when the user chooses the natural 2D route.
+
+## Minor three-bid clarification — 16 November 2026
+
+**Q10 — 4045 after 1C–1D–1S.** Josh asked why opener cannot have
+4045 (SHDC) in this auction and where it belongs. The original main notes
+explicitly include `1C–1D–1S–2D–3D = 4045, 9+` (P0594–P0600).
+The July email supersedes this fourth-suit table; E4 lists high/low shortage
+and the 4315 12+ heart-support exception without explicitly assigning 4045.
+
+Ask Markey: in the revised `1C–1D–1S–2D` relay, does 4045 have its own
+answer (is the former 3D retained), or belong in the ordinary heart-shortage
+answer? If it is separate, where does it go after the poor-hand screen and
+re-relay? Confirm any range distinction.
+
+The current `minor-c-h-s` practice profile excludes 4045 because its ordinary
+two-suit subset allows at most three cards in either outside suit. That is
+an implementation coverage restriction, not evidence that 4045 is impossible
+or must use a different opening/rebid. Do not change the July response map
+or silently retain the superseded 3D meaning until the continuation is
+confirmed. The previous support-case summary described 4315, not the full
+set of hands eligible for the 1S rebid.
+
+## Uncontested passed-hand increment — 16 November 2026
+
+**Q11 — duplicate five-five description.** After `1C–1D–1NT`, P1779 says
+2H is D+C and P1780 says 2S is C+D. Is 2S intended to show H+D, matching
+the resolver in P1771 and the prose in P1775? The current 2S call stops with
+a source warning; no hand meaning is invented. Other uncontested passed-hand
+response tables are available to practise within the [documented subset](passed-hand.md).
+
+**Q12 — R0128's keycard example.** After `1C–1H–2NT–3H–3NT–4C`, the
+printed lower 4S says three keycards and upper 5D four. With the confirmed
+void-first SKC and ordinary 0/3, 1/4, 2/5 alphabet, 4S is the singleton plus
+1/4 category. Is the lower example's “3 Keycards” a typo for “1 or 4”?
+Keep both replies in the same 1/4 category and vary only strength meanwhile.
+
+For the later competitive increment, P1788 also prints XX after a 1D overcall,
+where only X is legal. Its intended call needs checking when competition is
+implemented. Competition is outside the current user-requested scope.
+
+Judgement boundaries remain disclosed practice policies: approximate minimum/
+maximum passed ranges, the club game-force choice, strong 1NT's parenthetical
+19-count, transfer super-accept quality and later invitation/slam decisions.
 
 ## 2NT continuation increment — 17 November 2026
 
@@ -133,6 +178,21 @@ spades and six hearts, forcing. Are 2NT and 3H natural invitations, and
 3C/3D natural one-round forces with four-plus cards in the minor? The trainer
 uses those provisional meanings and treats the direct 1M–1NT as nonforcing.
 
+## Resolved: Dappleton game choice — 18 November 2026
+
+Josh explicitly confirms that after opener's 14–17 or 18/19 balanced rebid,
+**2C–2D followed by either 3NT or 3S shows five-plus in the transferred major
+and offers 3NT/4M**. Opener chooses immediately: Pass/4M over 3NT, or 3NT/4M
+over 3S. This overrides a literal mandatory-signoff reading of P0458/P0471
+in that puppet context. Direct 3NT remains to play and direct 3S requests 3NT.
+Baron and minor transfers retain their separate mild/some slam-interest promises.
+
+P0456/P0469 specifies the **direct 3H as solid six-plus major**; P0449/P0462
+sends the non-solid six-plus slam try through 2C. The source 3D three-suiter,
+3H long-major and 3S notrump-route meanings are shown after both balanced ranges.
+Detailed shortage continuations for the first two descriptions remain incomplete;
+no response alphabet has been invented from a different family.
+
 ## Strong 2C and weak 1NT — 20 November 2026
 
 **Q15 — resolved by Josh.** Direct 2NT/3C/3D/3H responses to a strong 2C
@@ -148,3 +208,10 @@ policy. Human judgement is unrestricted.
 Practice uses four-plus support with 9 or 13 HCP for automatic super-accepts
 and accepts natural invitations at 12–13. Human calls are graded on the shown
 shape. Detailed cue and keycard follow-ups remain incomplete.
+
+**Q17 — shortage replies after 1♣–2♣.** P0439–P0440 identify opener’s 2♥
+and 2♠ shortage questions and the subsequent strength relay. What bids show
+each shortage and no shortage? Does the 2♠ club description set clubs for SKC?
+P0442 makes 3♥ a shortage question after opener’s 3♦ raise. What order should
+opener use there? Whole-auction practice reaches each question and pauses.
+[Original paragraphs](../system-sources/main-notes.txt#L411)

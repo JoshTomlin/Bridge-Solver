@@ -27,7 +27,7 @@ for (const humanSeat of ['South', 'North']) {
     await page.goto('relay.html');
     await ready(page);
     await expect(page.locator('#practice-badge')).toHaveText('1♣ · Whole auction');
-    await expect(page.locator('#player-seat')).toContainText(humanSeat);
+    await expect(page.locator('#player-seat')).toContainText('South');
     await fitsScreen(page);
     if (humanSeat === 'South') {
       await expect(page.locator('#auction .bid')).toHaveCount(1);
@@ -51,6 +51,7 @@ for (const humanSeat of ['South', 'North']) {
     } else {
       await expect(page.locator('#auction .bid')).toHaveCount(0);
       await expect(page.locator('#auction .awaiting-bid')).toHaveCount(1);
+      await expect(page.locator('#auction tr').first().locator('td').nth(2).locator('.awaiting-bid')).toHaveCount(1);
       await clickBid(page, '1C');
       expect((await saved(page)).session.auction.map(call => call.bid)).toEqual(['1C', '1D']);
       const before = await saved(page);
@@ -70,7 +71,7 @@ for (const humanSeat of ['South', 'North']) {
     expect(await saved(page)).toEqual(completed);
     await page.click('#undo-bid');
     await expect(page.locator('#partner-cards .face-down-card')).toHaveCount(13);
-    await expect(page.locator('#player-seat')).toContainText(humanSeat);
+    await expect(page.locator('#player-seat')).toContainText('South');
     await page.setViewportSize({ width: 320, height: 568 });
     await fitsScreen(page);
     expect(errors).toEqual([]);
@@ -111,7 +112,7 @@ test('not-implemented continuations accept the contract, save and undo', async (
   await page.goto('relay.html');
   await ready(page);
   const initial = await saved(page);
-  await clickBid(page, '2D');
+  await clickBid(page, '4NT');
   await expect(page.locator('#action-title')).toContainText('Undiscussed');
   await expect(page.locator('#partner-cards [data-card]')).toHaveCount(13);
   expect((await saved(page)).session.coverageBoundary).toBe(false);

@@ -79,6 +79,20 @@ test('progress round-trips both roles for every registered exercise', () => {
   }
 });
 
+test('old Jacoby rules cannot restore a stale pending range ladder or undo snapshot', () => {
+  const storage = memoryStorage();
+  const session = createTrainingPractice({ profileId: 'major-H', role: 'teller', seed: 'old-jacoby' });
+  const legacy = { ...session, systemId: 'source-major-relay-v2' };
+  savePracticeProgress({ session: legacy, history: [] }, storage);
+  assert.match(loadPracticeProgress(storage).error, /older range table/);
+  assert.equal(loadPracticeProgress(storage).progress, null);
+  savePracticeProgress({ session, history: [legacy] }, storage);
+  assert.match(loadPracticeProgress(storage).error, /older range table/);
+  const minor = { ...createTrainingPractice({ profileId: 'minor-d-s-c', seed: 'old-minor' }), systemId: legacy.systemId };
+  savePracticeProgress({ session: minor, history: [] }, storage);
+  assert.deepEqual(loadPracticeProgress(storage).progress.session, jsonValue(minor), 'Other families keep their saved hands');
+});
+
 test('empty, corrupt, incompatible and mixed-deal saves do not crash startup', () => {
   const storage = memoryStorage();
   assert.deepEqual(loadPracticeProgress(storage), { progress: null });

@@ -2,6 +2,7 @@
 // Source map and unresolved branches: docs/relay-club-source.md.
 // No function here reads either actual hand: node actions use public state only.
 import { SUITS, SUIT_NAMES, length, hcp, shapes, anyOf, nextBid } from './profile-utils.js';
+import { diamondSupportAsk, diamondDoubletonNode } from './source-utils.js';
 
 const balanced = value => ({ type: 'balanced', value });
 const call = (seat, bid, meaning) => ({ seat, bid, meaning });
@@ -71,14 +72,31 @@ function clubBaron(strong) {
       kickback: session => ({
         label: 'Club Kickback',
         help: 'With six clubs and four diamonds, this profile follows the explicit 4♦ club-Kickback option after Baron (P0415).',
-        actions: [{ bid: '4D', label: 'Kickback in clubs', kind: 'keycard', trump: 'C', shortageSuit: session.shortageSuit ?? null, keycardMode: 'normal' }],
+        actions: [
+          { bid: '4D', label: 'Kickback in clubs', kind: 'keycard', trump: 'C', shortageSuit: session.shortageSuit ?? null, keycardMode: 'normal' },
+          ...(['2NT', '3C'].includes(session.auction?.at(-1)?.bid) ? [{
+            bid: session.auction.at(-1).bid === '2NT' ? '3C' : '3D', kind: 'handover',
+            label: `Agree ${session.auction.at(-1).bid === '2NT' ? 'clubs' : 'diamonds'}; opener asks responder’s shortage`,
+            source: session.auction.at(-1).bid === '2NT' ? 'P0409' : 'P0410',
+            nextNode: 'responder-shortage', state: fitState(session.auction.at(-1).bid === '2NT' ? 'C' : 'D'),
+          }] : []),
+        ],
+      }),
+      'responder-shortage': session => ({
+        label: 'Opener asks responder’s shortage',
+        help: 'The minor is agreed. Opener’s next step asks responder to describe major-suit shortage, high then low.',
+        actions: [{ bid: session.trump === 'C' ? '3D' : '3H', kind: 'relay',
+          label: `Ask responder’s shortage, ${session.trump === 'C' ? 'clubs' : 'diamonds'} agreed`,
+          source: session.trump === 'C' ? 'P0409' : 'P0410',
+          responses: twoSuitShortageResponses(['C', 'D'], false, session.trump),
+        }],
       }),
     },
     assumptions: [
       'Responder is restricted to 6 clubs/4 diamonds and 12–20 HCP, a minor-oriented slam-training subset of the source Baron entry.',
       'Balanced opener has no five-card major, no six-card minor, and not four-plus cards in both minors; this avoids unspecified Baron response priorities.',
       'Unbalanced opener has exactly one shortage and no five-card side suit. Parenthesized strength boundaries are narrowed to explicit training intervals.',
-      'The standard minor-agreement continuation changes which hand describes shortage. This profile instead follows the source-explicit 4♦ club Kickback option.',
+      'After opener shows a four-card minor, agreeing it hands the enquiry to opener, who asks responder’s shortage. The source-explicit 4♦ club Kickback option remains available.',
     ],
     limitations: [...commonLimitations, 'The 2C–2D transfer to 3NT is available as a separate strong-club exercise. Responder-description branches after Baron remain separate paths.'],
   };
@@ -93,20 +111,22 @@ function clubKnownShortage(shortageSuit) {
     name: `1♣–1♠–${rebid === '2H' ? '2♥' : '2♠'} · choose club or diamond SKC`,
     source: 'Word P0384–P0385, P0422–P0425', defaultTrump: 'C', playerSeat: 'South', partnerSeat: 'North',
     initialAuction: [N('1C', 'Club opening'), S('1S', '(7)8+, usually no four-card major'), N(rebid, `14–16 HCP, ${SUIT_NAMES[shortageSuit].toLowerCase()} shortage, two/three diamonds and five-plus clubs`)],
-    partnerConstraints: [hcp(14, 16), length('C', 5, 7), length('D', 3), length(shortageSuit, 0, 1), length(other, 2, 4)],
-    playerConstraints: [hcp(12, 20), length('C', 3, 5), length('D', 5, 7), length('S', 0, 3), length('H', 0, 3)],
+    partnerConstraints: [hcp(14, 16), length('C', 5, 7), length('D', 2, 3), length(shortageSuit, 0, 1), length(other, 2, 4)],
+    playerConstraints: [hcp(12, 20), length('C', 3, 5), length('D', 5, 7), length('S', 0, 3), length('H', 0, 3),
+      anyOf([length('D', 5)], [length('C', 4, 5)])],
     startNode: 'select-trump',
     nodes: {
       'select-trump': {
-        label: 'Choose the minor', help: 'This disclosed subset gives opener three diamonds, so both minor enquiries have a supported fit.',
+        label: 'Choose the minor', help: '3C asks in clubs. Over 3D opener offers 3NT with two diamonds and answers keycard with three.', preferLongerMinor: true,
         actions: [
           { bid: '3C', label: 'Shortage Keycard in clubs', kind: 'keycard', trump: 'C', shortageSuit, keycardMode: 'shortage' },
-          { bid: '3D', label: 'Show five diamonds and ask Shortage Keycard', kind: 'keycard', trump: 'D', shortageSuit, keycardMode: 'shortage' },
+          diamondSupportAsk(shortageSuit, 7),
         ],
       },
+      'diamond-doubleton': diamondDoubletonNode,
     },
-    assumptions: ['Training opener has exactly three diamonds. The source also permits two, when the diamond continuation instead receives 3NT to play.', 'Responder has five-plus diamonds, three-plus clubs and 12–20 HCP; no four-card major.'],
-    limitations: [...commonLimitations, 'The doubleton-diamond 3NT branch and the minimum 2NT preference to 3m are outside this profile.'],
+    assumptions: ['Responder has five-plus diamonds, three-plus clubs and 12–20 HCP. A single-suited diamond positive responds 2C instead.'],
+    limitations: [...commonLimitations, 'The minimum 2NT preference to 3m is outside this profile.'],
   };
 }
 
@@ -126,7 +146,8 @@ function clubTwoMinors(weak) {
     startNode: 'shortage',
     nodes: {
       shortage: {
-        label: 'Agree a minor and ask shortage', help: 'Opener has a spade or heart shortage. Choose clubs or diamonds before the H/L response.',
+        label: 'Agree a minor and ask shortage', preferLongerMinor: true,
+        help: 'Opener has a spade or heart shortage. Choose clubs or diamonds before the H/L response.',
         actions: [
           { bid: clubAsk, label: 'Agree clubs and ask shortage', kind: 'relay', state: fitState('C'), responses: twoSuitShortageResponses(['C', 'D'], false, 'C') },
           { bid: diamondAsk, label: 'Agree diamonds and ask shortage', kind: 'relay', state: fitState('D'), responses: twoSuitShortageResponses(['C', 'D'], false, 'D') },

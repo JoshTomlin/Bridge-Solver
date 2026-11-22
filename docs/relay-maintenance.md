@@ -6,6 +6,13 @@ Use the [system tables](relay-system/README.md) for bidding lookup, the
 This file explains how to extend the implementation without losing source
 provenance or the fixed-hand/public-information guarantees.
 
+For the algorithmic explanation see [how the bid trees work](relay-system/implementation.md).
+The [22 October 2026 audit](relay-system/audit-2026-10-22.md) records a source-specific diamond-SKC answer
+reservation error and outstanding source questions. Its artificial-3NT concern
+was subsequently resolved as a documentation error: the asker may pass any
+relay answer (Q1 in [questions for Markey](relay-system/questions-for-markey.md)). These findings are not
+fixed merely by passing the existing interpreter tests.
+
 ## Source and documentation layout
 
 | Path | Responsibility |
@@ -44,6 +51,7 @@ Paths below are relative to `website/relay/`, unless specified otherwise.
 | Session interpreter | `core.js` | Seeded fixed hands, immutable transitions, exactly one compatible partner answer |
 | Practice roles | `practice.js` | Asker/teller views, public automatic asks, retry without mutation and final Pass |
 | Saved practice | `progress.js` | Versioned localStorage snapshot, validation, fixed-deal undo history and UI preferences |
+| Hand archive | `hand-history.js`, `hand-history-ui.js` | Latest 100 hands, independent saved descriptions/ladders, read-only review and text sharing |
 | Shared continuations | `continuations.js` | Ordinary/Horton KC, SKC, queen, specific suits, public length bounds and range escapes |
 | Whole-auction continuations | `opening-system.js`, `nt-opening.js`, `major-opening.js` | Source-specific opening choices, physical-seat turns, public constraints, and shared keycard asks without pre-answering the human's call |
 | Sampling | `core.js`, `sampling-worker.js` | Uniform proposals weighted by remaining card combinations; bounded rejection against all public facts |
@@ -92,12 +100,17 @@ the corresponding visible hand, hidden hand, seats and displayed auction.
 Do not swap the source fields to implement teller mode. `pendingAsk` records
 only a public question and its entire response ladder, with no chosen answer.
 The core auction and constraints advance only when the human's answer is
-correct. The automatic asker chooses from public actions in source order,
-using its own cards only for explicit action prerequisites. Its eventual
-lowest-available signoff is a recall policy, not optimal bidding judgement.
+correct. The automatic asker follows public source questions until keycard.
+The [slam policy](../website/relay/slam-policy.js) then uses its own cards and
+public facts: below 4½ stops in game, 4½/five bids six, and all five plus the
+queen permits grand tries. Do not inspect the fixed teller hand to resolve
+an ambiguous answer. Restore replans uncommitted late questions and Undo frames
+under the current policy, preserving actual auction calls and both hands.
 
 1. Generate both 13-card hands before bidding. Never construct partner's hand
-   as the auction develops. Undo restores a prior state with the same cards.
+   as the auction develops. Cards stay with their physical seat. A source-backed
+   handover swaps the asker/teller fields, constraints and human role together;
+   it does not move cards between people. Undo restores the original state.
 2. Every admitted partner hand has exactly one answer to every applicable
    source question. Distinct replies may share a call only when their predicates
    are disjoint; user-facing actions must have one meaning per call.
@@ -134,6 +147,13 @@ lowest-available signoff is a recall policy, not optimal bidding judgement.
     against registered profiles and fixed hands. Keep sampler/solver jobs and
     generated reports transient; display read/write failures without blocking
     practice. Saves use `bridge-lab.relay-progress.v1` in the current origin.
+    An optional `handId` keeps the same archive record across reloads. Each
+    successful new deal gets a fresh ID, including an explicit seed replay.
+    The separate `bridge-lab.relay-hand-history.v1` archive stores at most 100
+    review snapshots, without live interpreter/undo state. Keep bid meanings
+    and public response ladders in the record so review survives later source
+    changes. History views must not replace active progress, or reveal/export
+    the current hidden partner hand. Previous hands can show both hands.
 13. Keep the broad family choice separate from `session.familyId`, which still
     names the exact source profile. New hands generate fresh seeds and draw
     within the chosen family. Only an explicit `studyProfileId` preference pins

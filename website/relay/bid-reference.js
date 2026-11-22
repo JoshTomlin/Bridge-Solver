@@ -1,6 +1,7 @@
 // Public meanings for the auction before an exercise's first interactive bid.
 // Main notes P0250–P0259, P0375–P0471, P0631–P0669, P1524–P1564;
 // July email E1–E6; Reordering R0002–R0071. No cards or sampling facts belong here.
+import { REBID_RESPONSE_TABLES } from './rebid-reference.js';
 const tables = new Map();
 const names = { C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' };
 function table(prefix, rows) {
@@ -28,7 +29,7 @@ table('1D', [
   ['1NT', '10+ enquiry; no five-card major; game-forcing with a four-card major'],
   ['2C', 'Five-plus clubs; 5–9'], ['2D', 'Three/four-plus diamonds; 5–9'],
   ['2H', 'Six-plus hearts; 0–6(7)'], ['2S', 'Six-plus spades; 0–6(7)'],
-  ['2NT', 'Four-plus diamonds; game-forcing'], ['3C', 'Six-plus clubs; invitational, no four-card major'],
+  ['2NT', 'Five-plus diamonds; game-forcing'], ['3C', 'Six-plus clubs; invitational, no four-card major'],
   ['3D', 'Four/five-plus diamonds; 9–12, invitational'],
   ['3H', 'Six/seven hearts; 0–6(7)'], ['3S', 'Six/seven spades; 0–6(7)'],
   ['3NT', 'Five-plus spades and six-plus hearts; 8–12'],
@@ -38,6 +39,10 @@ table('1S', [['2NT', 'Four-plus spades; game-forcing raise']]);
 for (const bid of ['2D','2H','2S']) table(bid, [
   ...(bid==='2D'?['2H','2S','3C']:bid==='2H'?['2S','3C','3D']:['3C','3D','3H']).map(call=>[call,'Natural; to play']),
   ['2NT', 'Horton range and shape enquiry'],
+  ['3S', 'Mild invitation in spades'], ['4NT', 'Kickback in spades (0/1/2)'],
+  ...(bid === '2D' ? [['3D','Mild invitation to 4D'], ['4D','Mild invitation to 5D'], ['4H','Kickback in diamonds (0/1/2)']]
+    : bid === '2H' ? [['3H','Mild invitation in hearts'], ['5C','Kickback in hearts (0/1/2)']]
+    : [['4C','Mild invitation in clubs'], ['4D','Kickback in clubs (0/1/2)'], ['4H','Natural; to play']]),
 ]);
 
 const single = (suit, major) => `Six-plus ${names[suit]}; 14+; no second four-card suit, at most two ${names[major]}`;
@@ -90,9 +95,11 @@ table('1D 1NT', [['2C', '12–15; diamond opening shapes'], ['2D', '9–11; diam
 for (const rebid of ['2C','2D']) table(`1D 1NT ${rebid}`, [['2H', 'Diamond fit; shape enquiry'], ['2S', 'Six-plus solid clubs; shortage enquiry'], ['3NT', 'To play']]);
 for (const major of ['H','S']) {
   table(`1D 1${major} 1NT`, [['2C', 'Range enquiry; three-card major support already shown'], [`2${major}`, 'To play']]);
-  for (const afterPuppet of [false,true]) {
-    const prefix = `1C ${major === 'H' ? '1D' : '1H'} 1NT${afterPuppet ? ' 2C 2D' : ''}`;
+  for (const rebid of [`1${major}`, '1NT']) for (const afterPuppet of [false,true]) {
+    const prefix = `1C ${major === 'H' ? '1D' : '1H'} ${rebid}${afterPuppet ? ' 2C 2D' : ''}`;
     table(prefix, [
+      ...(!afterPuppet && rebid !== '1NT' ? [['Pass', `Five-plus ${names[major]}; weak, to play`], ['1NT', `Four ${names[major]}; weak, to play`],
+        ...(major === 'H' ? [['1S', 'Balanced range enquiry']] : [])] : []),
       ...(!afterPuppet ? [['2C', `Puppet to 2D; weak exit, invitation or five-plus ${names[major]}`],
         ['2D', major === 'H' ? 'Five-plus hearts; game force, possibly four spades or balanced' : 'Five-plus spades and four-plus hearts; game-forcing']] : []),
       ['2H', afterPuppet ? `Invitational; ${major === 'H' ? 'five/six hearts' : 'four/five spades'}`
@@ -100,13 +107,18 @@ for (const major of ['H','S']) {
       ['2S', `Baron; ${afterPuppet ? 'five' : 'four'} ${names[major]}, four/six-card minor, slam interest`],
       ['2NT', `Exactly five clubs, ${afterPuppet ? 'five-plus' : 'four'} ${names[major]}; slam interest`],
       ['3C', `Exactly five diamonds, ${afterPuppet ? 'five-plus' : 'four'} ${names[major]}; slam interest`],
-      ['3D', `Three-suited; ${major === 'H' ? 'spade' : 'heart'} shortage`], ['3H', `Solid six-plus ${names[major]}`],
-      ['3S', 'Request 3NT'], ['3NT', 'To play'],
+      ['3D', `Three-suited; ${major === 'H' ? 'spade' : 'heart'} shortage`], ['3H', `${afterPuppet ? 'Non-solid' : 'Solid'} six-plus ${names[major]}${afterPuppet ? '; slam interest' : ''}`],
+      ['3S', afterPuppet ? `Five-plus ${names[major]}; choice of 3NT or 4${major}, opener declares notrump` : 'Request 3NT'],
+      ['3NT', afterPuppet ? `Five-plus ${names[major]}; choice of 3NT or 4${major}` : 'To play'],
     ]);
     if (!afterPuppet) table(`${prefix} 2C`, [['2D', 'Puppet acceptance; no extra strength or shape shown']]);
     table(`${prefix} 2S`, [['2NT', 'Four-plus clubs'], ['3C', 'Four-plus diamonds'], ['3D', 'No four-card minor']]);
     table(`${prefix} 2S 2NT`, [['3C', 'Agree clubs'], ['3D', 'Four/five diamonds'], ['3H', 'Six diamonds and four clubs'], ['3S', 'Six clubs and four diamonds']]);
     table(`${prefix} 2S 3C`, [['3D', 'Agree diamonds'], ['3H', 'Six clubs and four diamonds'], ['3S', 'Six diamonds and four clubs']]);
+    table(`${prefix} 3S`, [['3NT', 'Choose 3NT'], ...(afterPuppet ? [[`4${major}`, 'Choose the major game']] : [])]);
+    table(`${prefix} 3NT`, [['Pass', 'Choose 3NT'], ...(afterPuppet ? [[`4${major}`, 'Choose the major game']] : [])]);
+    table(`${prefix} 3H`, [['3S', 'Shortage ask'], ['3NT', 'To play'], [`4${major}`, 'Choose the major game']]);
+    table(`${prefix} 3D`, [[`3${major}`, 'Agree the major; shortage ask'], ['4C', 'Agree clubs; shortage ask'], ['4D', 'Agree diamonds; shortage ask'], ['3NT', 'To play']]);
   }
 }
 
@@ -124,6 +136,7 @@ function key(auction) {
   if (!auction.length || auction.some((call,index) => call.seat !== (index % 2 ? 'South' : 'North'))) return null;
   return auction.map(call => call.bid).join(' ');
 }
+for (const [prefix, rows] of REBID_RESPONSE_TABLES) table(prefix, rows);
 export function entryContinuations(auction) { return tables.get(key(auction)) ?? null; }
 export function entryMeaning(auction) {
   if (!key(auction)) return null;

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createTrainingPractice,practiceView } from '../practice.js';
+import { applyBid } from '../core.js';
 import { openingPartnerBid } from '../opening-practice.js';
 import { chooseOpeningFamily } from '../opening-system.js';
 import { settings,selectSetting,closeSheets,newHand,clickBid,fitsScreen } from './helpers.mjs';
@@ -118,5 +119,33 @@ for (const outcome of ['error', 'stop']) {
     expect((await saved(page)).preferences.practiceMode).toBe('mixed');
     await failDeal();
     await failDeal('focused');
+  });
+}
+
+for (const [seat, number, firstBid] of [['North',12,'1D'], ['South',97,'2NT']]) {
+  test(`Just bid reaches the Jacoby-style diamond raise from the opening as ${seat}`, async ({page}) => {
+    await page.goto('relay.html');
+    await ready(page);
+    await page.evaluate(seed => { window.mixedSeeds = [seed]; }, `just-bid-diamonds-${number}`);
+    await selectSetting(page,'#practice-mode','mixed');
+    const initial = await expectMixed(page,'D',seat);
+    await clickBid(page,firstBid);
+    const relay = (await saved(page)).session;
+    expect(relay.familyId).toBe('diamond-2nt-raise');
+    expect(practiceView(relay).auction.slice(0,2).map(call=>call.bid)).toEqual(['1D','2NT']);
+    expect(practiceView(relay).playerHand).toEqual(practiceView(initial.session).playerHand);
+    await page.reload();
+    await ready(page);
+    expect((await saved(page)).session).toEqual(relay);
+    if (seat === 'North') {
+      const response = applyBid(relay,'2NT').auction.at(2).bid;
+      await clickBid(page,response);
+      expect((await saved(page)).session.auction[2].bid).toBe(response);
+    } else {
+      await clickBid(page,'3NT');
+      expect((await saved(page)).session.contract.bid).toBe('3NT');
+    }
+    await page.click('#undo-bid');
+    expect((await saved(page)).session).toEqual(relay);
   });
 }

@@ -12,10 +12,13 @@ controls. The catalogue maps all 63 branches to the eight main choices.
 | [Revised minor relays](minor-relays.md) | 1D–1NT, the July email's eight entries, weak-hand screen, shape stacks and agreements |
 | [Club and Dappleton](club-and-dappleton.md) | 1C–1S, strong 2C–2D resolution, minor transfers and Baron |
 | [Reordered opener rebids](reordered-rebids.md) | Single-suiters, three-card support, reverses, mini–mega splinters and strength escapes |
+| [Passed-hand auctions](passed-hand.md) | Uncontested third/fourth-seat clubs, fit-showing 2/1, strong 1NT and Puppet |
 | [Split-range and Horton](split-and-horton.md) | Raises, 1NT support routes, Horton shape/shortage and 0/1/2 keycards |
 | [2NT opening continuations](notrump-opening.md) | Muppet, transfers, minor Stayman, cues, Kickback and subsequent slam enquiries |
 | [Exercise catalogue](scenario-catalog.md) | All 63 exercises, fixed prefixes, initial calls and player roles; generated from code |
 | [Coverage and remaining work](coverage.md) | What is implemented, known decisions, exclusions and next work |
+| [How the bid trees work](implementation.md) | Templates, constraint interpretation, shared continuations, sampling and architectural limits |
+| [Source consistency audit — 22 October 2026](audit-2026-10-22.md) | Reproduced discrepancies, source conflicts, clarification questions and prioritized missing branches |
 | [Maintainer guide](../relay-maintenance.md) | Source updates, engine contracts, tests and documentation workflow |
 
 See the [practice guide](../relay-practice.md) for running the app, recall mode,

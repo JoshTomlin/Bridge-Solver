@@ -34,7 +34,7 @@ does not upload or synchronise auctions. Other browsers/devices may keep a
 separate save. Native installation prompts and home-screen launching should
 also be checked on the user's physical phone.
 
-## Whole-auction practice
+## 2NT opening continuations
 
 The strong **2NT opening** now includes the [deeper continuation tables](relay-system/notrump-opening.md):
 Muppet, direct/delayed minor Stayman, major transfers, minor slam tries,
@@ -42,46 +42,17 @@ control cues and Kickback through queen and specific-suit enquiries. Either
 seat can ask or answer, with the actual auction and both hands preserved.
 Exclusion replies remain a recorded partnership question.
 
-Choose **Practice mode → Whole auction**, then **Opening family**: 1C, 1D,
-majors, weak 1NT, strong 2C, Horton twos, strong 2NT, passed hand or **Mix all openings**. You play every call for your seat,
-starting with the opening as opener or the first response as responder.
-See [opening-family coverage](relay-system/opening-auctions.md) for the new
-routes and their explicit limits.
-Each new hand randomly assigns opener/responder. Your seat and both hands stay
-fixed, and partner chooses calls from their own cards and the public auction.
-
-### Existing 1C routes
-
-The original slice covers balanced 14–19 club openings with two/three in each
-major (no six-card minor), opposite one four/five-card major. Responder is
-clearly weak, 3–6, or has 12–19 and a four/five-card minor. Supported routes
-include the 1D/1H transfers, 14–17 transfer acceptance versus the 18/19 1NT
-rebid, weak signoffs, the 2C puppet, five-card-minor transfers and the
-five-major/four-minor Baron agreements. These lead into the existing shortage
-and keycard exercises using the actual opening auction, preserving declarer.
-
-For example, after `1C` you choose `1D`; after partner's `1NT` you choose
-`3C` to show exactly five diamonds and four hearts. The trainer then continues
-with the shortage questions. It does not supply those first two bids for you.
-
-Meanings describe all offered agreements without selecting the correct one
-from your cards. A bid that contradicts an implemented definition leaves the
-hand unchanged for retry. A legal continuation outside the implemented routes is accepted as a contract
-choice with a labelled partner-Pass fallback. Undo restores the previous turn.
-This is a growing part of the system, not unrestricted opening or judgement
-coverage. Invitations, quant acceptance, broader Baron alternatives, two-major
-hands and balanced four-card-major rebids are subsequent work. Open decisions
-are recorded in [questions for Markey](relay-system/questions-for-markey.md).
-
-Full-auction saves include their rules revision and restore the same seat,
-auction and undo history across the transition into a relay family. Replay
-preserves the original seat and deal; New hand draws a new one.
-
 For practice from the first bid, choose **Practice settings → Practice mode →
 Just bid · From the opening**. Each new hand draws a supported opening family
 (including weak 1NT, strong 2C, Horton and passed hand) and an independent
 opener/responder seat. Passed-hand practice includes the earlier passes. The next-hand arrow keeps this mode active.
 The current opening subset is described in [opening coverage](relay-system/opening-auctions.md).
+
+For passed-hand practice, choose **Whole auction → Opening family → Passed
+hand** (mix or a particular opening), then select opener's third/fourth position
+and vulnerability. This uses the separate uncontested passed-hand agreements,
+with prior passes shown and your hand always South. See the [passed-hand
+tables and current limits](relay-system/passed-hand.md).
 
 Just bid resumes the same saved auction after reopening. Old saved relay drills
 are retained, including their undo history; **New hand** starts from the opening.
@@ -110,14 +81,18 @@ selection. The seed is hidden inside **Hand seed and replay** in the study
 menu. **Replay this branch** reuses the entered seed for the current branch
 without pinning future random-family hands to that branch.
 
-In teller practice, partner follows supported questions in source order,
-checking any action prerequisites against the asker's own hand. It never
-chooses a question by inspecting the teller's undisclosed cards. At the source
-boundary it accepts a normal contract already reached or chooses a source
-signoff, game or slam, so the teller can practise the final Pass. A human
-asker can also stop on an intervening side-suit reply. This is a
-deterministic recall coach, not an optimal bidding policy. A wrong response
-leaves the question, deal and constraints unchanged so you can try again.
+In teller practice, partner follows supported shape/range questions, using
+its own cards and your public answers. After keycard it stops in the agreed
+game with fewer than 4½ keycards, bids six with 4½ or five, and makes grand
+tries only with all five plus the trump queen. The queen counts as half.
+It asks for an unknown queen when that answer can change the decision.
+Side-suit asks beyond the queen ask are grand tries; a missing third-round
+control stops at six. Where the auction has already passed game, it chooses
+the lowest legal agreed-trump contract rather than bidding backwards.
+Unresolved keycard alternatives are treated conservatively. No hidden hand or
+DDS result supplies missing information. A human asker retains all source
+asking calls and may stop on any reply. A wrong teller response leaves the
+question, deal and constraints unchanged so you can try again.
 Choose a level, then tap a suit or **PASS** to bid. The level starts at the next
 supported relay or response, so that call usually needs one tap. All legal
 calls are available; lower, illegal bids stay disabled. A small hollow dot
@@ -235,6 +210,36 @@ fall back to a new hand with an explanation. Samples and DDS results are recompu
 running analysis does not resume after reopening. Auctions lost before autosave
 was added were not stored and cannot be restored from browser storage.
 
+## Hand history and sharing
+
+Open **Practice → Hand history** to review the most recent **100 hands**,
+including the current hand. Each hand is recorded automatically as you bid,
+reveal or undo. Dealing another hand, changing an exercise or replaying a seed
+keeps the previous record and starts a new one. Reloading continues the same
+record. The current autosaved hand is added when you first use this version;
+hands replaced before history was introduced cannot be recovered.
+
+Select a hand to see its date, practice role, cards, full auction and final
+contract/declarer, when chosen. Tap a call for the explanations and response
+steps saved with that auction. Review is read-only and leaves current bidding
+and undo history alone. Both hands are visible for previous hands. The current
+hand's partner cards stay hidden until you reveal it or move on to another hand;
+the same restriction applies to exported text.
+
+**Share** opens the device's share sheet with a text summary containing the
+hands, auction, bid explanations, final contract and seed. **Copy as text**
+copies the same summary to paste into a message. If sharing is unavailable it
+falls back to copying; if the browser blocks clipboard access, **Plain text**
+opens with selectable text for manual copying. This shares text, not a live link
+or an invitation to the app.
+
+History is stored only in this browser at this site address, works offline,
+and is removed when you clear site data. It does not synchronise between
+devices. The oldest record is replaced when you exceed 100 hands, so copy
+anything you want to keep permanently. History storage errors appear in
+Practice and in the history sheet; you can still review and copy hands retained
+in the open tab. Samples and DDS reports remain transient.
+
 The [phone design audit](relay-design-audit.md) records the review against the
 user's design requests, before/after captures and measured auction capacity.
 
@@ -284,6 +289,10 @@ keycard choice closes those alternative agreements.
 ## Major-raise and shared continuations
 
 - Balanced, middle-shortage and high-shortage answers lead to a range ask.
+  After balanced 3C and the 3D range ask, replies are 3H = 12–14,
+  3S = 15–17, 3NT = 18–19. The partnership confirmed that balanced 9–11
+  hands open 1NT or jump directly to 4M with a great suit, so there is no
+  9–11 range step after 3C.
   Low shortage gives range immediately: 3S = 9–11, 3NT = 12–14,
   4C = 15–17, 4D = 18–19.
 - In the major-raise family, relay asks skip 4M. Opener's answers count every bid, including 4M.
@@ -356,7 +365,7 @@ Each family lists its own generation choices and exclusions. They are not a
 complete model of opening-bid judgement. For the retained major-raise family:
 
 - Opener: 9–19 HCP, at least five cards in the opened major, no side suit longer
-  than four, and zero or one shortage. No-shortage hands have at least 13 HCP.
+  than four, and zero or one shortage. No-shortage hands have at least 12 HCP.
 - Responder: at least four trumps and 12 HCP. The system definition is
   game-forcing values; 12 is only the practice floor.
 - Opponents pass throughout; partner accepts the user's selected final contract.
@@ -410,6 +419,7 @@ An undefined branch stops with an explanation rather than inventing an answer.
 | `website/relay/core.js` | Hand features, constraints, auction transitions and seeded generation/sampling |
 | `website/relay/practice.js` | Asker/teller controller, public question prompts, response validation and human seat/hand view |
 | `website/relay/progress.js` | Versioned browser saves, validated restoration, undo history and preferences |
+| `website/relay/hand-history.js`, `hand-history-ui.js` | Bounded hand archive, frozen meanings/response ladders, read-only review and text sharing |
 | `website/relay/continuations.js` | Keycards, queen and specific-suit asks; public response compression |
 | `website/relay/sampling-worker.js` | Deal generation and bounded sampling off the UI thread |
 | `website/relay/evaluation.js` | Opponent completion, declarers, DD aggregation and Wilson intervals |

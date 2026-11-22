@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 import { settings, selectSetting, closeSheets, newHand, clickBid, fitsScreen } from './helpers.mjs';
 import { AUCTION_FAMILIES, auctionFamilyForProfile } from '../families.js';
 import { applyBid, RANKS, SUITS } from '../core.js';
-import { practiceView, availablePracticeActions, practiceCalls } from '../practice.js';
+import { availablePracticeActions, practiceCalls } from '../practice.js';
+import { tableView as practiceView } from '../seat-view.js';
 
 const key = 'bridge-lab.relay-progress.v1';
 const symbol = suit => ({ S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' })[suit];
@@ -27,6 +28,8 @@ async function checkVisibleDeal(page, familyId, role) {
   await expect(page.locator('#practice-role')).toHaveValue(role);
   await expect(page.locator('#practice-badge')).toHaveText(label(AUCTION_FAMILIES.find(f => f.id === familyId).name));
   const view = practiceView(session);
+  await expect(page.locator('#player-seat')).toContainText('South · You');
+  await expect(page.locator('#partner-seat')).toHaveText('North · Partner');
   const bids = view.auction.filter(call => ['North', 'South'].includes(call.seat)).map(call => label(call.bid));
   expect(await page.locator('#auction-history .bid').allTextContents()).toEqual(bids);
   const visibleBids = await page.locator('#auction .bid').allTextContents();

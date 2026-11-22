@@ -3,8 +3,9 @@
 // definitions or letting the hidden teller hand influence the next question.
 import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex, getPracticeProfile, practiceNode, handFeatures } from './core.js';
 import { declarerFor } from './profile-utils.js';
-import { createOpeningPractice, openingActions, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
 import { isForcingOpeningCall } from './opening-system.js';
+import { createOpeningPractice, openingActions, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
+import { slamAction } from './slam-policy.js';
 
 export function practiceView(session) {
   const teller = session.practiceRole === 'teller';
@@ -21,40 +22,62 @@ export function practiceView(session) {
   };
 }
 
-/** Ask through supported questions in source order, using only public facts
- * and the asker's own cards for action prerequisites. This is a recall coach,
- * not a model of optimal bidding. At the boundary choose a normal final
- * contract; a human asker can also stop on any intervening reply. */
+/** Ask source questions using the asker's own cards and public facts. After
+ * keycard, apply the partnership's game/slam/grand thresholds. */
 export function advanceAsker(session) {
   if (session.finished || session.revealed) return session;
   const actions = availableActions(session).filter(action => !action.playerConstraints
     || matchesConstraints(session.playerHand, action.playerConstraints, action.trump ?? session.trump));
   const trump = session.trump ?? session.major;
+  const node = practiceNode(session);
   const last = session.auction.findLast(call => call.bid !== 'Pass')?.bid;
   const usualContracts = new Set(['3NT', '6NT', '7NT', ...[4, 5, 6, 7]
     .filter(level => level >= (['C', 'D'].includes(trump) ? 5 : 4)).map(level => `${level}${trump}`)]);
   if (session.familyId && !session.familyId.startsWith('major-')) {
-    for (const bid of [...(getPracticeProfile(session.familyId).signoffs ?? []), ...(practiceNode(session)?.signoffs ?? [])]) usualContracts.add(bid);
+    for (const bid of [...(getPracticeProfile(session.familyId).signoffs ?? []), ...(node?.signoffs ?? [])]) usualContracts.add(bid);
   }
   // Human control does not require the recall coach to park on a side-suit
   // answer when its questions end. Offer a normal contract and final Pass.
   const signoffs = actions.filter(action => action.kind === 'signoff');
   // With 16 opposite a public maximum of eight, use a partscore policy.
   // Only the asker's own hand and the shown Horton suits are consulted.
-  let hortonPartscore;
-  if(session.familyId?.startsWith('horton-') && session.nodeId==='entry' && handFeatures(session.playerHand,trump).hcp<=16) {
-    const n=handFeatures(session.playerHand,trump).lengths;
+  let hortonResponse;
+  if (session.familyId?.startsWith('horton-') && session.phase === 'family' && session.nodeId === 'entry') {
+    const f = handFeatures(session.playerHand, trump);
+    const n = f.lengths;
     const second=session.hortonSecondSuit;
     const best=n[second]>n.S?second:'S';
-    const opening=session.auction[0].bid;
-    const bid=opening===`2${best}`?'Pass':best==='S'?'2S':`3${best}`;
-    hortonPartscore=signoffs.find(a=>a.bid===bid) ?? signoffs.find(a=>a.bid==='Pass');
+    if (f.hcp <= 16) {
+      const opening=session.auction[0].bid;
+      const bid=opening===`2${best}`?'Pass':best==='S'?'2S':`3${best}`;
+      hortonResponse=signoffs.find(a=>a.bid===bid) ?? signoffs.find(a=>a.bid==='Pass');
+      if (f.hcp >= 12 && f.hcp <= 15 && n[best] >= 5) {
+        hortonResponse = actions.find(a => a.kind === 'invitation' && a.trump === best) ?? hortonResponse;
+      }
+    } else if (f.hcp >= 19 && n[best] >= 5 && handFeatures(session.playerHand, best).keycards >= 3) {
+      // With a known nine-card fit and substantial controls, practise the
+      // direct ask. Otherwise keep the source's range/shape enquiry.
+      hortonResponse = actions.find(a => a.askType === 'keycard' && a.trump === best);
+    }
   }
-  const action = hortonPartscore ?? actions.find(action => action.kind === 'relay')
+  const slam = slamAction({ hand: session.playerHand, trump, phase: session.phase,
+    constraints: session.constraints, actions, auction: session.auction });
+  let minorFit;
+  if (node?.preferLongerMinor) {
+    const lengths = handFeatures(session.playerHand, trump).lengths;
+    const preferred = lengths.D > lengths.C ? 'D' : 'C';
+    minorFit = actions.find(action => action.kind === 'relay' && (action.trump ?? action.state?.trump) === preferred);
+  }
+  const action = slam ?? hortonResponse ?? minorFit ?? actions.find(action => action.kind === 'relay' || action.kind === 'transfer-to-3nt')
+    ?? actions.find(action => action.kind === 'handover')
     ?? signoffs.find(action => action.bid !== 'Pass' || session.weakExitAllowed || usualContracts.has(last))
     ?? signoffs[0];
   if (!action) return Object.freeze({ ...session, pendingAsk: null, finished: true,
     unsupportedReason: session.unsupportedReason ?? 'No further supported question or final contract is available in this exercise.' });
+  if (action.kind === 'handover') {
+    const next = applyBid(session, action.bid);
+    return next.practiceRole === 'teller' ? advanceAsker(next) : next;
+  }
   // Passing a teller's playable answer already completes the auction.
   if (action.bid === 'Pass') return applyBid(session, action.bid);
   const responseLadder = action.kind === 'signoff'
@@ -122,16 +145,19 @@ export function applyPracticeBid(session, bid) {
     const next=advanceOpeningPartner(result);
     return !next.opening && next.practiceRole === 'teller' ? advanceAsker(next) : next;
   }
-  if (session.practiceRole !== 'teller') return applyBid(session, bid);
+  if (session.practiceRole !== 'teller') {
+    const next = applyBid(session, bid);
+    return next.practiceRole === 'teller' ? advanceAsker(next) : next;
+  }
   if (!availablePracticeActions(session).some(action => action.bid === bid)) {
     throw new Error(`${bid} is not an available response to partner’s question.`);
   }
-  const next = applyBid({ ...session, pendingAsk: null }, session.pendingAsk.bid);
+  const next = applyBid({ ...session, pendingAsk: null }, session.pendingAsk.bid, bid);
   const answer = next.auction.slice(session.auction.length).find(call => call.seat === session.partnerSeat);
   if (!answer || answer.bid !== bid) {
     throw new Error('That response does not match your hand. Try again, or turn on “Show meanings” to review the response steps.');
   }
-  return advanceAsker(next);
+  return next.practiceRole === 'teller' ? advanceAsker(next) : next;
 }
 
 

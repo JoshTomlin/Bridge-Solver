@@ -3,13 +3,12 @@
 [System tables](README.md) · [Opening practice](opening-auctions.md) ·
 [Source notes](../system-sources/main-notes.txt)
 
-Choose **Practice settings → Whole auction → Opening
+Added 16 November 2026. Choose **Practice settings → Whole auction → Opening
 family → Passed hand**. Mix the openings or select clubs, diamonds, a major,
 1NT, 2NT or 2C followed by 2NT. Choose third/fourth seat and vulnerability.
 Opener/responder is drawn independently; the human always displays South.
 The auction includes the actual prior passes, including the extra pass for
-a fourth-seat opener. Replay retains these settings and the same two hands. Just bid also draws
-passed-hand openings with a random position and vulnerability.
+a fourth-seat opener. Replay retains these settings and the same two hands.
 
 These are separate agreements from the first/second-seat transfer system.
 The authority is P1751–P1783 and P1808–P1830. Competitive P1784–P1806 remains
@@ -113,7 +112,7 @@ Seeded deal generation draws two disjoint hands with bounded rejection. This
 can take longer for rare 24–25 balanced hands; it is generation work, not an
 enumeration performed for each bid. A separate sampling stratum increases
 the chance of seeing the club game-force branch and is discarded afterwards.
-Shared saving, fixed-card undo, auction study, South-seat mapping
+Shared saving, fixed-card undo, auction study, South-seat mapping, hand history
 and contract assessment continue to operate on the resulting session.
 
 Independent fixtures test the printed shapes, all fit-showing 2/1 entries,

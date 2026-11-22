@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { auctionRounds } from './table-ui.js';
 
+test('an empty opening table puts the human opener in the South column when requested', () => {
+  assert.deepEqual(auctionRounds([], false, 'South'), [[null, null, { kind: 'pending' }, null]]);
+  assert.deepEqual(auctionRounds([], false), [[{ kind: 'pending' }, null, null, null]]);
+});
+
 test('North opening shows East passing and South next without inventing a West call', () => {
   const calls = [{ seat: 'North', bid: '1S', meaning: 'Opening' }];
   const rows = auctionRounds(calls);

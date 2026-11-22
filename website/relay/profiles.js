@@ -1,4 +1,5 @@
 import { SYSTEM } from './system.js';
+import { DIAMOND_RAISE } from './diamond-raise.js';
 import { MINOR_PROFILES } from './minor-profiles.js';
 import { CLUB_PROFILES } from './club-profiles.js';
 import { STRONG_CLUB_PROFILES } from './strong-club-profiles.js';
@@ -14,6 +15,7 @@ const majors = ['S', 'H'].map(major => ({
 
 export const PRACTICE_PROFILES = [...majors, ...MINOR_PROFILES, ...CLUB_PROFILES, ...STRONG_CLUB_PROFILES, ...SPLIT_PROFILES, ...HORTON_PROFILES, ...REBID_PROFILES];
 export function getPracticeProfile(id) {
+  if (id === DIAMOND_RAISE.id) return DIAMOND_RAISE;
   const profile = PRACTICE_PROFILES.find(candidate => candidate.id === id);
   if (!profile) throw new Error(`Unknown practice family: ${id}`);
   return profile;

@@ -6,6 +6,7 @@ import { REBID_PROFILES } from './rebid-profiles.js';
 import { SHAPES } from './source-utils.js';
 import { keycardAction, strengthResponseLadder } from './continuations.js';
 import { createPractice, availableActions, applyBid, matchesConstraints, sampleCompatible, DECK } from './core.js';
+import { entryContinuations } from './bid-reference.js';
 
 function abstractMatch(n, points, constraints) {
   return constraints.every(c => {
@@ -28,6 +29,11 @@ test('reordered entry bids and all ten mini–mega splinters follow the new sour
     '1C 1D 3C S', '1C 1D 3D D', '1C 1H 3D H', '1C 1H 3H D', '1D 1H 3C S',
     '1D 1H 3D C', '1D 1S 3D H', '1D 1S 3H C', '1H 1S 3D D', '1H 1S 3H C',
   ]);
+  const suits = { C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' };
+  for (const profile of REBID_PROFILES.filter(p => p.id.startsWith('rebid-splinter'))) {
+    assert.equal(profile.initialAuction.at(-1).meaning,
+      `Mini–mega splinter in ${suits[profile.initialState.shortageSuit]}; four ${suits[profile.defaultTrump]}; 11–13 or 17–19 HCP`);
+  }
 });
 
 test('every initial shortage ask partitions all admitted shapes and strengths, including reverse upgrades', () => {
@@ -88,6 +94,60 @@ function fixed(id, hand) {
   return { ...session, partnerHand: hand, playerHand };
 }
 const cards = holdings => holdings.split(' ').flatMap((holding, index) => [...holding].map(rank => 'SHDC'[index] + rank));
+
+test('R0120 and R0169 retain their explicit keycard calls at the agreed major game', () => {
+  for (const [id, holding, ask, keycard] of [
+    ['rebid-single-c-h-support', 'K2 A32 2 AKJ9876', '3S', '4H'],
+    ['rebid-single-d-s-support', 'AK2 KQ AQJ9876 2', '3H', '4S'],
+  ]) {
+    const session = applyBid(fixed(id, cards(holding)), ask);
+    assert.equal(session.auction.at(-1).bid, '4D');
+    const actions = availableActions(session);
+    assert.equal(actions.find(row => row.bid === keycard)?.askType, 'shortage-keycard');
+    if (keycard === '4S') assert.equal(actions.find(row => row.bid === '4H')?.kind, 'signoff');
+    const answered = applyBid(session, keycard);
+    assert.equal(matchesConstraints(answered.partnerHand, answered.constraints, answered.trump), true);
+    assert.deepEqual(answered.partnerHand, session.partnerHand);
+  }
+});
+
+test('the 3S request for 3NT survives minimum returns and shortage replies, with the keycard step reserved', () => {
+  let session = fixed('rebid-single-c-h', cards('AJ2 K2 Q2 KQ9876'));
+  session = { ...session, playerHand: cards('K43 QJ987 T9 T54') };
+  session = applyBid(session, '2S');
+  assert.equal(session.auction.at(-1).bid, '3C');
+  assert.equal(availableActions(session).find(row => row.bid === '3S')?.kind, 'relay');
+  session = applyBid(session, '3S');
+  assert.equal(session.auction.at(-1).bid, '3NT');
+  const noShortage = applyBid(fixed('rebid-single-c-h', cards('AJ2 K2 Q2 KQ9876')), '2H');
+  assert.equal(availableActions(noShortage).find(row => row.bid === '3S')?.kind, 'transfer-to-3nt');
+  const transferred = applyBid(noShortage, '3S');
+  assert.equal(transferred.auction.at(-1).bid, '3NT');
+  assert.deepEqual(transferred.constraints, noShortage.constraints);
+  const low = applyBid(fixed('rebid-single-d-h', cards('K32 KQ AQJ9876 2')), '2NT');
+  assert.equal(low.auction.at(-1).bid, '3S');
+  const middle = applyBid(fixed('rebid-single-d-h', cards('KQ2 2 AQJ9876 K2')), '2NT');
+  assert.equal(middle.auction.at(-1).bid, '3D');
+  // After a 3H answer the next step 3S is SKC, so the transfer cannot replace it.
+  const high = applyBid(fixed('rebid-single-d-h', cards('2 KQ AQJ9876 K32')), '2NT');
+  assert.equal(high.auction.at(-1).bid, '3H');
+  assert.equal(availableActions(high).find(row => row.bid === '3S')?.askType, 'shortage-keycard');
+});
+
+test('all thirteen reordered response menus retain the literal source calls', () => {
+  const expectations = [
+    ['1C 1D 2D', '2H 2S 2NT 3C 3D 3H 3S 3NT'], ['1C 1H 2D', '2H 2S 2NT 3C 3D 3H 3S 3NT'],
+    ['1D 1H 2S', '2NT 3C 3D 3H 3S 3NT'], ['1D 1S 2H', '2S 2NT 3C 3D 3H 3S 3NT'],
+    ['1H 1S 3C', '3D 3H 3S 3NT'], ['1C 1D 2S', '2NT 3C 3D 3H 3S 3NT'],
+    ['1C 1H 2H', '2S 2NT 3C 3D 3H 3S 3NT'], ['1C 1H 3C', '3D 3H 3S 3NT'], ['1D 1S 3C', '3D 3H 3S 3NT'],
+    ['1C 1D 2NT', '3C 3D 3H 3S 3NT'], ['1C 1H 2NT', '3C 3D 3H 3S 3NT'],
+    ['1D 1H 2NT', '3C 3D 3H 3S 3NT'], ['1D 1S 2NT', '3C 3D 3H 3S 3NT'],
+  ];
+  for (const [prefix, expected] of expectations) {
+    const auction = prefix.split(' ').map((bid, i) => ({ bid, seat: i % 2 ? 'South' : 'North' }));
+    assert.equal(entryContinuations(auction).map(row => row.bid).sort().join(' '), expected.split(' ').sort().join(' '), prefix);
+  }
+});
 
 test('R0135 real two-keycard-plus-queen hands split 3S/3NT and a known range does not split again', () => {
   for (const [holdings, expected] of [['AJ2 K2 Q2 KQ9876', '3S'], ['AJ2 K2 KQ KQ9876', '3NT']]) {

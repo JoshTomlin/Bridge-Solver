@@ -1,6 +1,7 @@
 import { getPracticeProfile, handFeatures, matchesConstraints, bidIndex, practiceNode } from './core.js';
-import { availablePracticeActions, practiceView } from './practice.js';
+import { availablePracticeActions, practiceView, advanceAsker } from './practice.js';
 import { validateOpeningSession, isOpeningFamily, OPENING_FAMILIES, openingFamilyFor } from './opening-practice.js';
+import { SYSTEM } from './system.js';
 
 export const PROGRESS_KEY = 'bridge-lab.relay-progress.v1';
 const VERSION = 1;
@@ -10,8 +11,13 @@ function validateSession(session) {
   if (session.wholeAuction) validateOpeningSession(session);
   const profile = session.wholeAuction && isOpeningFamily(session)
     ? !session.wholeAuction.passedHand && ['2D','2H','2S','2NT'].includes(session.wholeAuction.openingBid) ? { playerSeat: 'South', partnerSeat: 'North' } : { playerSeat: 'North', partnerSeat: 'South' } : getPracticeProfile(session.familyId);
+  const seats = session.relayRolesSwapped
+    ? { playerSeat: profile.partnerSeat, partnerSeat: profile.playerSeat } : profile;
+  if (session.familyId?.startsWith('major-') && session.systemId !== SYSTEM.id) {
+    throw new Error('Saved Jacoby practice uses an older range table. Start a new hand to use the corrected replies.');
+  }
   if (!['asker', 'teller'].includes(session.practiceRole)
-      || session.playerSeat !== profile.playerSeat || session.partnerSeat !== profile.partnerSeat
+      || session.playerSeat !== seats.playerSeat || session.partnerSeat !== seats.partnerSeat
       || typeof session.seed !== 'string' || typeof session.phase !== 'string'
       || typeof session.revealed !== 'boolean' || typeof session.finished !== 'boolean'
       || session.major !== session.trump) throw new Error('Saved practice settings are invalid.');
@@ -67,10 +73,10 @@ function preferencesFor(preferences = {}, session) {
 
 /** Save committed bidding state immediately; never depend on an unload event.
  * Samples, solver results and running workers are deliberately not persisted. */
-export function savePracticeProgress({ session, history, preferences }, storage) {
+export function savePracticeProgress({ session, history, preferences, handId }, storage) {
   try {
     (storage ?? globalThis.localStorage).setItem(PROGRESS_KEY, JSON.stringify({
-      version: VERSION, session, history, preferences,
+      version: VERSION, session, history, preferences, handId,
     }));
     return { ok: true };
   } catch (error) {
@@ -97,8 +103,15 @@ export function loadPracticeProgress(storage) {
         throw new Error('Saved undo history belongs to a different deal.');
       }
     }
-    return { progress: { session: saved.session, history: saved.history,
-      preferences: preferencesFor(saved.preferences ?? {}, saved.session) } };
+    // Pending coach questions are uncommitted decisions. Recompute late asks
+    // under the current policy, including Undo frames, without changing cards
+    // or any actual call already made in the auction.
+    const refreshCoach = session => session.practiceRole === 'teller' && session.pendingAsk && !session.finished && !session.revealed
+      && ['post-keycard', 'suit-ask', 'unsupported'].includes(session.phase) ? advanceAsker(session) : session;
+    const session = refreshCoach(saved.session);
+    return { progress: { session, history: saved.history.map(refreshCoach),
+      ...(typeof saved.handId === 'string' && saved.handId.length > 0 && saved.handId.length <= 100 ? { handId: saved.handId } : {}),
+      preferences: preferencesFor(saved.preferences ?? {}, session) } };
   } catch (error) {
     return { progress: null, error: error.message || String(error) };
   }

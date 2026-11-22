@@ -1,6 +1,6 @@
 // Word P0402–P0436; balanced 3NT and unbalanced 16+ confirmed by the user.
 import { SUITS, hcp, length, anyOf } from './profile-utils.js';
-import { shapeSet, oneShortage, shortageResponses, singleSuitShortageResponses, explicitKeycardResponses, fit, prefix, name } from './source-utils.js';
+import { shapeSet, oneShortage, shortageResponses, singleSuitShortageResponses, diamondSupportAsk, diamondDoubletonNode, fit, prefix, name } from './source-utils.js';
 
 const unbalanced = n => n.C >= 5 && oneShortage(n, ['C']) && SUITS.some(s => n[s] <= 1);
 const rows = [
@@ -36,13 +36,9 @@ export const STRONG_CLUB_PROFILES = [{
     }] },
     'major-shortage': session => ({ label: 'Choose the minor', help: '3C asks SKC in clubs. 3D shows five diamonds; opener needs three for SKC.', actions: [
       { bid: '3C', kind: 'keycard', trump: 'C', shortageSuit: session.shortageSuit, label: 'Shortage Keycard in clubs' },
-      { bid: '3D', kind: 'relay', label: 'Show five diamonds and ask SKC if opener has three', playerConstraints: [length('D', 5, 6)], responses: [
-        ...explicitKeycardResponses('3D', 'D', session.shortageSuit, [length('D', 3)], ['3NT']).slice(0, 2),
-        { bid: '3NT', label: 'Two diamonds; to play', constraints: [length('D', 2)], nextNode: 'diamond-doubleton', state: { threeNTToPlay: true } },
-        ...explicitKeycardResponses('3D', 'D', session.shortageSuit, [length('D', 3)], ['3NT']).slice(2),
-      ] },
+      diamondSupportAsk(session.shortageSuit, 6),
     ] }),
-    'diamond-doubleton': { label: 'Diamonds did not fit', help: 'Opener has shown a doubleton diamond and offered 3NT.', actions: [] },
+    'diamond-doubleton': diamondDoubletonNode,
     'clubs-shortage': { label: 'Agree clubs and ask shortage', help: 'The source uses 3D as the club shortage enquiry.', actions: [{
       bid: '3D', label: 'Agree clubs and ask shortage', kind: 'relay', state: fit('C'),
       responses: singleSuitShortageResponses('C'),

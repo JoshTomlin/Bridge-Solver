@@ -128,9 +128,11 @@ the following auction-consistent interpretations:
 - Several no-shortage shape lists reverse the minor lengths or retain the
   other major's length. The implementation derives shapes from the opened
   six-card minor and the promised major length; e.g. R0165 becomes 3262.
-- R0128 assigns three/four keycards to the same answer. The standard 0/3,
-  1/4, 2/5 without/with queen alphabet is retained; the range escape duplicates
-  the original category rather than changing its keycard count. Other example
+- R0128 says the lower 4S has three keycards and upper 5D four keycards.
+  Under the confirmed void-first SKC ladder, this rung is **1/4**, so the lower
+  three-keycard example is inconsistent. The standard 0/3, 1/4, 2/5
+  without/with queen alphabet is retained; the range escape duplicates the
+  original category rather than changing its keycard count. Other example
   shorthand does not narrow a 1/4 or 0/3 answer to a false exact count.
 - R0107 generally splits low shortage immediately, but R0120 explicitly gives
   4D low shortage across the broad range. That specific heart-agreement table

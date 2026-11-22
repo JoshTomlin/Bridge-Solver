@@ -1,18 +1,21 @@
 // First full-auction slice, first/second-seat uncontested 1C. P0246–P0266,
 // P0285/P0328–P0333 and P0445–P0520. The generator's subset is disclosed;
 // the auction controller chooses a route from calls and the acting hand only.
-import { DECK, makeRng, handFeatures, bidIndex, getPracticeProfile } from './core.js';
-import { declarerFor } from './profile-utils.js';
+import { DECK, PRACTICE_PROFILES, makeRng, handFeatures, matchesConstraints, constraintLabel, bidIndex, getPracticeProfile, createPractice, drawConstrainedPair } from './core.js';
+import { clubSuitEntries, clubSuitEntryBid, clubSuitNodes, clubSuitActions, clubSuitPartnerBid, drawClubSuitDeal } from './club-suit-responses.js';
+import { declarerFor, hcp, length } from './profile-utils.js';
+import { naturalOpeningNode, naturalOpeningActions, naturalOpeningPartnerBid } from './natural-opening.js';
 import { createPassedPractice, passedActions, applyPassedCall, passedPartnerBid, validatePassedSession, PASSED_FAMILIES } from './passed-hand.js';
 export { PASSED_NOTES } from './passed-hand.js';
 import { chooseOpeningFamily, createSystemOpeningPractice, systemOpeningActions,
-  systemOpeningPartnerBid, applySystemOpeningCall, validateSystemOpeningSession, openingBidForFamily } from './opening-system.js';
+  systemOpeningPartnerBid, applySystemOpeningCall, validateSystemOpeningSession, openingBidForFamily, startRelay, joinOpeningRelay } from './opening-system.js';
 export { OPENING_FAMILIES, SYSTEM_OPENING_NOTES, openingBidFor, openingFamilyFor, openingTitle, isOpeningFamily } from './opening-system.js';
 
 export const OPENING_RULES_VERSION = 1;
 const names = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
 const feature = cards => handFeatures(cards, 'C');
 const other = major => major === 'H' ? 'S' : 'H';
+const GAME_CHOICE_SOURCE = 'Partnership clarification, 18 November 2026';
 const call = (bid, label, source) => ({ bid, label, source, kind: 'opening' });
 const freeze = value => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -22,9 +25,16 @@ const freeze = value => {
 };
 
 export const OPENING_NOTES = [
-  'First release: uncontested 1C with a balanced 14–19 opener, two/three cards in each major and no six-card minor.',
-  'Responder has one four/five-card major: weak 3–6 hands, or 12–19 with a four/five-card minor. Borderline invitations and two-major hands come later.',
+  'Uncontested 1C deals include major transfers, the artificial 1S response, positive diamonds, weak 1NT and natural weak jumps. The deal mix is for practice.',
+  'Over the positive 2C, opener has five documented rebids. The shortage questions name the subsequent relays. Practice pauses where P0439/P0440/P0442 omit the reply steps.',
+  'After a weak two-level suit jump, opener can pass or bid naturally to play. Only 2NT invites. The bot invites with 17+ and accepts with 6+ in these practice deals. Human invitation decisions are judgement calls.',
+  'The artificial 1S response is (7)8+, usually without a four-card major. With unbalanced clubs and diamonds, 2NT shows 14–16 and 3D shows 9–13. Both lead to the minor-fit shortage enquiries.',
+  'After 1C–1S the balanced opener usually rebids 1NT with 14/15 or 2C with 16–19. A marginal 16 can rebid 1NT. The bot uses 2C with 16. Over 1NT the bot stops with 8/9, preferring a five-card or longer minor with a shortage. Over 2C it requests 3NT with 2D.',
+  'The bot generally declines the Dappleton 3NT quantitative invitation. Human acceptance is a judgement call.',
   'Your seat stays fixed. Choose your opening response, rebid and continuation before the existing shortage and keycard enquiries.',
+  'After the 2C–2D puppet, 3NT or 3S shows five-plus in your major and offers 3NT/4M. The bot prefers 4M with three-card support; the human opener may choose either game. These bids do not promise slam interest.',
+  'For practice, a responder with a five-card major and fewer than three ace/king controls chooses the game-choice route; other generated hands retain the minor-interest routes. This is a bot policy, not a new partnership strength rule.',
+  'Direct 3H shows a solid six-plus major; the non-solid six-plus slam try uses the puppet. The 3D three-suiter and 3H description support natural game choices; their detailed shortage-enquiry continuations remain outside this increment.',
   'Supported alternatives determine the route. An unimplemented legal call is accepted as a contract choice with a labelled partner-Pass fallback and Undo.',
 ];
 
@@ -42,59 +52,191 @@ export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C', op
   const randomSeat = rng() < 0.5 ? 'North' : 'South';
   humanSeat ??= randomSeat;
   if (!['North', 'South'].includes(humanSeat)) throw new Error('Choose North or South.');
+  const { playerHand, partnerHand } = drawClubHands(seed, rng);
+  const session = { familyId: 'opening-club', systemId: 'outback-acol', seed,
+    playerSeat: 'North', partnerSeat: 'South', practiceRole: humanSeat === 'North' ? 'asker' : 'teller',
+    playerHand, partnerHand, major: 'C', trump: 'C', auction: [], constraints: [],
+    openingFacts: { North: [], South: [] },
+    wholeAuction: { rulesVersion: OPENING_RULES_VERSION, humanSeat },
+    opening: { node: 'open', major: null, puppet: false },
+    phase: 'opening', finished: false, revealed: false, contract: null, pendingAsk: null };
+  return advanceOpeningPartner(freeze(session));
+}
+
+function drawClubHands(seed, rng) {
   const major = rng() < 0.5 ? 'H' : 'S';
   const minor = rng() < 0.5 ? 'C' : 'D';
   const majorLength = rng() < 0.5 ? 4 : 5;
   const minorLength = majorLength === 5 && rng() < 0.5 ? 4 : 5;
   const weak = rng() < 0.3;
+  // Draw a response family independently of the seat and the old transfer
+  // draw. Only the deal generator sees this choice.
+  const responseDraw = makeRng(`whole-club-response:${seed}`)();
+  const relayProfiles = responseDraw >= 1 / 6 && responseDraw < 2 / 9 ? clubSpadeProfiles
+    : responseDraw >= 3 / 4 && responseDraw < 5 / 6 ? transferProfiles
+    : responseDraw >= 5 / 6 && responseDraw < 11 / 12 ? dappletonProfiles : null;
+  if (relayProfiles) {
+    const profile = relayProfiles[Math.floor(rng() * relayProfiles.length)];
+    const hands = drawClubRelayHands(profile,seed);
+    if (hands) return hands;
+  }
+  const noMajor = responseDraw < 1 / 3;
+  if (responseDraw >= 1 / 3 && responseDraw < 7 / 12) {
+    return drawClubSuitDeal(rng, responseDraw < 1 / 2);
+  }
+  if (responseDraw >= 7 / 12 && responseDraw < 2 / 3) {
+    const responder = [hcp(0,6),length('H',0,3),length('S',0,3),length('C',0,5),length('D',0,5)];
+    const opener = [hcp(14,19),{type:'balanced'},length('H',2,4),length('S',2,4)];
+    return drawConstrainedPair({constraints:responder,trump:'C',major:'C'},opener,rng);
+  }
+  if (responseDraw >= 2 / 3 && responseDraw < 3 / 4) return drawClubSuitDeal(rng,false,3);
+  if (responseDraw < 1 / 9) {
+    const rebid = responseDraw < 1 / 18 ? '3d' : '2nt';
+    const deal = createPractice({ profileId: `club-1s-${rebid}-minors`, seed });
+    return { playerHand: deal.partnerHand, partnerHand: deal.playerHand };
+  }
+  if (responseDraw < 1 / 6) {
+    const rebid = responseDraw < 5 / 36 ? '2h' : '2s';
+    const deal = createPractice({ profileId: `club-1s-${rebid}-keycard`, seed });
+    return { playerHand: deal.partnerHand, partnerHand: deal.playerHand };
+  }
   for (let attempt = 0; attempt < 1000000; attempt++) {
     const deck = [...DECK];
     for (let i = 0; i < 26; i++) {
       const j = i + Math.floor(rng() * (deck.length - i));
       [deck[i], deck[j]] = [deck[j], deck[i]];
     }
-    const playerHand = deck.slice(0, 13), partnerHand = deck.slice(13, 26);
-    const north = feature(playerHand), south = feature(partnerHand);
+    const northCards = deck.slice(0, 13), southCards = deck.slice(13, 26);
+    const north = feature(northCards), south = feature(southCards);
     if (north.hcp < 14 || north.hcp > 19 || !north.balanced
         || ![2, 3].includes(north.lengths.H) || ![2, 3].includes(north.lengths.S)
         || north.lengths.C > 5 || north.lengths.D > 5) continue;
-    if (south.lengths[major] !== majorLength || south.lengths[other(major)] > 3) continue;
-    if (weak ? south.hcp < 3 || south.hcp > 6
-      : south.hcp < 12 || south.hcp > 19 || south.lengths[minor] !== minorLength) continue;
-    const session = { familyId: 'opening-club', systemId: 'outback-acol', seed,
-      playerSeat: 'North', partnerSeat: 'South', practiceRole: humanSeat === 'North' ? 'asker' : 'teller',
-      playerHand, partnerHand, major: 'C', trump: 'C', auction: [], constraints: [],
-      openingFacts: { North: [], South: [] },
-      wholeAuction: { rulesVersion: OPENING_RULES_VERSION, humanSeat },
-      opening: { node: 'open', major: null, puppet: false },
-      phase: 'opening', finished: false, revealed: false, contract: null, pendingAsk: null };
-    return advanceOpeningPartner(freeze(session));
+    if (noMajor) {
+      if (south.hcp < 8 || south.hcp > 15 || south.lengths.H >= 4 || south.lengths.S >= 4 || south.lengths.D >= 6) continue;
+    } else {
+      if (south.lengths[major] !== majorLength || south.lengths[other(major)] > 3) continue;
+      if (weak ? south.hcp < 3 || south.hcp > 6
+        : south.hcp < 12 || south.hcp > 19 || south.lengths[minor] !== minorLength) continue;
+    }
+    return { playerHand: northCards, partnerHand: southCards };
   }
   throw new Error('No opening-practice deal found within the generation limit. Try another hand.');
 }
 
+// These relays already have complete response tables. Use their published
+// opening-rebid constraints to route into them from the actual transfer.
+const transferProfiles = PRACTICE_PROFILES.filter(profile => {
+  const auction = profile.initialAuction;
+  return auction?.length === 3 && auction[0].bid === '1C' && ['1D','1H'].includes(auction[1].bid);
+});
+const dappletonProfiles = PRACTICE_PROFILES.filter(profile => profile.family === 'Dappleton');
+const clubSpadeProfiles = ['club-1s-1nt-baron','club-1s-2c-baron','club-1s-2c-2d'].map(getPracticeProfile);
+const fitsOpener = (hand, profile) => matchesConstraints(hand, profile.partnerConstraints, profile.defaultTrump);
+const fitsResponder = (hand, profile) => matchesConstraints(hand, profile.playerConstraints, profile.defaultTrump);
+const transferChoices = response => transferProfiles.filter(profile => profile.initialAuction[1].bid === response);
+
+function clubOpeningEligible(f) {
+  return f.balanced
+    ? f.hcp >= 14 && f.hcp <= 19 && Math.max(f.lengths.H,f.lengths.S) < 5
+    : f.hcp >= 9 && f.lengths.C >= 5;
+}
+
+function clubResponse(hand) {
+  const f = feature(hand);
+  return clubSuitEntryBid(f) ?? (f.lengths.H >= 4 ? '1D' : f.lengths.S >= 4 ? '1H' : f.hcp >= 8 ? '1S' : '1NT');
+}
+
+function clubTransferRebid(hand, response, major) {
+  const choices = transferChoices(response).filter(profile => fitsOpener(hand, profile));
+  // The more descriptive reordered rebids take precedence over a basic
+  // natural rebid if their practice shapes overlap.
+  const profile = choices.find(profile => !profile.id.startsWith('minor-')) ?? choices[0];
+  return profile?.initialAuction.at(-1).bid ?? (feature(hand).hcp >= 18 ? '1NT' : `1${major}`);
+}
+
+function clubSpadeRebid(hand) {
+  const f = feature(hand);
+  if (f.balanced) return f.hcp >= 16 ? '2C' : '1NT';
+  if (fitsOpener(hand,clubSpadeProfiles[0])) return '1NT';
+  if (f.hcp >= 14 && f.hcp <= 16 && f.lengths.D >= 2 && f.lengths.D <= 3) {
+    if (f.lengths.S <= 1) return '2H';
+    if (f.lengths.H <= 1) return '2S';
+  }
+  if (f.hcp >= 16 && fitsOpener(hand,clubSpadeProfiles[2])) return '2C';
+  return f.hcp >= 14 ? '2NT' : '3D';
+}
+
+function drawClubRelayHands(profile, seed) {
+  const prefix = profile.initialAuction;
+  const response = prefix[1].bid;
+  const rebid = prefix[2].bid;
+  const dappleton = dappletonProfiles.includes(profile);
+  const major = response === '1D' ? 'H' : 'S';
+  for (let attempt = 0; attempt < 48; attempt++) {
+    const deal = createPractice({profileId:profile.id,seed:`${seed}:from-opening:${attempt}`});
+    const {North:north,South:south} = {[deal.playerSeat]:deal.playerHand,[deal.partnerSeat]:deal.partnerHand};
+    if (!clubOpeningEligible(feature(north)) || clubResponse(south) !== response) continue;
+    if (response === '1S') {
+      if (clubSpadeRebid(north) !== rebid) continue;
+      if (profile === clubSpadeProfiles[2] && fitsResponder(south,clubSpadeProfiles[1])) continue;
+    } else if (clubTransferRebid(north,response,major) !== rebid) continue;
+    if (dappleton && prefix.length > 4 && feature(south).controls < 3) continue;
+    return {playerHand:north,partnerHand:south};
+  }
+  return null;
+}
+
 export function openingSeat(session) {
   if (session.opening.system) return session.opening.seat;
-  return ['open', 'rebid', 'puppet', 'baron'].includes(session.opening.node) ? 'North' : 'South';
+  if (clubSuitNodes.includes(session.opening.node) || naturalOpeningNode(session.opening.node,session.auction)) return session.auction.at(-1).seat === 'North' ? 'South' : 'North';
+  return ['open', 'rebid', 'puppet', 'baron', 'game-choice', 'request-3nt', 'described-game',
+    'club-spade-rebid', 'club-spade-request', 'club-spade-contract', 'baron-quant'].includes(session.opening.node) ? 'North' : 'South';
 }
 
 export function openingActions(session) {
+  if (session.finished) return [];
   if (session.opening.system === 'passed') return passedActions(session);
   if (session.opening.system) return systemOpeningActions(session);
+  const naturalNode = naturalOpeningNode(session.opening.node, session.auction);
+  if (naturalNode) return naturalOpeningActions(naturalNode, session.auction);
+  if (clubSuitNodes.includes(session.opening.node)) return clubSuitActions(session.opening.node, session.auction);
   const major = session.opening.major;
   const transfer = major === 'H' ? '1D' : '1H';
   switch (session.opening.node) {
     case 'open': return [call('1C', 'Club opening', 'P0246')];
     case 'respond': return [
       call('1D', '4+ Hearts', 'P0251/P0261'), call('1H', '4+ Spades; fewer than 4 hearts', 'P0252/P0261'),
-      call('1S', '8+; usually no four-card major', 'P0253'), call('1NT', '0–6; usually no good four-card major', 'P0254'),
-      call('2C', '10+; single-suited 6+ Diamonds', 'P0255'), call('Pass', '0–4; 5+ Clubs', 'P0249'),
+      call('1S', '(7)8+; usually no four-card major', 'P0253/P0376–P0377'), call('1NT', '0–6(7); usually no good four-card major', 'P0254'),
+      ...clubSuitEntries, call('Pass', '0–4; 5+ Clubs', 'P0249'),
     ];
     case 'rebid': return [call(`1${major}`, `14–17 balanced; 2/3 ${names[major]}`, 'P0263/P0328'),
-      call('1NT', `18/19 balanced; 2/3 ${names[major]}`, 'P0285/P0332')];
+      call('1NT', `18/19 balanced; 2/3 ${names[major]}`, 'P0285/P0332'),
+      ...transferChoices(transfer).map(profile => call(profile.initialAuction[2].bid,profile.initialAuction[2].meaning,profile.source))]
+      .sort((a,b) => bidIndex(a.bid)-bidIndex(b.bid));
+    case 'club-spade-rebid': return [call('1NT', '14/15(16) balanced, or 14–16 with diamond shortage', 'P0381'),
+      call('2C', '16–19(20) balanced or strong unbalanced clubs', 'P0382'),
+      call('2H', '14–16, spade shortage, two or three diamonds and five-plus clubs', 'P0384'),
+      call('2S', '14–16, heart shortage, two or three diamonds and five-plus clubs', 'P0385'),
+      call('2NT', '14–16, five-plus clubs and four-plus diamonds', 'P0386'),
+      call('3D', '9–13, five-plus clubs and four-plus diamonds', 'P0388')];
+    case 'club-spade-continue':
+      return session.auction.at(-1).bid === '1NT'
+        ? [call('Pass', 'Play 1NT opposite the lower range', 'P0376'), call('2C', 'To play in clubs', 'P0393'),
+          call('2D', 'To play in diamonds', 'P0393'), call('2S', 'Baron enquiry', 'P0408'), call('3NT', 'Play 3NT', 'P0401')]
+        : [call('2D', 'Request 3NT or the strong unbalanced description', 'P0402/P0421'), call('2S', 'Baron enquiry', 'P0408'), call('3NT', 'Play 3NT', 'P0401–P0402')];
+    case 'club-spade-request': return [call('3NT', 'Balanced hand; accept the request', 'P0421')];
+    case 'club-spade-contract': return [call('Pass', 'Accept the selected contract', 'P0393/P0401'),
+      ...(session.auction.at(-1).bid === '3NT' ? [] : [call('3NT', 'Continue to game with an exceptional hand for the auction', 'P0393')])];
     case 'puppet': return [call('2D', 'Puppet acceptance', 'P0449/P0462')];
+    case 'game-choice': return [call(session.auction.at(-1).bid === '3NT' ? 'Pass' : '3NT', 'Choose 3NT', GAME_CHOICE_SOURCE),
+      call(`4${major}`, `Choose game in ${names[major]}`, GAME_CHOICE_SOURCE)];
+    case 'request-3nt': return [call('3NT', 'Accept the transfer to 3NT', 'P0457/P0470')];
+    case 'game-final': return [call('Pass', 'Accept opener’s game choice', GAME_CHOICE_SOURCE)];
+    case 'described-game': return [call('3NT', 'Choose 3NT', 'P0522/P0524'), call(`4${major}`, `Choose game in ${names[major]}`, 'P0522/P0524'),
+      ...(session.opening.description === 'three-suited' ? ['C','D'].map(s => call(`5${s}`, `Choose game in ${names[s]}`, 'P0522')) : [])];
     case 'baron': return [call('2NT', '4+ Clubs', 'P0504'), call('3C', '4+ Diamonds; fewer than 4 clubs', 'P0505'),
       call('3D', 'No four-card minor', 'P0506')];
+    case 'baron-quant': return [call('Pass','Play 3NT','P0515'),call('6NT','Accept the quantitative invitation','P0515')];
     case 'agree-minor': {
       const shown = session.auction.at(-1).bid === '2NT' ? 'C' : session.auction.at(-1).bid === '3C' ? 'D' : null;
       return [call('Pass', `Play ${session.auction.at(-1).bid}`, 'Partnership clarification: asker controls the contract'),
@@ -112,7 +254,11 @@ export function openingActions(session) {
         call('2S', `Baron; ${afterPuppet ? '5+' : '4'} ${names[major]}, 4/6-card minor, slam interest`, 'P0452/P0465'),
         call('2NT', `Transfer to Clubs; ${afterPuppet ? '5+' : '4'} ${names[major]}, exactly 5 clubs, slam interest`, 'P0453/P0466'),
         call('3C', `Transfer to Diamonds; ${afterPuppet ? '5+' : '4'} ${names[major]}, exactly 5 diamonds, slam interest`, 'P0454/P0467'),
-        call('3NT', 'Play 3NT', 'P0458/P0471'), call(`4${major}`, `Play 4${major}`, 'P0458/P0471'),
+        call('3D', `Three-suited; ${names[other(major)]} shortage${afterPuppet ? `; five ${names[major]}` : ''}`, 'P0455/P0468'),
+        call('3H', `${afterPuppet ? 'Non-solid' : 'Solid'} six-plus ${names[major]}${afterPuppet ? '; slam interest' : ''}`, afterPuppet ? 'P0449/P0462; P0456/P0469' : 'P0456/P0469'),
+        call('3S', afterPuppet ? `5+ ${names[major]}; choice of 3NT or 4${major}, opener declares notrump` : 'Request opener to bid 3NT', afterPuppet ? GAME_CHOICE_SOURCE : 'P0457/P0470'),
+        call('3NT', afterPuppet ? `5+ ${names[major]}; choice of 3NT or 4${major}` : 'Play 3NT', afterPuppet ? GAME_CHOICE_SOURCE : 'P0458/P0471'),
+        call(`4${major}`, `Play 4${major}`, 'P0458/P0471'),
       ].filter(action => action.bid === 'Pass' || bidIndex(action.bid) > bidIndex(last));
     }
     default: throw new Error('Unknown opening-practice node.');
@@ -144,7 +290,7 @@ function bridge(session, minor, baron = false) {
 
 /** Apply one call. Only the acting hand is read; partner's policy is separate. */
 export function applyOpeningCall(session, bid) {
-  if (session.opening.system === 'passed') return applyPassedCall(session,bid);
+  if (session.opening.system === 'passed') return applyPassedCall(session, bid);
   if (session.opening.system) return applySystemOpeningCall(session, bid);
   const action = openingActions(session).find(action => action.bid === bid);
   if (!action) return boundary({ ...session, auction: [...session.auction,
@@ -154,42 +300,124 @@ export function applyOpeningCall(session, bid) {
   const f = feature(hand), node = session.opening.node, major = session.opening.major;
   const next = { ...session, opening: { ...session.opening }, constraints: [...session.constraints],
     openingFacts: { North: [...session.openingFacts.North], South: [...session.openingFacts.South] },
-    auction: [...session.auction, { seat, bid, meaning: action.label, source: action.source }] };
+    auction: [...session.auction, { seat, bid, meaning: action.label, source: action.source,
+      callAlternatives: openingActions(session).map(({ bid, label }) => ({ bid, label })) }] };
   const require = (condition, reason) => { if (!condition) throw new Error(reason); };
   const fact = text => { if (next.openingFacts[seat].at(-1) !== text) next.openingFacts[seat].push(text); };
+  if (action.facts?.length) {
+    require(matchesConstraints(hand, action.facts, 'C'), `${bid} shows ${action.label}`);
+    if (seat === next.partnerSeat) next.constraints.push(...action.facts.map(c => ({ ...c, label: constraintLabel(c), source: action.source })));
+  }
+  if (action.forcing) next.auction.at(-1).forcing = true;
   if (node === 'open') {
-    require(f.balanced && f.hcp >= 14 && f.hcp <= 19, 'This 1C practice opening requires a balanced 14–19 hand.');
-    fact('1C opening; balanced 14–19 in this practice subset.');
+    require(clubOpeningEligible(f),
+      'This 1C practice opening requires 14–19 balanced without a five-card major, or 9+ unbalanced with five-plus clubs.');
+    fact('1C opening: balanced or clubs.');
     next.opening.node = 'respond';
   } else if (node === 'respond') {
-    if (['1D', '1H'].includes(bid)) {
+    if (bid === '1S') {
+      require(f.hcp >= 7 && Math.max(f.lengths.H, f.lengths.S) <= 4,
+        '1S shows (7)8+, usually without a four-card major. A four-card major must be poor.');
+      require(clubSuitEntryBid(f) !== '2C',
+        'With 10+ and a single-suited six-plus diamonds, respond 2C.');
+      next.constraints.push({ type: 'hcp', min: 7, label: '(7)8+ for the artificial 1S response', source: action.source });
+      next.auction.at(-1).forcing = true;
+      next.opening.node = 'club-spade-rebid';
+    } else if (['1D', '1H'].includes(bid)) {
       const suit = bid === '1D' ? 'H' : 'S';
       require(f.lengths[suit] >= 4, `This transfer shows at least four ${names[suit].toLowerCase()}.`);
       require(bid !== '1H' || f.lengths.H < 4, 'With both four-card majors, respond 1D to show hearts first.');
       next.opening.major = suit; next.opening.node = 'rebid';
       next.constraints.push({ type: 'length', suit, min: 4, label: `4+ ${names[suit]}` });
+    } else if (clubSuitEntries.some(row => row.bid === bid)) {
+      next.opening.node = bid === '2C' ? 'diamond-positive' : bid[0] === '3' ? 'weak-three' : 'weak-jump';
     } else if (bid === 'Pass') {
       require(f.hcp <= 4 && f.lengths.C >= 5, 'Passing 1C requires a very weak hand with five-plus clubs.');
       return finish(next);
     } else {
-      if (bid === '1S') require(f.hcp >= 7, 'The 1S response needs invitational or better values, about 8+.');
-      if (bid === '1NT') require(f.hcp <= 7, 'The 1NT response shows a weak hand, 0–6(7).');
-      if (bid === '2C') require(f.hcp >= 10 && f.lengths.D >= 6, 'The 2C response shows 10+ and six-plus diamonds.');
-      return boundary(next);
+      if (bid !== '1NT') return boundary(next);
+      require(f.hcp <= 7, 'The 1NT response shows a weak hand, 0–6(7).');
+      next.constraints.push({type:'hcp',min:0,max:7,label:'Weak response, 0–6(7)',source:'P0254'});
+      next.opening.node = 'ordinary-rebid';
     }
+  } else if (naturalOpeningNode(node,session.auction)) {
+    if (action.next === 'finish') return finish(next);
+    next.opening.node = action.next;
+  } else if (clubSuitNodes.includes(node)) {
+    fact(action.label);
+    if (bid === 'Pass') return finish(next);
+    if (action.forcing) {
+      const reason = `${bid} asks for shortage. ${action.source} does not specify the reply steps here. Undo to practise another continuation.`;
+      return freeze({ ...next, finished: true, phase: 'coverage-boundary', coverageBoundary: true,
+        sourceAmbiguity: true, undiscussedBid: bid, unsupportedReason: reason });
+    }
+    if (node === 'diamond-positive') next.opening.node = 'diamond-preference';
+    else if (node === 'weak-jump' && bid === '2NT') next.opening.node = 'weak-invite';
+    else next.opening.node = 'natural-final';
+  } else if (node === 'club-spade-rebid') {
+    if (bid === '2H' || bid === '2S') {
+      const profile = getPracticeProfile(`club-1s-${bid.toLowerCase()}-keycard`);
+      require(matchesConstraints(hand, profile.partnerConstraints, 'C'), `This rebid shows ${action.label} in the practice shapes.`);
+      fact(action.label);
+      return startRelay(next, profile.id);
+    }
+    if (bid === '2NT' || bid === '3D') {
+      require(!f.balanced && f.lengths.C >= 5 && f.lengths.D >= 4 && (bid === '3D' ? f.hcp >= 9 && f.hcp <= 13 : f.hcp >= 14 && f.hcp <= 16),
+        `This rebid shows ${action.label.toLowerCase()}.`);
+      fact(action.label);
+      return startRelay(next, `club-1s-${bid.toLowerCase()}-minors`);
+    }
+    const balancedRebid = f.balanced && (bid === '1NT' ? f.hcp >= 14 && f.hcp <= 16 : f.hcp >= 16 && f.hcp <= 19);
+    const profiles = clubSpadeProfiles.filter(profile => profile.initialAuction[2].bid === bid);
+    require(balancedRebid || profiles.some(profile => fitsOpener(hand,profile)),
+      `This rebid shows ${action.label.toLowerCase()} in the practice shapes.`);
+    next.opening.node = 'club-spade-continue';
+  } else if (node === 'club-spade-continue') {
+    if (bid === 'Pass') return finish(next);
+    const request = bid === '2D' && session.auction.at(-1).bid === '2C';
+    if (bid === '2S') {
+      const profile = clubSpadeProfiles[session.auction.at(-1).bid === '1NT' ? 0 : 1];
+      require(fitsResponder(hand,profile), 'This Baron practice route uses six clubs, four diamonds and 12–20 HCP.');
+      return joinOpeningRelay(next,profile.id);
+    }
+    if (request) {
+      next.auction.at(-1).forcing = true;
+      return joinOpeningRelay(next,clubSpadeProfiles[2].id);
+    }
+    next.opening.node = 'club-spade-contract';
+  } else if (node === 'club-spade-request' || node === 'club-spade-contract') {
+    if (bid === 'Pass') return finish(next);
+    next.opening.node = 'game-final';
   } else if (node === 'rebid') {
+    const profile = transferChoices(session.auction[1].bid).find(profile => profile.initialAuction[2].bid === bid);
+    if (profile) {
+      require(fitsOpener(hand,profile), `This rebid shows ${action.label.toLowerCase()} in the practice shapes.`);
+      fact(action.label);
+      return startRelay(next,profile.id);
+    }
     require(bid === '1NT' ? f.hcp >= 18 && f.hcp <= 19 : f.hcp >= 14 && f.hcp <= 17,
       bid === '1NT' ? 'The 1NT rebid shows 18/19 balanced in this practice subset.' : 'Accepting at one of the major shows 14–17 balanced in this practice subset.');
     fact(action.label); next.opening.node = 'continue';
   } else if (node === 'puppet') {
     next.opening.puppet = true; next.opening.node = 'after-puppet';
+  } else if (node === 'game-choice' || node === 'request-3nt' || node === 'described-game') {
+    if (bid === 'Pass') return finish(next);
+    next.opening.node = 'game-final';
+  } else if (node === 'baron-quant') {
+    if (bid === 'Pass') return finish(next);
+    next.opening.node = 'game-final';
+  } else if (node === 'game-final') {
+    return finish(next);
   } else if (node === 'baron') {
     require(bid === '2NT' ? f.lengths.C >= 4 : bid === '3C' ? f.lengths.C < 4 && f.lengths.D >= 4
       : f.lengths.C < 4 && f.lengths.D < 4, 'This Baron response does not match your minor-suit lengths.');
     fact(action.label); next.opening.node = 'agree-minor';
   } else if (node === 'agree-minor') {
     if (bid === 'Pass') return finish(next);
-    if (bid === '3NT') return boundary(next); // Quant acceptance needs agreed policy.
+    if (bid === '3NT') {
+      next.opening.node = 'baron-quant';
+      return freeze(next);
+    }
     const minor = bid.slice(1);
     require(f.lengths[minor] >= 4, `Agreeing ${names[minor]} requires four-plus cards in that suit.`);
     if (!session.opening.puppet) return boundary(next);
@@ -204,6 +432,31 @@ export function applyOpeningCall(session, bid) {
       return finish(next);
     }
     if (bid === '1NT') { require(f.hcp <= 7 && f.lengths[major] === 4, 'This signoff shows a weak hand with four cards in the major.'); return finish({ ...next, auction: [...next.auction, { seat: 'North', bid: 'Pass', meaning: 'Accept 1NT' }] }); }
+    if (session.opening.puppet && ['3S','3NT'].includes(bid)) {
+      require(f.lengths[major] >= 5, `This choice-of-games route shows five-plus ${names[major].toLowerCase()}.`);
+      next.constraints.push({ type: 'length', suit: major, min: 5, label: `5+ ${names[major]}; choice of games`, source: GAME_CHOICE_SOURCE });
+      next.opening.node = 'game-choice';
+      fact(action.label);
+      return freeze(next);
+    }
+    if (bid === '3S') { next.opening.node = 'request-3nt'; fact(action.label); return freeze(next); }
+    if (bid === '3D' || bid === '3H') {
+      if (bid === '3D') {
+        const shapes = major === 'S' ? session.opening.puppet ? ['5044'] : ['4144','4054','4045']
+          : session.opening.puppet ? ['0544'] : ['1444','0454','0445'];
+        const shape = ['S','H','D','C'].map(s => f.lengths[s]).join('');
+        require(shapes.includes(shape), `This three-suiter shows ${shapes.join(' or ')} (SHDC), short in the other major.`);
+        next.constraints.push({type:'shapes',values:shapes,label:action.label,source:action.source});
+        next.opening.description = 'three-suited';
+      } else {
+        require(f.lengths[major] >= 6, `This bid shows a ${session.opening.puppet ? 'non-solid' : 'solid'} six-plus ${names[major].toLowerCase()} suit; suit quality is your judgement.`);
+        next.constraints.push({type:'length',suit:major,min:6,label:action.label,source:action.source});
+        next.opening.description = session.opening.puppet ? 'long-major' : 'solid-major';
+      }
+      next.opening.node = 'described-game';
+      fact(action.label);
+      return freeze(next);
+    }
     if (bid === '3NT' || bid === `4${major}`) return finish({ ...next, auction: [...next.auction, { seat: 'North', bid: 'Pass', meaning: 'Accept final contract' }] });
     if (bid === '2C') { next.opening.node = 'puppet'; return freeze(next); }
     const expected = session.opening.puppet ? 5 : 4;
@@ -229,14 +482,31 @@ export function applyOpeningCall(session, bid) {
 /** Own cards and auction only. No completed deal, target profile or secret
  * recipe is passed to the bot's selection function. */
 export function openingPartnerBid(context) {
-  const { system, node, major, puppet, auction, hand }=context;
+  const { system, node, major, puppet, auction, hand, description } = context;
   if (system === 'passed') return passedPartnerBid(context);
   if (system) return systemOpeningPartnerBid(context);
   const f = feature(hand);
   if (node === 'open') return '1C';
-  if (node === 'respond') return f.lengths.H >= 4 ? '1D' : f.lengths.S >= 4 ? '1H' : f.hcp >= 8 ? '1S' : '1NT';
-  if (node === 'rebid') return f.hcp >= 18 ? '1NT' : `1${major}`;
+  if (node === 'respond') return clubResponse(hand);
+  const naturalNode = naturalOpeningNode(node,auction);
+  if (naturalNode) return naturalOpeningPartnerBid(naturalNode,auction,hand);
+  if (clubSuitNodes.includes(node)) return clubSuitPartnerBid(node, auction, hand, f);
+  if (node === 'rebid') return clubTransferRebid(hand,major === 'H' ? '1D' : '1H',major);
+  if (node === 'club-spade-rebid') return clubSpadeRebid(hand);
+  if (node === 'club-spade-continue') {
+    if (fitsResponder(hand,clubSpadeProfiles[0])) return '2S';
+    if (auction.at(-1).bid === '2C') return '2D';
+    if (f.hcp >= 10) return '3NT';
+    const minor = f.lengths.D > f.lengths.C ? 'D' : 'C';
+    return !f.balanced && f.lengths[minor] >= 5 ? `2${minor}` : 'Pass';
+  }
+  if (node === 'club-spade-request') return '3NT';
+  if (node === 'club-spade-contract') return 'Pass';
   if (node === 'puppet') return '2D';
+  if (node === 'game-choice') return f.lengths[major] >= 3 ? `4${major}` : auction.at(-1).bid === '3NT' ? 'Pass' : '3NT';
+  if (node === 'request-3nt') return '3NT';
+  if (node === 'game-final' || node === 'baron-quant') return 'Pass';
+  if (node === 'described-game') return f.lengths[major] >= (description === 'three-suited' ? puppet ? 3 : 4 : 2) ? `4${major}` : '3NT';
   if (node === 'baron') return f.lengths.C >= 4 ? '2NT' : f.lengths.D >= 4 ? '3C' : '3D';
   if (node === 'agree-minor') {
     const minor = auction.at(-1).bid === '2NT' ? 'C' : auction.at(-1).bid === '3C' ? 'D' : null;
@@ -245,9 +515,10 @@ export function openingPartnerBid(context) {
   if (f.hcp <= 7) return auction.at(-1).bid === `1${major}` && f.lengths[major] === 4 ? '1NT'
     : auction.at(-1).bid === '2D' && f.lengths.D < 5 ? '3NT' : 'Pass';
   if (!puppet && f.lengths[major] >= 5) return '2C';
+  if (puppet && f.lengths[major] === 5 && f.controls < 3) return '3NT';
   if (f.lengths.C === 5) return '2NT';
   if (f.lengths.D === 5) return '3C';
-  return '2S';
+  return puppet ? '2S' : '3NT';
 }
 
 export function advanceOpeningPartner(session) {
@@ -265,12 +536,17 @@ export function validateOpeningSession(session) {
   if (session.wholeAuction?.openingBid && session.wholeAuction.openingBid !== '1C') return validateSystemOpeningSession(session);
   if (session.wholeAuction?.rulesVersion !== OPENING_RULES_VERSION
       || !['North', 'South'].includes(session.wholeAuction?.humanSeat)
-      || session.practiceRole !== (session.wholeAuction.humanSeat === 'North' ? 'asker' : 'teller')
+      || session.practiceRole !== (session.wholeAuction.humanSeat === session.playerSeat ? 'asker' : 'teller')
       || !session.openingFacts || !Array.isArray(session.openingFacts.North) || !Array.isArray(session.openingFacts.South)) {
     throw new Error('Saved full-auction rules or settings are incompatible.');
   }
-  if (session.opening && !['open', 'respond', 'rebid', 'continue', 'puppet', 'after-puppet', 'baron', 'agree-minor'].includes(session.opening.node)) throw new Error('Saved opening node is invalid.');
-  if (session.opening && session.opening.node !== 'open' && session.opening.node !== 'respond'
+  if (session.opening && naturalOpeningNode(session.opening.node,session.auction)) {
+    if (!session.finished && openingSeat(session) !== session.wholeAuction.humanSeat) throw new Error('Saved opening turn is invalid.');
+    return;
+  }
+  if (session.opening && !['open', 'respond', 'rebid', 'continue', 'puppet', 'after-puppet', 'baron', 'agree-minor',
+    'game-choice', 'request-3nt', 'game-final', 'described-game', 'club-spade-rebid', 'club-spade-continue', 'club-spade-request', 'club-spade-contract', 'baron-quant', ...clubSuitNodes].includes(session.opening.node)) throw new Error('Saved opening node is invalid.');
+  if (session.opening && !['open','respond','game-final',...clubSuitNodes].includes(session.opening.node) && !session.opening.node.startsWith('club-spade-')
       && !['H', 'S'].includes(session.opening.major)) throw new Error('Saved transfer suit is invalid.');
   if (session.opening && !session.finished && openingSeat(session) !== session.wholeAuction.humanSeat) throw new Error('Saved opening turn is invalid.');
 }
