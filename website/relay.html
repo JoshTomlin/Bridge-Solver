@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="theme-color" content="#151c27">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Relay">
+    <meta name="apple-mobile-web-app-title" content="Bridge Lab">
     <link rel="manifest" href="./relay.webmanifest">
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/relay-192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/relay-180.png">
@@ -71,8 +71,16 @@
         <button type="button" class="button secondary typed-menu-button" data-open="hand-history-dialog" id="open-hand-history"><svg><use href="#icon-history"/></svg>Hand history</button>
         <p id="hand-history-save-status" class="muted is-error" role="status" aria-live="polite"></p>
         <details class="menu-section"><summary>System notes</summary><ul id="system-assumptions" class="constraint-list"></ul></details>
-        <details id="install-menu" class="menu-section"><summary id="install-title">Install app</summary><p id="install-help" class="muted"></p><button type="button" id="install-app" class="button primary" hidden>Install Relay</button><p id="offline-status" class="muted" role="status" aria-live="polite">Preparing offline practice…</p></details>
-        <p id="save-status" class="muted" role="status" aria-live="polite"></p><a class="quiet-link" href="./index.html">Back to play lab ↗</a>
+        <a class="button secondary typed-menu-button" href="./index.html">Open Bridge Lab</a>
+        <details id="install-menu" class="menu-section">
+          <summary id="install-title">App and updates</summary>
+          <p id="install-help" class="muted"></p>
+          <button type="button" id="install-app" class="button primary" hidden>Install Bridge Lab</button>
+          <p id="offline-status" class="muted" role="status">Preparing offline practice…</p>
+          <button type="button" id="update-app" class="button secondary" disabled>Check for updates</button>
+          <p id="update-status" class="muted" role="status"></p>
+        </details>
+        <p id="save-status" class="muted" role="status" aria-live="polite"></p>
       </div>
     </dialog>
     <dialog id="meanings-dialog" class="sheet" aria-labelledby="meanings-title">

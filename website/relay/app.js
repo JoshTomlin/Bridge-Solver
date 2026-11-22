@@ -83,7 +83,7 @@ function sampleStatus(message, error = false) {
 }
 
 function persistProgress() {
-  if (!session) return;
+  if (!session) return true;
   currentHandId ??= randomSeed();
   const saved = savePracticeProgress({ session, history, handId: currentHandId, preferences: {
     showHints: byId('show-hints').checked,
@@ -101,6 +101,7 @@ function persistProgress() {
   saveFailed = !saved.ok;
   renderSaveBadge();
   handArchive.save(session, history, currentHandId);
+  return saved.ok;
 }
 
 function renderSaveBadge() {
@@ -718,4 +719,4 @@ async function startPractice() {
 const handArchive = setupHandHistory({ getCurrentId: () => currentHandId, showCall: showCallDetail });
 startPractice().then(() => persistProgress());
 probeDds();
-setupInstall();
+setupInstall({ beforeReload: persistProgress });

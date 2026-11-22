@@ -27,7 +27,6 @@ export const staticFiles = [
   "relay/core.js",
   "relay/practice.js",
   "relay/slam-policy.js",
-  "relay/seat-view.js",
   "relay/opening-practice.js",
   "relay/club-suit-responses.js",
   "relay/opening-system.js",
@@ -38,7 +37,6 @@ export const staticFiles = [
   "relay/strong-club-two.js",
   "relay/passed-hand.js",
   "relay/major-opening.js",
-  "relay/passed-hand.js",
   "relay/progress.js",
   "relay/continuations.js",
   "relay/system.js",
@@ -84,18 +82,16 @@ export function buildWebsite({ sourceRoot = root, destination = path.join(root, 
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, contents);
   };
-  const offlineFiles = [`${assetPrefix}/relay.html`, 'relay.webmanifest',
-    ...[...files.keys()].filter(file => file.startsWith('icons/')),
-    ...[...files.keys()].filter(file => /^(relay|engine)\//.test(file)).map(file => `${assetPrefix}/${file}`)];
+  const offlineFiles = ['relay.webmanifest', ...[...files.keys()].filter(file => file.startsWith('icons/')),
+    ...[...files.keys()].filter(file => file !== 'relay-sw.js' && file !== 'relay.webmanifest' && !file.startsWith('icons/'))
+      .map(file => `${assetPrefix}/${file}`)];
   for (const [file, contents] of files) {
     if (file.endsWith('.html')) {
       let html = contents.toString().replace(/\b(src|href)="\.\/([^"\s]+\.(?:css|js))"/g,
         (_, attribute, asset) => `${attribute}="./${assetPrefix}/${asset}"`);
-      if (file === 'relay.html') {
-        html = html.replace('</head>', `<meta name="relay-build" content="${version}">\n  </head>`);
-        // Fetched as an immutable offline shell, served at the original URL.
-        write(`${assetPrefix}/${file}`, html);
-      }
+      html = html.replace('</head>', `<meta name="relay-build" content="${version}">\n  </head>`);
+      // Served at the original URL when offline so relative links still work.
+      write(`${assetPrefix}/${file}`, html);
       write(file, html);
     } else {
       const output = file === 'relay-sw.js' ? contents.toString()

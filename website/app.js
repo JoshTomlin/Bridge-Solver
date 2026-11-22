@@ -1,3 +1,4 @@
+import { setupInstall } from './relay/install.js';
 import { EngineClient } from "./engine-client.js";
 import { completeDefenderLayout, fourthHandCompletion, handRecordFromCards, highCardPoints, parseHandRecord } from "./deal-utils.js";
 import { clearRuns, deleteDeal, loadDeals, loadRuns, saveDeal, saveRun } from "./storage.js";
@@ -2493,3 +2494,4 @@ renderRuns();
 renderDealEditor();
 renderAdditionalLayouts();
 renderTable();
+setupInstall();

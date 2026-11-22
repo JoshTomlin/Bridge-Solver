@@ -15,24 +15,25 @@ Undoing completion hides them again.
 
 ## Install on your phone
 
-Open `relay.html` in Chrome, then use **⋮ → Install and create shortcut →
-Install** (some Chrome versions say **Add to Home screen**). The installed
-**Relay** icon opens directly into bidding in its own window. The Practice
-menu's **Install app** section also offers an install button when Chrome makes
-one available. On iPhone, use Safari's **Share → Add to Home Screen** and
-enable **Open as Web App** when offered.
+Open Bridge Lab in Chrome and use **⋮ → Install and create shortcut →
+Install** or **Add to Home screen**. On iPhone, use Safari's **Share → Add to
+Home Screen** and enable **Open as Web App** when offered. The home-screen
+app opens into Relay Practice. An existing Relay installation keeps the
+same app identity and auction storage.
 
-In Practice → Install app, wait for **Ready for offline practice** before
-going offline. This downloads the relay interface, all practice rules and the
-DDS engine. Subsequent launches can resume saved hands, deal new hands and
-analyse contracts without a connection. A complete new release downloads
-before replacing the previous offline release, and updates do not force a
-reload during bidding. Reopen online periodically to receive updates.
+To switch to the normal card-play and analysis tools, use **Practice menu →
+Open Bridge Lab** or tap the spade at the top of Relay. Tap **Relay practice**
+in Bridge Lab to return to the saved auction.
 
-Installation uses the same site and browser storage on Android Chrome; it
-does not upload or synchronise auctions. Other browsers/devices may keep a
-separate save. Native installation prompts and home-screen launching should
-also be checked on the user's physical phone.
+In Relay, use **Practice menu → App and updates → Check for updates**. Once
+a complete release downloads, tap **Restart to update**. Relay saves the
+current auction and undo history before restarting. Updates can download
+in the background while the app is online.
+
+Wait for **Ready for offline practice** before going offline. Both Relay
+Practice and Bridge Lab use the downloaded double-dummy engine. Auction
+progress, saved deals and analysis runs stay in the browser storage for
+this site. Other browsers and devices have separate storage.
 
 ## 2NT opening continuations
 

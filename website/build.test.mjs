@@ -49,10 +49,16 @@ test('HTML and the complete runtime graph share a content version', t => {
   assert.ok(!worker.includes('__RELAY_VERSION__') && !worker.includes('__RELAY_FILES__'));
   const offlineFiles = JSON.parse(worker.match(/const FILES = (\[.*\]);/)[1]);
   for (const file of offlineFiles) assert.ok(fs.existsSync(path.join(destination, file)), file);
-  for (const required of ['relay/app.js', 'relay/install.js', 'relay/sampling-worker.js', 'relay/evaluation-worker.js', 'engine/bridge_engine.wasm']) {
+  for (const required of ['index.html', 'relay.html', 'styles.css', 'app.js', 'storage.js', 'deal-utils.js',
+    'engine-client.js', 'engine-worker.js', 'relay/app.js', 'relay/install.js', 'relay/sampling-worker.js',
+    'relay/evaluation-worker.js', 'engine/bridge_engine.wasm']) {
     assert.ok(offlineFiles.includes(`${first.assetPrefix}/${required}`), `${required} works offline`);
   }
-  assert.deepEqual(fs.readFileSync(path.join(destination, first.assetPrefix, 'relay.html')), fs.readFileSync(path.join(destination, 'relay.html')));
+  for (const page of ['index.html','relay.html']) {
+    const html = fs.readFileSync(path.join(destination, page), 'utf8');
+    assert.match(html, new RegExp(`<meta name="relay-build" content="${first.version}">`));
+    assert.equal(fs.readFileSync(path.join(destination, first.assetPrefix, page), 'utf8'), html);
+  }
   let previous = first.version;
   for (const file of ['relay/families.js', 'relay/sampling-worker.js', 'relay/evaluation-worker.js', 'relay/relay.css', 'relay-sw.js', 'relay.webmanifest']) {
     fs.appendFileSync(path.join(sourceRoot, file), '\n/* changed */\n');

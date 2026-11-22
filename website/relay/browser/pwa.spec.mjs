@@ -91,7 +91,7 @@ test('install is offered only on request and never changes bidding progress', as
   await expect(page.locator('#install-app')).toBeHidden();
   expect(await saved(page)).toEqual(progress);
   await page.evaluate(() => dispatchEvent(new Event('appinstalled')));
-  await expect(page.locator('#install-title')).toHaveText('App and offline access');
+  await expect(page.locator('#install-title')).toHaveText('App and updates');
   await closeSheets(page);
   await fitsScreen(page);
 });
@@ -106,4 +106,26 @@ test('unavailable offline registration does not block ordinary bidding', async (
   const before = await saved(page);
   await clickBid(page, '2NT');
   expect((await saved(page)).session.auction.length).toBeGreaterThan(before.session.auction.length);
+});
+
+
+test('the installed app opens Bridge Lab offline and returns to the same auction', async ({ page, context }) => {
+  await page.goto('relay.html');
+  await ready(page);
+  await expect(page.locator('#offline-status')).toHaveText('Ready for offline practice.');
+  await clickBid(page,'2NT');
+  const before = await saved(page);
+  await context.setOffline(true);
+  await page.click('#settings-open');
+  await page.getByRole('link',{name:'Open Bridge Lab'}).click();
+  await expect(page).toHaveURL(/index\.html$/);
+  await expect(page.locator('#engine-pill')).toHaveClass(/is-ready/);
+  await expect(page.locator('#table .mini-card').first()).toBeVisible();
+  const manifest = new URL(await page.locator('link[rel="manifest"]').getAttribute('href'),page.url());
+  expect(manifest.pathname).toMatch(/relay\.webmanifest$/);
+  await page.getByRole('link',{name:'Relay practice'}).click();
+  await ready(page);
+  expect(await saved(page)).toEqual(before);
+  await page.click('#undo-bid');
+  expect((await saved(page)).session.auction).toHaveLength(before.history.at(-1).auction.length);
 });
