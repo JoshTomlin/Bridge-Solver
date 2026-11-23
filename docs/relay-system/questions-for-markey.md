@@ -205,8 +205,11 @@ quantitative 4NT after the 23+ rebid, the bot accepts with 25+ as a practice
 policy. Human judgement is unrestricted.
 
 **Q16 — weak 1NT decisions.** P0217 leaves super-accept quality to judgement.
-Practice uses four-plus support with 9 or 13 HCP for automatic super-accepts
-and accepts natural invitations at 12–13. Human calls are graded on the shown
+Josh identified ♠32 ♥AT43 ♦KQ765 ♣J9 as a minimum super-accept after the
+heart transfer. With four-plus support, the bot now also super-accepts on
+10 HCP with a five-plus-card suit and at most three controls, alongside the
+existing 9 and 13 HCP cases. These cutoffs are practice policy. The bot
+accepts natural invitations at 12–13. Human calls are graded on the shown
 shape. Detailed cue and keycard follow-ups remain incomplete.
 
 **Q17 — shortage replies after 1♣–2♣.** P0439–P0440 identify opener’s 2♥

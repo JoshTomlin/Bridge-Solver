@@ -1,12 +1,36 @@
 // Horton Two: Word P1060–P1292. Policy is separate from the source shape tables.
 import { SUITS, hcp, length, nextBid, relayStep, lastBid, bidIndex } from './profile-utils.js';
-import { shapeSet, oneShortage, fit, prefix, shortageResponses, name, game } from './source-utils.js';
+import { shapeSet, oneShortage, fit, prefix, shortageResponses, name, game, control } from './source-utils.js';
 
 export const HORTON_POLICY = Object.freeze({ minimumMaxHcp: 4, maxHcp: 8 });
 const shownSecond = opening => ({ D: 'D', H: 'H', S: 'C' })[opening];
 const hortonFit = (trump, extra = {}) => fit(trump, { keycardScheme: 'horton',
   relayPolicy: { skip3NT: true, skipMajorGame: false, skipBids: [game(trump)] }, ...extra });
 const hortonKickback = trump => ({ S: '4NT', H: '5C', D: '4H', C: '4D' })[trump];
+const forcingJumps = {
+  D: [['3H', 'P1070/P1080'], ['4C', 'P1083']],
+  H: [['4C', 'P1099'], ['4D', 'P1100']],
+  S: [],
+};
+
+function sideCueBids(after, trump) {
+  const cues = [];
+  for (let bid = nextBid(after); bid && bidIndex(bid) < bidIndex(game(trump)); bid = nextBid(bid)) {
+    const suit = bid.slice(1);
+    if (SUITS.includes(suit) && suit !== trump) cues.push(bid);
+  }
+  return cues;
+}
+
+function cueAction(bid, trump, label, source, playerConstraints) {
+  return { bid, kind: 'cue', trump, label, source, playerConstraints, state: hortonFit(trump),
+    responses: [
+      ...sideCueBids(bid, trump).map(cue => ({
+        bid: cue, label: `Control in ${name(cue[1])}`, constraints: [control(cue[1])], nextNode: 'forcing-suit',
+      })),
+      { bid: game(trump), label: `Choose game in ${name(trump)}`, constraints: [], nextNode: 'forcing-suit' },
+    ] };
+}
 
 export function createHortonProfile(opening, policy = HORTON_POLICY) {
   if (!Number.isInteger(policy.minimumMaxHcp) || policy.minimumMaxHcp < 0 || policy.minimumMaxHcp >= policy.maxHcp || policy.maxHcp > 8) throw new Error('Invalid Horton practice range policy.');
@@ -26,7 +50,6 @@ export function createHortonProfile(opening, policy = HORTON_POLICY) {
   const hidden = SUITS.filter(s => !['S', second].includes(s));
   const shape = predicate => shapeSet(n => [4, 5].includes(n.S) && n[second] >= 4
     && (opening === 'H' || n.H <= 3)
-    && (opening !== 'S' || n.D <= 3)
     && oneShortage(n, ['S', second]) && predicate(n));
   const types = [
     { bid: '3D', label: `Four spades, five-plus ${name(second)}`, fact: shape(n => n.S === 4 && n[second] >= 5) },
@@ -51,8 +74,16 @@ export function createHortonProfile(opening, policy = HORTON_POLICY) {
       ],
     }, invitation('3S', '4S'),
       ...(opening === 'D' ? [invitation('3D', '4D'), invitation('4D', '5D')]
-        : opening === 'H' ? [invitation('3H', '4H')] : [invitation('4C', '5C')]), ...kickbacks] },
+        : opening === 'H' ? [invitation('3H', '4H')] : [invitation('4C', '5C')]),
+      ...forcingJumps[opening].map(([bid, source]) => cueAction(bid, bid[1],
+        `Natural, strong ${name(bid[1])}; game forcing, setting trumps`, source, [length(bid[1], 5, 13)])),
+      ...kickbacks] },
     'after-invitation': session => ({ label: 'Partner accepted the invitation', signoffs: [lastBid(session)], actions: [] }),
+    'forcing-suit': session => ({
+      label: `Cue or play in ${name(session.trump)}`, trumpContractsOnly: true,
+      actions: sideCueBids(lastBid(session), session.trump).map(bid => cueAction(bid, session.trump,
+        `Control in ${name(bid[1])}`, 'P1069', [control(bid[1])])),
+    }),
     minimum: { label: 'Minimum Horton opening', help: opening === 'D' ? '3D is to play; 3H is the specialised game-forcing further enquiry.' : '3D is the game-forcing further enquiry. It distinguishes the three basic patterns without a separate five-five reply.',
       signoffs: ['3S', `3${second}`], actions: [{
         bid: opening === 'D' ? '3H' : '3D', label: 'Continue with the minimum-hand enquiry', kind: 'relay', responses: opening === 'D' ? [
@@ -98,18 +129,21 @@ export function createHortonProfile(opening, policy = HORTON_POLICY) {
     initialState: state(), startNode: 'entry', nodes,
     signoffs: ['3NT', '4S', game(second)],
     partnerConstraints: [hcp(0, policy.maxHcp), { ...shape(() => true), label: `Four/five spades and four-plus ${name(second)}; disclosed Horton opening-priority and shortage restrictions` }],
+    // Keep standalone 2S drills clear-cut while accepting either minor choice in play.
+    ...(opening === 'S' ? { dealPartnerConstraints: [length('D', 0, 3)] } : {}),
     playerConstraints: [hcp(16, 24), length('S', 3, 6), length(second, 2, 6)],
     assumptions: [
       'First/second-seat, uncontested Horton opening: four/five spades and four-plus in the other shown suit; 2S shows clubs as the second suit.',
       'For practice the bot mildly invites with 12–15 and five-plus cards in the preferred shown suit. Opener accepts with five-plus trumps and 6+ points. Human opener can accept or decline. Vulnerability and suit quality are matters of judgement in the notes (P1067).',
       'With 19+ points, five-plus trumps and at least three keycards in its preferred shown suit, the bot goes directly to Kickback. Otherwise a strong responder asks with 2NT.',
-      'Horton opening priority is preserved: four hearts uses 2H. The 2S practice entry also excludes four diamonds, avoiding the source’s suit-quality choice between 2D and 2S.',
+      'The game-forcing new-suit jumps set trumps. Human responders judge suit quality with five-plus cards. The bot jumps with 17+ HCP and six-plus cards including three of the top four. Opener’s bot cues its cheapest control, and a human opener can choose any truthful cue or bid game.',
+      'Horton gives four hearts priority. With four or more cards in both minors, 2D is preferred and suit quality can favour 2S. Standalone 2S deals exclude four diamonds.',
       `The source does not quantify “minimum”. The configurable practice policy currently uses 0–${policy.minimumMaxHcp} HCP minimum and ${policy.minimumMaxHcp + 1}–${policy.maxHcp} nonminimum; this is not a confirmed partnership rule.`,
       'Main replies are 3C minimum, 3D longer second suit, 3H longer spades, 3S four-four, then five-five no/high/low void. Minimum follow-up replies retain five-five possibilities without claiming exactly four in the second suit.',
       'Responder 3NT is always to play, including after 2S–2NT–3C–3D–3S. This follows the general rule over the contradictory printed 3NT-shortage-ask row at P1274.',
       'Shortage answers count ordinary steps. Later asks skip game in the agreed suit. Horton keycard answers are 0/1/2; the queen ask is offered after zero or one, and omitted after two.',
     ],
-    limitations: ['The vulnerable nine-count and poor-six-spade exceptions are excluded. Basic shape hands with two shortages are excluded; the separate five-five void cases are included. Last Train and cue-bid responses are not invented; competition remains outside this exercise.'],
+    limitations: ['The vulnerable nine-count and poor-six-spade exceptions are excluded. Basic shape hands with two shortages are excluded; the separate five-five void cases are included. Last Train replies and the auction beyond the forcing-jump cue and game choices remain open.'],
   };
 }
 

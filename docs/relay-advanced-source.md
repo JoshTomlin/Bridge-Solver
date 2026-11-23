@@ -65,7 +65,10 @@ weak option. The implemented practice narrows those boundaries to 9–10 and
 
 For the 1NT entries, the overlapping (11)12 / 12/13 / 14/15 boundaries are
 represented by disjoint practice ranges 11–12 / 13 / 14–15. Maximum hands
-describe shape immediately; minimum/middle hands can use the further 2NT relay.
+describe shape immediately. Over the minimum or middle answer, 2S asks shape
+after a heart response and 2NT asks after a spade response. P0651 specifies
+2M+1, while P1554/P1558 print 2NT for the heart sequence. Practice follows
+Josh’s 2S correction for hearts.
 
 The shape responses and lowest-level suit agreements follow the printed tables.
 Two copied diamond shapes are resolved from later explicit examples: P1600's

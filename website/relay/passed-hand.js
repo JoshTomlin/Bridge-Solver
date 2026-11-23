@@ -1,13 +1,14 @@
 // Uncontested third/fourth-seat agreements, main notes P1751–P1783,
 // P1808–P1830. This is a separate system from first/second-seat transfers.
-import { DECK, makeRng, handFeatures, matchesConstraints, bidIndex } from './core.js';
+import { DECK, makeRng, handFeatures, matchesConstraints, bidIndex, getPracticeProfile } from './core.js';
 import { declarerFor } from './profile-utils.js';
 import { SHAPES } from './source-utils.js';
 
 export const PASSED_RULES_VERSION = 1;
 export const PASSED_FAMILIES = ['PH', 'PH-C', 'PH-D', 'PH-M', 'PH-H', 'PH-S', 'PH-NT', 'PH-2NT', 'PH-2C'];
+export const passedSeatOpenings = Object.freeze(['1C', '1D', '1H', '1S', '1NT', '2NT', '2C']);
 export const PASSED_NOTES = [
-  'Uncontested third/fourth-seat practice. The first pass is real, and both hands are fixed. You remain displayed South.',
+  'Both hands are fixed. When you have the first partnership turn, you can pass or open a Horton two. When you practise the later opening, partner passes to enter that exercise.',
   'After clubs, maximum passed hands use artificial 1D: 6–8 nonvulnerable or 7–9 vulnerable. Practice treats the lower band as minimum; borderline judgement is not a new partnership rule.',
   'Club openers are 9–19 in third seat or 13–19 in fourth, balanced or a five-plus club hand. Sub-opening lead-directing choices and extreme shapes are not generated.',
   'After diamonds/majors, fit-showing 2/1 responses follow the printed 5–8 range and promise the side suit plus three-card support. These are not first-seat game forces.',
@@ -23,7 +24,25 @@ const len = (suit, min, max = 13) => ({ type: 'length', suit, min, max });
 const call = (bid, label, facts = [], source = 'P1751–P1830', next = null) => ({ bid, label, facts, source, next, kind: 'opening' });
 const freeze = value => { if (value && typeof value === 'object' && !Object.isFrozen(value)) { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
 const shapeFact = predicate => ({ type: 'shapes', values: SHAPES.filter(predicate).map(n => suits.map(s => n[s]).join('')) });
+const balancedShapes = shapeFact(n => ['3334', '2335', '2344'].includes(Object.values(n).sort().join('')));
 const pairs = n => n.H >= 5 && n.C >= 5 ? 'HC' : n.D >= 5 && n.C >= 5 ? 'DC' : n.H >= 5 && n.D >= 5 ? 'HD' : null;
+const maxPassedHcp = (bid, vulnerable) => vulnerable && ['1C', '1NT', '2NT', '2C'].includes(bid) ? 9 : 8;
+
+function firstTurn(session) {
+  const { bid, vulnerable } = session.opening;
+  return freeze({ ...session, auction: [], constraints: [],
+    openingFacts: { North: [], South: [] }, openingConstraintsBySeat: { North: [], South: [] },
+    opening: { system: 'passed', node: 'first-call', seat: 'South', bid, vulnerable, major: null } });
+}
+
+export function restorePassedFirstTurn(session) {
+  const [first, second] = session.auction;
+  // An old, untouched passed-hand entry can give the player the original turn.
+  if (!session.wholeAuction?.passedHand || session.wholeAuction.humanSeat !== 'South' || session.finished || session.revealed
+      || !['respond', 'controls'].includes(session.opening?.node) || session.auction.length !== 2
+      || first?.bid !== 'Pass' || first.callAlternatives || second?.seat !== 'North') return session;
+  return firstTurn(session);
+}
 
 function shapeReply(n) {
   const exact = suits.map(s => n[s]).join('');
@@ -65,12 +84,21 @@ export function passedActions(session) {
   const { node, bid: opening, vulnerable, major } = session.opening;
   const maximum = vulnerable ? [7, 9] : [6, 8];
   let rows;
-  if (node === 'open') {
+  if (node === 'first-call') rows = [
+    call('Pass', 'Pass your first turn', [hcp(0, maxPassedHcp(opening, vulnerable))], 'Passed-hand practice', 'open'),
+    ...['D', 'H', 'S'].map(strain => {
+      const profile = getPracticeProfile(`horton-${strain.toLowerCase()}`);
+      return call(`2${strain}`, `Horton: four/five spades and four-plus ${names[profile.initialState.hortonSecondSuit]}; weak`,
+        profile.partnerConstraints, 'P1061–P1065', 'horton');
+    }),
+  ];
+  else if (node === 'open') {
     const strongRange = ({ '1NT': [19, 21], '2NT': [22, 23] })[opening];
-    const facts = opening === '2C' ? [] : strongRange ? [hcp(...strongRange), { type: 'balanced' }]
+    const facts = opening === '2C' ? [hcp(24, 25), balancedShapes]
+      : strongRange ? [hcp(...strongRange), { type: 'balanced' }]
       : opening === '1C' ? [hcp(session.wholeAuction.openingSeatNumber === 4 ? 13 : 9, 19), { type: 'anyOf', options: [[{ type: 'balanced' }], [len('C', 5)]] }]
       : [hcp(9, 19), len(opening.slice(1), opening === '1D' ? 4 : 5)];
-    const range = opening === '2C' ? '; strong game force, control responses' : strongRange ? `; ${opening === '1NT' ? '(19)20–21' : '22–23'} balanced` : '';
+    const range = opening === '2C' ? '; 24–25 balanced in this subset, control responses' : strongRange ? `; ${opening === '1NT' ? '(19)20–21' : '22–23'} balanced` : '';
     rows = [call(opening, `${opening} opening in ${session.wholeAuction.openingSeatNumber === 3 ? 'third' : 'fourth'} seat${range}`, facts, opening === '2C' ? 'P1300–P1304/P1829' : 'P1753/P1808/P1828–P1829', opening === '2C' ? 'controls' : 'respond'), call('Pass', 'Pass out the deal')];
   }
   else if (node === 'controls') rows = [call('2D', 'Zero, one or four controls', [{ type: 'anyOf', options: [0, 1, 4].map(n => [{ type: 'controls', equals: n }]) }], 'P1302', 'strong-rebid'),
@@ -151,10 +179,11 @@ export function applyPassedCall(session, bid) {
   if (!row) return pause(next, 'This passed-hand continuation is not yet transcribed. Undo to try a listed source route.');
   const hand = seat === session.playerSeat ? session.playerHand : session.partnerHand;
   if (!matchesConstraints(hand, row.facts, session.trump)) throw new Error(`This call shows: ${row.label}.`);
-  if (bid === 'Pass') return terminal(next);
+  if (bid === 'Pass' && session.opening.node !== 'first-call') return terminal(next);
   if (row.next === 'unresolved') return freeze({ ...pause(next, 'P1780 repeats clubs/diamonds already shown by 2H. The intended 2S meaning needs clarification; no shape fact has been invented.'), sourceAmbiguity: true });
   next.openingFacts[seat].push(row.label);
-  next.openingConstraintsBySeat[seat].push(...row.facts.map(fact => ({ ...fact, label: row.label, source: row.source })));
+  // The Horton profile supplies its public opening facts at the handover.
+  if (row.next !== 'horton') next.openingConstraintsBySeat[seat].push(...row.facts.map(fact => ({ ...fact, label: row.label, source: row.source })));
   next.constraints = next.openingConstraintsBySeat[next.partnerSeat];
   next.opening = { ...next.opening, node: row.next, seat: seat === 'North' ? 'South' : 'North', shownFacts: row.facts };
   if (session.opening.node === 'respond' && /^1[HS]$/.test(bid)) next.opening.major = bid.slice(1);
@@ -166,6 +195,7 @@ export function applyPassedCall(session, bid) {
 
 export function passedPartnerBid({ node, bid, vulnerable, auction, major, hand, shownFacts = [] }) {
   const f = feat(hand), n = f.lengths, minimum = vulnerable ? 7 : 6;
+  if (node === 'first-call') return 'Pass';
   if (node === 'open') return bid;
   if (node === 'controls') return [0, 1, 4].includes(f.controls) ? '2D' : [2, 5].includes(f.controls) ? '2H' : '2S';
   if (node === 'strong-rebid') return '2NT';
@@ -228,17 +258,28 @@ export function passedPartnerBid({ node, bid, vulnerable, auction, major, hand, 
   throw new Error('No passed-hand partner action for this public node.');
 }
 
+const passedRng = (family, position, vulnerable, seed) => makeRng(`passed:${family}:${position}:${vulnerable}:${seed}`);
+const randomPassedOpening = rng => passedSeatOpenings[Math.floor(rng() * passedSeatOpenings.length)];
+const passedSuitFamilies = ['PH-C', 'PH-D', 'PH-H', 'PH-S'];
+
+export function mixedPassedFamily(seed, openingSeatNumber, vulnerable) {
+  const original = randomPassedOpening(passedRng('PH', openingSeatNumber, vulnerable, seed));
+  if (/^1[CDHS]$/.test(original)) return 'PH';
+  const rng = makeRng(`mixed-passed-opening:${seed}`);
+  return rng() < 1 / 3 ? 'PH' : passedSuitFamilies[Math.floor(rng() * passedSuitFamilies.length)];
+}
+
 export function createPassedPractice({ seed, humanSeat, openingFamily = 'PH', openingSeatNumber = 3, vulnerable = false } = {}) {
   if (![3, 4].includes(Number(openingSeatNumber))) throw new Error('Choose third or fourth seat.');
   openingSeatNumber = Number(openingSeatNumber); vulnerable = vulnerable === true;
-  const rng = makeRng(`passed:${openingFamily}:${openingSeatNumber}:${vulnerable}:${seed}`);
-  const choices = ['1C', '1D', '1H', '1S', '1NT', '2NT', '2C'];
+  const rng = passedRng(openingFamily, openingSeatNumber, vulnerable, seed);
+  const choices = passedSeatOpenings;
   const selected = openingFamily.slice(3);
-  const bid = openingFamily === 'PH' ? choices[Math.floor(rng() * choices.length)] : selected === 'M' ? rng() < 0.5 ? '1H' : '1S' : selected === 'NT' ? '1NT' : ['2NT', '2C'].includes(selected) ? selected : `1${selected}`;
+  const bid = openingFamily === 'PH' ? randomPassedOpening(rng) : selected === 'M' ? rng() < 0.5 ? '1H' : '1S' : selected === 'NT' ? '1NT' : ['2NT', '2C'].includes(selected) ? selected : `1${selected}`;
   const drawnHumanSeat = rng() < 0.5 ? 'North' : 'South';
   humanSeat ??= drawnHumanSeat;
   if (!['North', 'South'].includes(humanSeat) || !choices.includes(bid)) throw new Error('Choose a supported passed-hand opening and seat.');
-  const maxPassed = bid === '1C' || ['1NT', '2NT', '2C'].includes(bid) ? vulnerable ? 9 : 8 : 8;
+  const maxPassed = maxPassedHcp(bid, vulnerable);
   const strong = ({ '1NT': [20, 21], '2NT': [22, 23], '2C': [24, 25] })[bid];
   const forceClub = bid === '1C' && rng() < 0.4;
   for (let attempt = 0; attempt < 750000; attempt++) {
@@ -249,25 +290,26 @@ export function createPassedPractice({ seed, humanSeat, openingFamily = 'PH', op
     if (strong ? n.hcp < strong[0] || n.hcp > strong[1] || !['4333', '4432', '5332'].includes(n.shape.join(''))
       : n.hcp < (bid === '1C' && openingSeatNumber === 4 ? 13 : 9) || n.hcp > 19 || forceClub && n.hcp !== 19) continue;
     if (!strong && (bid === '1C' ? !n.balanced && n.lengths.C < 5 : bid === '1D' ? n.lengths.D < 4 || n.balanced && n.lengths.D < 6 : n.lengths[bid.slice(1)] < 5)) continue;
-    const constraints = [hcp(0, maxPassed)];
-    return freeze({ familyId: 'opening-passed', systemId: 'outback-acol', seed: String(seed),
+    return firstTurn({ familyId: 'opening-passed', systemId: 'outback-acol', seed: String(seed),
       playerSeat: 'North', partnerSeat: 'South', playerHand: north, partnerHand: south,
       practiceRole: humanSeat === 'North' ? 'asker' : 'teller', major: strong ? 'C' : bid.slice(1), trump: strong ? 'C' : bid.slice(1),
       dealerSeat: openingSeatNumber === 3 ? 'South' : 'East',
-      auction: [{ seat: 'South', bid: 'Pass', meaning: `Passed hand, at most ${maxPassed} HCP in this practice subset` }], constraints,
-      openingFacts: { North: [], South: [`Passed hand; at most ${maxPassed} HCP in this practice subset`] },
-      openingConstraintsBySeat: { North: [], South: constraints },
       wholeAuction: { rulesVersion: 1, passedRulesVersion: PASSED_RULES_VERSION, passedHand: true, humanSeat, openingBid: bid, openingFamily, openingSeatNumber, vulnerable },
-      opening: { system: 'passed', node: 'open', seat: 'North', bid, vulnerable, major: null },
+      opening: { bid, vulnerable },
       phase: 'opening', pendingAsk: null, finished: false, revealed: false, contract: null });
   }
   throw new Error('No passed-hand deal found in the generation limit. Try another seed.');
 }
 
 export function validatePassedSession(session) {
+  const first = session.auction?.[0];
+  const firstCall = session.opening?.node === 'first-call';
+  const validEntry = firstCall ? !first && session.wholeAuction.humanSeat === 'South'
+    : first?.seat === 'South' && (first.bid === 'Pass' || !session.opening);
   if (session.wholeAuction?.passedRulesVersion !== PASSED_RULES_VERSION || ![3, 4].includes(session.wholeAuction.openingSeatNumber)
-    || !['North', 'South'].includes(session.wholeAuction.humanSeat) || session.auction[0]?.seat !== 'South' || session.auction[0]?.bid !== 'Pass') throw new Error('Saved passed-hand practice is incompatible.');
+    || !['North', 'South'].includes(session.wholeAuction.humanSeat)) throw new Error('Saved passed-hand practice is incompatible.');
   if (session.opening && (session.opening.system !== 'passed' || session.opening.bid !== session.wholeAuction.openingBid || !passedActions(session).length))
     throw new Error('Saved opening node is invalid.');
+  if (!validEntry) throw new Error('Saved passed-hand practice is incompatible.');
   if (session.opening && !session.finished && session.opening.seat !== session.wholeAuction.humanSeat) throw new Error('Saved passed-hand turn is invalid.');
 }

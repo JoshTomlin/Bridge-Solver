@@ -9,7 +9,7 @@ import { auctionCallDetails } from './auction-study.js';
 import { attachBidPreview } from './bid-preview.js';
 import { shortBidDescription } from './bid-descriptions.js';
 import { setupInstall } from './install.js';
-import { OPENING_NOTES, SYSTEM_OPENING_NOTES, PASSED_NOTES, openingTitle, openingBidFor, openingFamilyFor, isOpeningFamily } from './opening-practice.js';
+import { OPENING_NOTES, SYSTEM_OPENING_NOTES, PASSED_NOTES, openingTitle, openingBidFor, openingFamilyFor, humanIsOpener, isOpeningFamily } from './opening-practice.js';
 import { setupHandHistory } from './hand-history-ui.js';
 
 const byId = (id) => document.getElementById(id);
@@ -106,7 +106,7 @@ function persistProgress() {
 
 function renderSaveBadge() {
   const badge = byId('role-badge');
-  const role = session.opening ? session.wholeAuction.humanSeat === 'North' ? 'Opener' : 'Responder' : session.practiceRole === 'teller' ? 'Teller' : 'Asker';
+  const role = session.opening ? humanIsOpener(session) ? 'Opener' : 'Responder' : session.practiceRole === 'teller' ? 'Teller' : 'Asker';
   const text = `${role}${committedPracticeMode === 'mixed' ? ' · Just bid' : committedPracticeMode === 'auction' ? ' · Whole auction' : ''}${saveFailed ? ' · Not saved' : ''}`;
   if (badge.textContent !== text) badge.textContent = text;
   badge.classList.toggle('is-error', saveFailed);
@@ -163,7 +163,7 @@ function renderAuction() {
     heading.textContent = seat[0] + (seat === view.playerSeat ? ' · You' : '');
     heading.setAttribute('aria-label', `${seat}${seat === view.playerSeat ? ', you' : seat === view.partnerSeat ? ', partner' : ''}`);
     heading.classList.toggle('is-you', seat === view.playerSeat);
-    heading.classList.toggle('is-dealer', seat === view.auction[0]?.seat);
+    heading.classList.toggle('is-dealer', seat === (view.dealerSeat ?? view.auction[0]?.seat));
   }
   if (changed) auctionPinned = true;
   fitAuction();
@@ -232,11 +232,12 @@ function render() {
   const hints = byId('show-hints').checked;
   const view = practiceView(session);
   const teller = view.role === 'teller';
-  const profile = session.wholeAuction ? { name: openingTitle(session), assumptions: session.wholeAuction.passedHand ? PASSED_NOTES : openingBidFor(session)==='1C'?OPENING_NOTES:SYSTEM_OPENING_NOTES } : getPracticeProfile(session.familyId);
+  const waitingForOpening = committedPracticeMode === 'mixed' && session.opening?.node === 'open';
+  const profile = session.wholeAuction ? { name: waitingForOpening ? 'Opening bid' : openingTitle(session), assumptions: session.wholeAuction.passedHand ? PASSED_NOTES : waitingForOpening || openingBidFor(session)!=='1C'?SYSTEM_OPENING_NOTES:OPENING_NOTES } : getPracticeProfile(session.familyId);
   const stopped = session.finished || session.revealed;
   const paused = stopped && !session.revealed && Boolean(session.undiscussedBid);
   const actions = availablePracticeActions(session);
-  byId('practice-badge').textContent = session.wholeAuction ? bidLabel(openingTitle(session)) : bidLabel(auctionFamilyForProfile(session.familyId).name);
+  byId('practice-badge').textContent = bidLabel(session.wholeAuction ? profile.name : auctionFamilyForProfile(session.familyId).name);
   renderSaveBadge();
   const mixed = byId('practice-mode').value !== 'focused';
   byId('family-settings').hidden = mixed;
@@ -248,7 +249,10 @@ function render() {
   byId('study-menu-title').textContent = mixed ? 'Current hand and replay' : 'Study a particular branch';
   for (const id of ['auction-family', 'practice-role', 'profile']) byId(id).disabled = busy || mixed;
   const studying = Boolean(committedStudyProfileId);
-  byId('practice-scope').textContent = session.wholeAuction?.passedHand ? `${session.wholeAuction.openingSeatNumber === 3 ? 'Third' : 'Fourth'}-seat opening · ${session.wholeAuction.vulnerable ? 'Vulnerable' : 'Not vulnerable'} · Uncontested`
+  const passed = session.wholeAuction?.passedHand;
+  const earlySeat = passed && humanIsOpener(session) && session.wholeAuction.humanSeat === 'South';
+  const position = ((earlySeat ? ['First', 'Second'] : ['Third', 'Fourth'])[session.wholeAuction?.openingSeatNumber - 3]);
+  byId('practice-scope').textContent = passed ? `${position}-seat ${session.opening?.node === 'first-call' ? 'decision' : 'opening'} · ${session.wholeAuction.vulnerable ? 'Vulnerable' : 'Not vulnerable'} · Uncontested`
     : committedPracticeMode === 'auction' ? 'Bid from the opening · Random opener/responder · Coverage in System notes.'
     : committedPracticeMode === 'mixed' ? 'From the opening · Random supported opening and seat.' : studying ? 'Branch study' : 'Random branch';
   byId('new-deal').setAttribute('aria-label', studying ? 'Next study hand' : 'New hand');
@@ -258,9 +262,10 @@ function render() {
     ? 'Describe your hand. Partner uses its own cards and your answers: below 4½ keycards stops in game; 4½ or 5 bids slam; all five plus the queen permits grand tries.'
     : 'Ask, interpret partner’s answers, then choose and assess your contract.';
   byId('partner-seat').textContent = `${view.partnerSeat} · Partner`;
-  const roleName = session.opening ? session.wholeAuction.humanSeat === 'North' ? 'Opener' : 'Responder' : teller ? 'Teller' : 'Asker';
+  const openingRole = session.opening && humanIsOpener(session);
+  const roleName = session.opening ? openingRole ? 'Opener' : 'Responder' : teller ? 'Teller' : 'Asker';
   byId('player-seat').textContent = `${view.playerSeat} · You · ${roleName}`;
-  byId('partner-info-title').textContent = `${view.partnerSeat} · Partner · ${session.opening ? session.wholeAuction.humanSeat === 'North' ? 'Responder' : 'Opener' : teller ? 'Asker' : 'Teller'}`;
+  byId('partner-info-title').textContent = `${view.partnerSeat} · Partner · ${session.opening ? openingRole ? 'Responder' : 'Opener' : teller ? 'Asker' : 'Teller'}`;
   byId('player-info-title').textContent = `${view.playerSeat} · You · ${roleName}`;
   const features = handFeatures(view.playerHand, session.major);
   byId('player-hand').innerHTML = `<div class="sr-only">${handMarkup(view.playerHand)}</div>${cardMarkup(view.playerHand)}`;

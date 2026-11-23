@@ -3,8 +3,8 @@
 // definitions or letting the hidden teller hand influence the next question.
 import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex, getPracticeProfile, practiceNode, handFeatures } from './core.js';
 import { declarerFor } from './profile-utils.js';
-import { isForcingOpeningCall } from './opening-system.js';
-import { createOpeningPractice, openingActions, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
+import { isForcingOpeningCall, openingBoundary } from './opening-system.js';
+import { createOpeningPractice, openingChoices, selectOpening, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
 import { slamAction } from './slam-policy.js';
 
 export function practiceView(session) {
@@ -31,11 +31,15 @@ export function advanceAsker(session) {
   const trump = session.trump ?? session.major;
   const node = practiceNode(session);
   const last = session.auction.findLast(call => call.bid !== 'Pass')?.bid;
-  const usualContracts = new Set(['3NT', '6NT', '7NT', ...[4, 5, 6, 7]
-    .filter(level => level >= (['C', 'D'].includes(trump) ? 5 : 4)).map(level => `${level}${trump}`)]);
-  if (session.familyId && !session.familyId.startsWith('major-')) {
-    for (const bid of [...(getPracticeProfile(session.familyId).signoffs ?? []), ...(node?.signoffs ?? [])]) usualContracts.add(bid);
+  const usualContracts = new Set([4, 5, 6, 7]
+    .filter(level => level >= (['C', 'D'].includes(trump) ? 5 : 4)).map(level => `${level}${trump}`));
+  if (!node?.trumpContractsOnly) {
+    for (const bid of ['3NT', '6NT', '7NT']) usualContracts.add(bid);
+    if (session.familyId && !session.familyId.startsWith('major-')) {
+      for (const bid of getPracticeProfile(session.familyId).signoffs ?? []) usualContracts.add(bid);
+    }
   }
+  for (const bid of node?.signoffs ?? []) usualContracts.add(bid);
   // Human control does not require the recall coach to park on a side-suit
   // answer when its questions end. Offer a normal contract and final Pass.
   const signoffs = actions.filter(action => action.kind === 'signoff');
@@ -59,6 +63,8 @@ export function advanceAsker(session) {
       // direct ask. Otherwise keep the source's range/shape enquiry.
       hortonResponse = actions.find(a => a.askType === 'keycard' && a.trump === best);
     }
+    hortonResponse ??= f.hcp >= 17 ? actions.find(action => action.kind === 'cue' && n[action.trump] >= 6
+      && ['A', 'K', 'Q', 'J'].filter(rank => session.playerHand.includes(action.trump + rank)).length >= 3) : undefined;
   }
   const slam = slamAction({ hand: session.playerHand, trump, phase: session.phase,
     constraints: session.constraints, actions, auction: session.auction });
@@ -99,7 +105,7 @@ export function createTrainingPractice({ role = 'asker', auctionMode = false, ..
 
 export function availablePracticeActions(session) {
   if (session.finished || session.revealed) return [];
-  if (session.opening) return openingActions(session);
+  if (session.opening) return openingChoices(session);
   if (session.practiceRole !== 'teller') return availableActions(session);
   // Some source predicates share a call. Show all meanings of that call;
   // never identify the correct response by examining the human's cards.
@@ -122,9 +128,12 @@ export function practiceCalls(session) {
     .filter(bid => bidIndex(bid) > minimum);
   // The contract fallback cannot turn an explicitly forcing call into a signoff.
   if (!isForcingOpeningCall(session) || discussed.has('Pass')) bids.push('Pass');
+  const openingTurn = session.opening?.node === 'open';
   return Object.freeze(bids.map(bid => Object.freeze(discussed.has(bid)
     ? { ...discussed.get(bid), discussed: true }
-    : { bid, discussed: false, kind: 'undiscussed', label: 'Undiscussed. Choose this contract; partner will pass. Undo is available.' })));
+    : { bid, discussed: false, kind: 'undiscussed', label: openingTurn && bid !== 'Pass'
+      ? 'This opening is outside practice coverage.'
+      : 'Undiscussed. Choose this contract; partner will pass. Undo is available.' })));
 }
 
 export function applyPracticeBid(session, bid) {
@@ -133,16 +142,29 @@ export function applyPracticeBid(session, bid) {
     throw new Error(`${session.auction.at(-1).bid} is forcing. Choose a rebid.`);
   }
   if (!call) throw new Error(`${bid} is not an available response or legal call at this point in the auction.`);
-  if (!call.discussed) return acceptUndiscussedContract(session,bid);
+  if (!call.discussed) {
+    if (session.opening?.node === 'open' && bid !== 'Pass') {
+      const auction = [...session.auction, { seat: practiceView(session).playerSeat, bid, meaning: call.label }];
+      return openingBoundary({ ...session, auction }, 'This opening is outside practice coverage. Undo to choose another call.');
+    }
+    return acceptUndiscussedContract(session,bid);
+  }
   if (session.opening) {
-    const result=applyOpeningCall(session,bid);
+    const routed = selectOpening(session, bid);
+    const result = applyOpeningCall(routed, bid);
     // A documented but unimplemented continuation is also playable. Preserve
     // the public description; the fallback adds no partner response facts.
     if (result.coverageBoundary) {
       if (result.sourceAmbiguity || isForcingOpeningCall(result)) return result;
       return acceptUndiscussedContract(result,bid,true);
     }
-    const next=advanceOpeningPartner(result);
+    let next;
+    try {
+      next = advanceOpeningPartner(result);
+    } catch (error) {
+      if (routed === session) throw error;
+      return openingBoundary(result, 'Partner has no implemented response to this opening on these cards. Undo to explore another call.');
+    }
     return !next.opening && next.practiceRole === 'teller' ? advanceAsker(next) : next;
   }
   if (session.practiceRole !== 'teller') {

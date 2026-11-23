@@ -58,6 +58,10 @@ test('the home-screen launch resumes offline and deals new mixed hands with the 
   await setNextSeed(page, 'pwa-mixed-opening-13'); // Fourth-seat 1D, human responder.
   await newHand(page);
   await expect.poll(async () => (await saved(page)).session.seed).not.toBe(progress.session.seed);
+  const decision = await saved(page);
+  expect(decision.session.auction).toEqual([]);
+  expect(decision.session.opening.node).toBe('first-call');
+  await clickBid(page, 'Pass');
   const nextProgress = await saved(page);
   expect(nextProgress.preferences.practiceMode).toBe('mixed');
   expect(nextProgress.session.wholeAuction).toMatchObject({passedHand:true,openingSeatNumber:4,humanSeat:'South',openingBid:'1D'});

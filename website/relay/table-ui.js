@@ -6,16 +6,17 @@ export function auctionRounds(calls, finished = false, firstSeat = 'North') {
   const rounds = [];
   let row;
   let previous = 3;
-  if (!calls.length && !finished) {
-    const opening = Array(4).fill(null);
-    opening[firstSeat === 'South' ? 2 : 0] = { kind: 'pending' };
-    return [opening];
-  }
-  if (calls.length && ['East', 'West'].includes(firstSeat)) {
+  if ((calls.length || !finished) && ['East', 'West'].includes(firstSeat)) {
     row = Array(4).fill(null);
     previous = AUCTION_SEATS.indexOf(firstSeat);
     row[previous] = { kind: 'opponent', bid: 'Pass', seat: firstSeat };
     rounds.push(row);
+  }
+  if (!calls.length && !finished) {
+    const column = (AUCTION_SEATS.indexOf(firstSeat) + (row ? 1 : 0)) % 4;
+    if (!row || column === 0) { row = Array(4).fill(null); rounds.push(row); }
+    row[column] = { kind: 'pending' };
+    return rounds;
   }
   for (const [index, call] of calls.entries()) {
     const column = AUCTION_SEATS.indexOf(call.seat);

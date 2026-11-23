@@ -40,8 +40,10 @@ for (const bid of ['2D','2H','2S']) table(bid, [
   ...(bid==='2D'?['2H','2S','3C']:bid==='2H'?['2S','3C','3D']:['3C','3D','3H']).map(call=>[call,'Natural; to play']),
   ['2NT', 'Horton range and shape enquiry'],
   ['3S', 'Mild invitation in spades'], ['4NT', 'Kickback in spades (0/1/2)'],
-  ...(bid === '2D' ? [['3D','Mild invitation to 4D'], ['4D','Mild invitation to 5D'], ['4H','Kickback in diamonds (0/1/2)']]
-    : bid === '2H' ? [['3H','Mild invitation in hearts'], ['5C','Kickback in hearts (0/1/2)']]
+  ...(bid === '2D' ? [['3D','Mild invitation to 4D'], ['3H','Natural, strong hearts; game forcing, setting trumps'],
+    ['4C','Natural, strong clubs; game forcing, setting trumps'], ['4D','Mild invitation to 5D'], ['4H','Kickback in diamonds (0/1/2)']]
+    : bid === '2H' ? [['3H','Mild invitation in hearts'], ['4C','Natural, strong clubs; game forcing, setting trumps'],
+      ['4D','Natural, strong diamonds; game forcing, setting trumps'], ['5C','Kickback in hearts (0/1/2)']]
     : [['4C','Mild invitation in clubs'], ['4D','Kickback in clubs (0/1/2)'], ['4H','Natural; to play']]),
 ]);
 

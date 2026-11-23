@@ -2,6 +2,7 @@ import { getPracticeProfile, handFeatures, matchesConstraints, bidIndex, practic
 import { availablePracticeActions, practiceView, advanceAsker } from './practice.js';
 import { validateOpeningSession, isOpeningFamily, OPENING_FAMILIES, openingFamilyFor } from './opening-practice.js';
 import { SYSTEM } from './system.js';
+import { restorePassedFirstTurn } from './passed-hand.js';
 
 export const PROGRESS_KEY = 'bridge-lab.relay-progress.v1';
 const VERSION = 1;
@@ -28,7 +29,9 @@ function validateSession(session) {
       || !matchesConstraints(session.partnerHand, session.constraints, session.trump)) {
     throw new Error('Saved hands do not match the auction constraints.');
   }
-  if (!Array.isArray(session.auction) || !session.auction.length && !(session.opening?.node === 'open' && session.wholeAuction?.humanSeat === 'North')) throw new Error('Saved auction is missing.');
+  const openingPending = session.opening?.node === 'open' && session.wholeAuction?.humanSeat === 'North'
+    || session.opening?.node === 'first-call' && session.wholeAuction?.passedHand;
+  if (!Array.isArray(session.auction) || !session.auction.length && !openingPending) throw new Error('Saved auction is missing.');
   for (const call of session.auction) {
     if (!call || !['North', 'South'].includes(call.seat)) throw new Error('Saved auction seat is invalid.');
     if (call.bid !== 'Pass') bidIndex(call.bid);
@@ -71,6 +74,12 @@ function preferencesFor(preferences = {}, session) {
   };
 }
 
+function openingDealSettings(session) {
+  if (!session.wholeAuction) return null;
+  const { openingBid = '1C', ...settings } = session.wholeAuction;
+  return JSON.stringify({ ...settings, openingBid: session.dealOpeningBid ?? openingBid });
+}
+
 /** Save committed bidding state immediately; never depend on an unload event.
  * Samples, solver results and running workers are deliberately not persisted. */
 export function savePracticeProgress({ session, history, preferences, handId }, storage) {
@@ -95,7 +104,7 @@ export function loadPracticeProgress(storage) {
     for (const previous of saved.history) {
       validateSession(previous);
       if ((!saved.session.wholeAuction && previous.familyId !== saved.session.familyId)
-          || JSON.stringify(previous.wholeAuction) !== JSON.stringify(saved.session.wholeAuction)
+          || openingDealSettings(previous) !== openingDealSettings(saved.session)
           || previous.seed !== saved.session.seed
           || practiceView(previous).playerSeat !== practiceView(saved.session).playerSeat
           || practiceView(previous).playerHand.join() !== practiceView(saved.session).playerHand.join()
@@ -106,10 +115,16 @@ export function loadPracticeProgress(storage) {
     // Pending coach questions are uncommitted decisions. Recompute late asks
     // under the current policy, including Undo frames, without changing cards
     // or any actual call already made in the auction.
-    const refreshCoach = session => session.practiceRole === 'teller' && session.pendingAsk && !session.finished && !session.revealed
-      && ['post-keycard', 'suit-ask', 'unsupported'].includes(session.phase) ? advanceAsker(session) : session;
-    const session = refreshCoach(saved.session);
-    return { progress: { session, history: saved.history.map(refreshCoach),
+    const refreshCoach = session => {
+      if (session.practiceRole !== 'teller' || !session.pendingAsk || session.finished || session.revealed) return session;
+      const oldHeartSupportAsk = session.familyId === 'split-d-h-1nt' && session.phase === 'family'
+        && session.nodeId === 'further' && session.pendingAsk.bid === '2NT';
+      return oldHeartSupportAsk || ['post-keycard', 'suit-ask', 'unsupported'].includes(session.phase)
+        ? advanceAsker(session) : session;
+    };
+    const refresh = session => refreshCoach(restorePassedFirstTurn(session));
+    const session = refresh(saved.session);
+    return { progress: { session, history: saved.history.map(refresh),
       ...(typeof saved.handId === 'string' && saved.handId.length > 0 && saved.handId.length <= 100 ? { handId: saved.handId } : {}),
       preferences: preferencesFor(saved.preferences ?? {}, session) } };
   } catch (error) {

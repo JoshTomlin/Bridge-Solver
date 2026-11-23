@@ -1,4 +1,4 @@
-import { openingTitle } from './opening-practice.js';
+import { humanIsOpener, openingTitle } from './opening-practice.js';
 import { getPracticeProfile, handFeatures, SUITS, RANKS } from './core.js';
 import { tableView, tableSeat, tableContract } from './seat-view.js';
 import { auctionCallDetails } from './auction-study.js';
@@ -22,7 +22,7 @@ export function createHandRecord(session, history, { id, createdAt = new Date().
     id, createdAt, updatedAt,
     title: session.wholeAuction ? openingTitle(session) : getPracticeProfile(session.familyId).name,
     seed: session.seed,
-    role: session.wholeAuction ? session.wholeAuction.humanSeat === 'North' ? 'Opener' : 'Responder'
+    role: session.wholeAuction ? humanIsOpener(session) ? 'Opener' : 'Responder'
       : session.practiceRole === 'teller' ? 'Teller' : 'Asker',
     humanSeat: view.playerSeat,
     ...(view.dealerSeat ? { dealerSeat: view.dealerSeat } : {}),

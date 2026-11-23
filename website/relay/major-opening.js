@@ -155,6 +155,7 @@ export function ordinaryMajorRows({system,node,auction}) {
     }
     case 'major-diamond-rebid': return [
       r(`2${m}`,'9–13; fewer than three diamonds','P1024',[P(9,13),L('D',0,2)],'major-diamond-continue'),
+      ...(m==='H'?[force('2S','Natural reverse; four-plus spades, 14+','P1021 (inferred)',[P(14),L('S',4)],'major-diamond-continue')]:[]),
       r('2NT','14+ balanced or specified semi-balanced shapes','P1025/P1046',[P(14),OR([B,L('D',2,3)],[P(14,15),shape(m,6,2,3,2)],[P(14,15),shape(m,6,3,2,2)],[P(14,15),shape(m,6,2,2,3)],[shape(m,5,2,4,2)])],'major-diamond-enquiry'),
       force('3C','Four-plus clubs; 14+','P1026',[P(14),L('C',4)]),
       r('3D','Three/four diamonds; 9–13','P1027',[P(9,13),L('D',3,4)],'major-diamond-continue'),
@@ -170,7 +171,7 @@ export function ordinaryMajorRows({system,node,auction}) {
       r('3NT','Two diamonds; 14–17 balanced','P1051',[P(14,17),B,L('D',2,2)]),
       r('4NT','Two diamonds; 18/19 balanced','P1052',[P(18,19),B,L('D',2,2)]),
     ];
-    case 'major-diamond-continue': return [
+    case 'major-diamond-continue': return m==='H' && last==='2S' ? games() : [
       r('Pass',`Play ${last}`,'Asker chooses the contract',[],'finish'),
       ...(last!== '3D' ? [r('2NT','Natural invitation','P1033/P1040',[],'major-invitation')]:[]),
       ...(m==='H'&&last==='2H'?[force('2S','Four-plus spades; game force','P1032',[P(12),L('S',4)],'major-describe')]:[]),
@@ -292,7 +293,7 @@ export function ordinaryMajorPartnerBid(context,hand) {
   }
   if(node==='major-diamond-rebid') {
     if(f.hcp<=13) return first(['3D',`2${m}`]);
-    return first(['2NT',...(f.lengths.D>=3?[`3${om}`]:[]),`3${m}`,'3C','3NT']);
+    return first(['2NT',...(f.lengths.D>=3?[`3${om}`]:[]),...(m==='H'?['2S']:[]),`3${m}`,'3C','3NT']);
   }
   if(node==='major-heart-rebid') return first([
     ...(f.lengths.H===3?['4H','3H']:[]),...(f.hcp<=13?['2S','4C','4D','4S']:[]),
@@ -323,7 +324,10 @@ export function ordinaryMajorPartnerBid(context,hand) {
     if(last==='3D'&&f.lengths.D>=3) return '5D';
     return '3NT';
   }
-  if(node==='major-diamond-continue') return f.hcp<=11?'Pass':first([...(f.lengths.D>=6?['3D']:[]),'3NT']);
+  if(node==='major-diamond-continue') {
+    if(m==='H' && last==='2S') return f.lengths.S>=4?'4S':'3NT';
+    return f.hcp<=11?'Pass':first([...(f.lengths.D>=6?['3D']:[]),'3NT']);
+  }
   if(node==='major-heart-continue') {
     if (last === '3H') return f.hcp <= 11 ? 'Pass' : '4H';
     return first([...(f.hcp >= 12 ? ['3S','3D','3C'] : []), ...(f.lengths.H >= 6 ? ['3H'] : []),

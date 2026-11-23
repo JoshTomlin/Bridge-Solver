@@ -57,7 +57,7 @@ jump and 2NT invitation. Seed 2 gives 1C–1S–2S–3D–3NT with two diamonds.
 |---|---|
 | Positive diamonds after 1C–2C | The notes give the shortage asks after 2H/2S or 3D–3H without their answer order. The trainer pauses with the original cards and Undo available. See Q17. |
 | Other artificial 1S rebids (P0383, P0387, P0389–P0390) | The remaining direct long-club and two-suiter branches still need complete early and later continuations. |
-| Horton forcing jumps and Last Train | Range/shape, invitations and direct keycards are playable. Forcing-jump cue meanings and Last Train continuations still need a full table. |
+| Horton Last Train and slam after a forcing jump | Range/shape, invitations, direct keycards and forcing-jump cues to game are playable. Last Train replies and later slam continuations remain open. |
 | Weak 1NT and 2NT | Weak-1NT competitive methods and further slam continuations remain incomplete. Exclusion replies after 2NT are unconfirmed (Q13). |
 | Passed hand | Third/fourth-seat uncontested openings are dealt. P1780, some subsequent rebids, and competitive continuations remain incomplete. |
 | Extreme shapes and judgement | Two-shortage hands and some opening exceptions fall outside individual relay subsets. Additional natural rebids and partnership-specific slam decisions need examples. |
@@ -92,7 +92,7 @@ publicly disclosed practice subset, not every source-note continuation.
 | Club relays | 7 | Two Baron paths, two known-shortage paths, two minor two-suiters, strong 2C–2D resolution | Full role swaps, direct long-suit continuations and four-club exceptions incomplete |
 | Dappleton | 12 | Eight exact-five-minor transfers, four fixed five-major/four-minor Baron entries | Broader balanced ranges, quantitative/both-major/three-suited/solid-suit routes incomplete |
 | Split-range/support | 6 | Four direct raises, two 1NT support entries, shape/fit, cues and keycards | Natural invitations and broader subjective slam judgement incomplete |
-| Horton | 3 | Main/minimum enquiries, shape, shortage, zero/one/two KC and queen rule | Minimum threshold provisional; Last Train/cue and competitive replies incomplete |
+| Horton | 3 | Main/minimum enquiries, shape, shortage, zero/one/two KC, queen rule, forcing-jump cues and game | Minimum threshold provisional. Last Train and competitive replies remain open. |
 | Reordered opener rebids | 13 | Five no-support single-suiters, four three-card-support entries, four reverses, strength escapes | Some natural continuations and discretionary bidding over a final contract excluded |
 | Reordered mini–mega | 10 | New high/low bid positions, partscore escape, non-serious/control route | Opener-takes-control keycard, Exclusion and extreme-shape upgrades excluded |
 | Whole-auction openings | Whole auction and Just bid | First/second-seat 1C/1D/1M, weak 1NT, strong 2C, Horton twos and strong 2NT. All 63 study profiles reachable from the opening in either seat | See [opening coverage](opening-auctions.md) for playable routes and pending slam/competitive agreements |

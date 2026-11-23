@@ -13,6 +13,12 @@ The selector also offers separate [uncontested passed-hand openings](passed-hand
 with third/fourth-seat and vulnerability controls. Those ranges and meanings
 must not be inferred from the first/second-seat tables below.
 
+In the mixed modes, the sampler keeps one quarter of ordinary 2NT and balanced
+strong 2C draws. It reallocates the other draws to 1C, 1D, 1M, weak 1NT and
+Horton. Within the passed-hand group, it keeps one third of strong notrump
+and 2C draws and reallocates the rest to one-level suit openings. Named
+opening families deal from their own ranges. These are practice weights.
+
 Both hands exist before the first bid. Each bot decision receives only its
 own cards and the public auction. A sampling stratum is never stored as an
 answer or supplied to the bot. When a route reaches an existing relay,
@@ -115,6 +121,8 @@ Whole-auction **1H**, **1S**, **1M** and **Mix all openings** now include:
 - **1M–2D:** minimum major rebid or diamond support; stronger natural rebids,
   2NT and its 3C enquiry. Replies distinguish three diamonds, 5422 with clubs,
   6322 with six of the major, and 14–17 versus 18/19 balanced with two diamonds.
+  After 1H–2D, opener's 2S is treated as a natural reverse with four-plus
+  spades and 14+, inferred from P1021. Responder can choose game.
 - **1S–2H:** minimums, heart support, natural stronger rebids, 2NT and the
   3C enquiry, including the explicit six-spade/two-heart 14–16 category.
 

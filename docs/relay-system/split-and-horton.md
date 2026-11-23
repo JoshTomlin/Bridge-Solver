@@ -46,15 +46,16 @@ club raises also have the higher no-shortage four-card-support answers below.
 
 | Answer to 2C | Range in practice | Next step |
 |---|---|---|
-| 2D | 13, middle band | 2NT continues to shape; 2M can be played when legal |
-| 2M | 11–12, minimum | 2NT continues to shape, or pass 2M |
+| 2D | 13, middle band | 2S asks for shape after a heart response. 2NT asks after a spade response. 2M is to play. |
+| 2M | 11–12, minimum | 2S asks for shape over 2H. 2NT asks over 2S. Pass is to play. |
 | Above 2M | 14–15, maximum | Describe the applicable shape immediately |
 
 The maximum shape replies retain their printed bids in the shape table.
-The minimum/middle 2NT follow-up also uses that shape table; **the heart/diamond
-1NT entry omits the four-spade 2NT answer**, because four spades were denied
-by the earlier 1NT route. These are disjoint practice interpretations of the
-source's `(11)12 / 12/13 / 14/15` bands, not new partnership boundaries.
+The lower bands use the 2M+1 enquiry in P0651, following Josh’s 2S correction
+for hearts. P1554/P1558 instead print 2NT for the heart sequence. The heart
+shape replies remain 3C for four clubs and 3D for six-plus diamonds with no
+undisclosed four-card suit. The earlier 1NT rules out the four-spade reply.
+The trainer uses disjoint ranges for the source’s overlapping boundaries.
 
 ### No-shortage 14–15 club-raise policy
 
@@ -107,6 +108,11 @@ After the cue, use ordinary Kickback, or 4NT when the lower Kickback is passed.
 Responses count from the actual ask. The diamond/heart 3S shortage enquiry
 therefore receives 3NT high / 4C low, counting 3NT as an answer.
 
+After the heart-support 3D answer, responder can use **4H as direct diamond
+Kickback** (P1655–P1657). If responder first asks shortage with 3S, **4H is
+to play**. Responder can instead agree diamonds with 4D. Opener’s 4H then
+shows a heart control and responder’s 4NT asks diamond keycards (P1680–P1682).
+
 ## Horton Two openings and 2NT
 
 Sources: P1060–P1292. In this practice set opener has 0–8 HCP, four/five
@@ -117,12 +123,32 @@ Vulnerable nine-count and poor-six-spade exceptions are excluded.
 |---|---|---|
 | 2D | Spades + diamonds | No four hearts |
 | 2H | Spades + hearts | Four hearts selects this entry |
-| 2S | Spades + clubs | No four hearts or four diamonds; avoids the subjective minor-opening choice |
+| 2S | Spades + clubs | No four hearts. When both minors qualify, 2D is preferred and suit quality can favour 2S. Standalone 2S deals omit four diamonds. |
 
 Responder can bypass the 2NT enquiry. Direct Kickback is 4NT for spades,
 4H for diamonds after 2D, 5C for hearts after 2H, and 4D for clubs after
 2S. The three replies show 0, 1 and 2 keycards (P1070, P1085–P1118, P1289).
 After 2S, a direct 4H is natural and to play.
+
+### Game-forcing new-suit jumps
+
+| Opening | Responder’s jump | Game in the agreed suit |
+|---|---|---|
+| 2D | 3H, strong natural hearts | 4H |
+| 2D | 4C, strong natural clubs | 5C |
+| 2H | 4C, strong natural clubs | 5C |
+| 2H | 4D, strong natural diamonds | 5D |
+
+The jump sets trumps. Opener can bid game or cue an ace, king, singleton
+or void below game. Responder can sign off or cue an available control.
+The bot cues its cheapest control as opener. As responder it uses these
+jumps with 17+ HCP and six-plus cards including three of the top four.
+Human responders judge suit quality with five-plus cards.
+[P1069–P1070 and the opening tables](../system-sources/main-notes.txt#L1022)
+
+To practise the four rows in order, select the opening family and replay
+`horton-jump-8`, `horton-jump-181`, `horton-jump-57` or
+`horton-jump-335`. Both seats use the same cards on replay.
 
 3S mildly invites in spades over any Horton opening. After 2S, 4C mildly
 invites 5C. After 2H, 3H invites 4H. After 2D, 3D invites 4D and 4D invites

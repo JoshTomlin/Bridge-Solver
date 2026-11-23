@@ -5,11 +5,11 @@ import { DECK, PRACTICE_PROFILES, makeRng, handFeatures, matchesConstraints, con
 import { clubSuitEntries, clubSuitEntryBid, clubSuitNodes, clubSuitActions, clubSuitPartnerBid, drawClubSuitDeal } from './club-suit-responses.js';
 import { declarerFor, hcp, length } from './profile-utils.js';
 import { naturalOpeningNode, naturalOpeningActions, naturalOpeningPartnerBid } from './natural-opening.js';
-import { createPassedPractice, passedActions, applyPassedCall, passedPartnerBid, validatePassedSession, PASSED_FAMILIES } from './passed-hand.js';
+import { createPassedPractice, passedActions, applyPassedCall, passedPartnerBid, validatePassedSession, PASSED_FAMILIES, passedSeatOpenings, mixedPassedFamily } from './passed-hand.js';
 export { PASSED_NOTES } from './passed-hand.js';
-import { chooseOpeningFamily, createSystemOpeningPractice, systemOpeningActions,
-  systemOpeningPartnerBid, applySystemOpeningCall, validateSystemOpeningSession, openingBidForFamily, startRelay, joinOpeningRelay } from './opening-system.js';
-export { OPENING_FAMILIES, SYSTEM_OPENING_NOTES, openingBidFor, openingFamilyFor, openingTitle, isOpeningFamily } from './opening-system.js';
+import { chooseOpeningFamily, createSystemOpeningPractice, createSystemOpeningState, systemOpeningActions, firstSeatOpenings,
+  systemOpeningPartnerBid, applySystemOpeningCall, validateSystemOpeningSession, openingBidFor, openingBidForFamily, startRelay, joinOpeningRelay } from './opening-system.js';
+export { OPENING_FAMILIES, SYSTEM_OPENING_NOTES, openingBidFor, openingFamilyFor, openingTitle, humanIsOpener, isOpeningFamily } from './opening-system.js';
 
 export const OPENING_RULES_VERSION = 1;
 const names = { C: 'Clubs', D: 'Diamonds', H: 'Hearts', S: 'Spades' };
@@ -43,9 +43,10 @@ export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C', op
   const selected = chooseOpeningFamily(openingFamily, seed);
   if (PASSED_FAMILIES.includes(selected)) {
     const rng = makeRng(`passed-settings:${seed}`);
-    return advanceOpeningPartner(createPassedPractice({ seed, humanSeat, openingFamily:selected,
-      openingSeatNumber:openingSeatNumber ?? (openingFamily === 'all' && rng()<0.5 ? 4 : 3),
-      vulnerable:vulnerable ?? (openingFamily === 'all' && rng()<0.5) }));
+    openingSeatNumber ??= openingFamily === 'all' && rng() < 0.5 ? 4 : 3;
+    vulnerable ??= openingFamily === 'all' && rng() < 0.5;
+    const passedFamily = openingFamily === 'all' ? mixedPassedFamily(seed, openingSeatNumber, vulnerable) : selected;
+    return advanceOpeningPartner(createPassedPractice({ seed, humanSeat, openingFamily: passedFamily, openingSeatNumber, vulnerable }));
   }
   if (selected !== 'C') return advanceOpeningPartner(createSystemOpeningPractice({ seed, humanSeat, openingBid:openingBidForFamily(selected) }));
   const rng = makeRng(`whole-club:${seed}`);
@@ -53,6 +54,10 @@ export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C', op
   humanSeat ??= randomSeat;
   if (!['North', 'South'].includes(humanSeat)) throw new Error('Choose North or South.');
   const { playerHand, partnerHand } = drawClubHands(seed, rng);
+  return advanceOpeningPartner(createClubOpeningState({ seed, humanSeat, playerHand, partnerHand }));
+}
+
+function createClubOpeningState({ seed, humanSeat, playerHand, partnerHand }) {
   const session = { familyId: 'opening-club', systemId: 'outback-acol', seed,
     playerSeat: 'North', partnerSeat: 'South', practiceRole: humanSeat === 'North' ? 'asker' : 'teller',
     playerHand, partnerHand, major: 'C', trump: 'C', auction: [], constraints: [],
@@ -60,7 +65,7 @@ export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C', op
     wholeAuction: { rulesVersion: OPENING_RULES_VERSION, humanSeat },
     opening: { node: 'open', major: null, puppet: false },
     phase: 'opening', finished: false, revealed: false, contract: null, pendingAsk: null };
-  return advanceOpeningPartner(freeze(session));
+  return freeze(session);
 }
 
 function drawClubHands(seed, rng) {
@@ -193,6 +198,30 @@ export function openingSeat(session) {
     'club-spade-rebid', 'club-spade-request', 'club-spade-contract', 'baron-quant'].includes(session.opening.node) ? 'North' : 'South';
 }
 
+export function selectOpening(session, bid) {
+  const sampledBid = openingBidFor(session);
+  if (session.opening.node !== 'open' || bid === sampledBid || bid === 'Pass') return session;
+  const { seed, wholeAuction } = session;
+  const { humanSeat } = wholeAuction;
+  if (wholeAuction.passedHand) {
+    const trump = /^1[CDHS]$/.test(bid) ? bid[1] : 'C';
+    return freeze({ ...session, major: trump, trump, dealOpeningBid: sampledBid,
+      wholeAuction: { ...wholeAuction, openingBid: bid }, opening: { ...session.opening, bid } });
+  }
+  const hands = { [session.playerSeat]: session.playerHand, [session.partnerSeat]: session.partnerHand };
+  const selected = bid === '1C'
+    ? createClubOpeningState({ seed, humanSeat, playerHand: hands.North, partnerHand: hands.South })
+    : createSystemOpeningState({ seed, humanSeat, openingBid: bid, hands });
+  return freeze({ ...selected, dealOpeningBid: sampledBid });
+}
+
+export function openingChoices(session) {
+  if (session.opening.node !== 'open') return openingActions(session);
+  const passedHand = session.wholeAuction.passedHand;
+  const bids = passedHand ? [...passedSeatOpenings, 'Pass'] : firstSeatOpenings;
+  return bids.map(bid => openingActions(selectOpening(session, bid)).find(action => action.bid === bid));
+}
+
 export function openingActions(session) {
   if (session.finished) return [];
   if (session.opening.system === 'passed') return passedActions(session);
@@ -290,7 +319,10 @@ function bridge(session, minor, baron = false) {
 
 /** Apply one call. Only the acting hand is read; partner's policy is separate. */
 export function applyOpeningCall(session, bid) {
-  if (session.opening.system === 'passed') return applyPassedCall(session, bid);
+  if (session.opening.system === 'passed') {
+    const next = applyPassedCall(session, bid);
+    return next.opening?.node === 'horton' ? startRelay(next, `horton-${bid[1].toLowerCase()}`, 'South') : next;
+  }
   if (session.opening.system) return applySystemOpeningCall(session, bid);
   const action = openingActions(session).find(action => action.bid === bid);
   if (!action) return boundary({ ...session, auction: [...session.auction,

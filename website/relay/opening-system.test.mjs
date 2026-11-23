@@ -64,6 +64,113 @@ const diamondNorth='SQ S2 HK H8 H4 DA DK DQ DJ D9 D6 CQ C2'; // 17, 2362
 const diamondSouth='SA SK S8 HQ HJ HT H9 H7 DT D8 CA CJ C9'; // 15, 3523
 const ntFourSpades='SA SK SQ S2 HA HK H3 DK D4 D2 CJ C8 C7'; // 20, 4333
 const ntResponder='SJ ST S9 S8 HQ HT H9 DA D8 D6 CQ CT C2';
+const threeHeartOpener = 'SQ S9 S5 HA H8 H6 DA D8 D7 D6 D4 D3 CQ';
+const fiveHeartResponder = 'SA S8 SJ HK HQ HJ HT H9 DK D5 CA C8 C7';
+
+test('Horton forcing new-suit jumps set trump and reach the natural game from either seat', () => {
+  const cases = [
+    ['2D', '3H', '3S', '4H', 'K987 4 KJ965 654', 'A65 AKQJ87 A2 K2'],
+    ['2D', '4C', '4D', '5C', 'K987 654 KJ965 4', 'A65 K2 A2 AKQJ87'],
+    ['2H', '4C', '4H', '5C', 'K987 KJ965 654 4', 'A65 A2 K2 AKQJ87'],
+    ['2H', '4D', '4H', '5D', 'K987 KJ965 4 654', 'A65 A2 AKQJ87 K2'],
+  ];
+  const cards = holdings => holdings.split(' ').flatMap((holding, index) => [...holding].map(rank => 'SHDC'[index] + rank)).join(' ');
+  for (const [opening, jump, cue, game, north, south] of cases) {
+    const asker = advanceOpeningPartner(deal(opening, cards(north), cards(south)));
+    const afterCue = applyPracticeBid(asker, jump);
+    assert.equal(afterCue.auction.at(-1).bid, cue);
+    assert.match(afterCue.auction.at(-1).meaning, /^Control in/);
+    assert.equal(afterCue.trump, game[1]);
+    const final = applyPracticeBid(afterCue, game);
+    assert.equal(final.contract.bid, game);
+    assert.equal(final.contract.declarer, 'South');
+    assert.equal(final.undiscussedBid, undefined);
+
+    const teller = applyPracticeBid(deal(opening, cards(north), cards(south), 'North'), opening);
+    assert.equal(teller.pendingAsk.bid, jump);
+    assert.deepEqual(practiceView(teller).playerHand, cards(north).split(' '));
+    assert.deepEqual(applyPracticeBid(teller, cue).auction, afterCue.auction);
+    const signedOff = applyPracticeBid(teller, game);
+    assert.equal(signedOff.contract.bid, game);
+    assert.deepEqual(signedOff.constraints, teller.constraints);
+    assert.equal(signedOff.auction.at(-1).bid, 'Pass');
+
+    if (jump === '3H') {
+      assert.equal(practiceCalls(asker).find(action => action.bid === '4H').trump, 'D');
+      assert.throws(() => applyPracticeBid(teller, '4C'), /cue does not match/);
+      assert.equal(applyPracticeBid(teller, '4D').auction.at(-1).meaning, 'Control in diamonds');
+      const continuedCue = applyPracticeBid(afterCue, '4C');
+      assert.deepEqual(continuedCue.auction.slice(-2).map(call => call.meaning), ['Control in clubs','Control in diamonds']);
+      assert.equal(applyPracticeBid(continuedCue, '4H').contract.bid, '4H');
+      const store = storage();
+      savePracticeProgress({ session: final, history: [asker, afterCue], preferences: {} }, store);
+      assert.deepEqual(loadPracticeProgress(store).progress.session, copy(final));
+    }
+  }
+});
+
+test('diamond opener’s three-card heart support uses 2S to continue after the lower range answers', () => {
+  const north = threeHeartOpener;
+  const south = fiveHeartResponder;
+  for (const [hand, reply] of [[north, '2H'], [north.replace('S5', 'ST').replace('D3', 'DJ'), '2D']]) {
+    const opener = open(deal('D', hand, south, 'North'), '1D');
+    const afterRange = applyPracticeBid(applyPracticeBid(opener, '1NT'), reply);
+    assert.equal(afterRange.familyId, 'split-d-h-1nt');
+    assert.deepEqual(practiceView(afterRange).auction.map(call => call.bid), ['1D','1H','1NT','2C',reply,'2S']);
+    assert.deepEqual(afterRange.pendingAsk.responseLadder.map(answer => answer.bid), ['3C','3D']);
+    assert.deepEqual(practiceView(afterRange).playerHand, hand.split(' '));
+
+    const responder = applyPracticeBid(advanceOpeningPartner(deal('D', hand, south)), '1H');
+    const range = applyPracticeBid(responder, '2C');
+    assert.equal(practiceCalls(range).find(action => action.bid === '2S').kind, 'relay');
+    assert.equal(practiceCalls(range).find(action => action.bid === '2NT').discussed, false);
+    assert.equal(applyPracticeBid(range, reply === '2H' ? 'Pass' : '2H').contract.bid, '2H');
+    const shape = applyPracticeBid(range, '2S');
+    assert.equal(shape.auction.at(-1).bid, '3D');
+    assert.deepEqual(applyPracticeBid(afterRange, '3D').auction, shape.auction);
+  }
+
+  // Older saves may have a displayed 2NT question with no reply entered.
+  const opener = open(deal('D', north, south, 'North'), '1D');
+  const firstAsk = applyPracticeBid(opener, '1NT');
+  const pending = applyPracticeBid(firstAsk, '2H');
+  const legacy = { ...pending, pendingAsk: { ...pending.pendingAsk, bid: '2NT' } };
+  const store = storage();
+  savePracticeProgress({ session: legacy, history: [opener, firstAsk], preferences: {} }, store);
+  const saved = loadPracticeProgress(store);
+  assert.equal(saved.error, undefined);
+  assert.deepEqual(saved.progress.session, copy(pending));
+  const answered = applyPracticeBid(pending, '3D');
+  const committed = { ...answered, auction: answered.auction.map((call, index) => index === 5 ? { ...call, bid: '2NT' } : call) };
+  savePracticeProgress({ session: committed, history: [legacy], preferences: {} }, store);
+  const restored = loadPracticeProgress(store).progress;
+  assert.deepEqual(restored.session, copy(committed));
+  assert.deepEqual(restored.history, [copy(pending)]);
+});
+
+test('the heart-support auction uses diamond Kickback before shortage and the cue plus 4NT route afterward', () => {
+  let session = applyPracticeBid(advanceOpeningPartner(deal('D', threeHeartOpener, fiveHeartResponder)), '1H');
+  for (const bid of ['2C','2S']) session = applyPracticeBid(session,bid);
+  assert.equal(session.auction.at(-1).bid, '3D');
+  const direct = practiceCalls(session).find(action => action.bid === '4H');
+  assert.equal(direct.askType, 'keycard');
+  assert.equal(direct.trump, 'D');
+  const keycards = applyPracticeBid(session, '4H');
+  assert.deepEqual(keycards.auction.slice(-2).map(call => call.bid), ['4H','5C']);
+  assert.equal(applyPracticeBid(keycards, '5D').contract.bid, '5D');
+
+  const shortage = applyPracticeBid(session,'3S');
+  assert.deepEqual(shortage.auction.slice(-2).map(call => call.bid), ['3S','4C']);
+  assert.equal(practiceCalls(shortage).find(action => action.bid === '4H').kind, 'signoff');
+  assert.equal(applyPracticeBid(shortage,'4H').contract.bid, '4H');
+  const agreed = applyPracticeBid(shortage,'4D');
+  assert.equal(agreed.auction.at(-1).bid, '4H');
+  assert.equal(agreed.auction.at(-1).meaning, 'Control in hearts');
+  const afterCue = practiceCalls(agreed).find(action => action.bid === '4NT');
+  assert.equal(afterCue.askType, 'keycard');
+  assert.equal(afterCue.trump, 'D');
+  assert.deepEqual(applyPracticeBid(agreed, '4NT').auction.slice(-2).map(call => call.bid), ['4NT','5H']);
+});
 
 test('the reported four-spade, three-heart responder can force a rebid with 1S', () => {
   const north = 'S5 S4 HQ HJ H7 H3 H2 DK DQ D8 CA C9 C5';
@@ -381,6 +488,23 @@ test('weak 1NT Stayman can invite and stop in notrump on a minimum', () => {
   assert.deepEqual(done.auction.map(call=>call.bid),['1NT','2C','2H','2NT','Pass']);
   assert.equal(done.contract.declarer,'North');
   assert.equal(done.undiscussedBid,undefined);
+});
+
+test('weak 1NT super-accepts with the reported minimum, and can clarify with 3H', () => {
+  const north = 'S3 S2 HA HT H4 H3 DK DQ D7 D6 D5 CJ C9';
+  const south = 'ST S6 S4 HK HQ H8 H7 H5 D3 CA CK C7 C4';
+  const response = advanceOpeningPartner(deal('WNT', north, south));
+  const superAccept = applyPracticeBid(response, '2D');
+  assert.deepEqual(superAccept.auction.map(call => call.bid), ['1NT', '2D', '2NT']);
+  const clarified = applyPracticeBid(superAccept, '3C');
+  assert.equal(clarified.auction.at(-1).bid, '3H');
+  assert.match(clarified.auction.at(-1).meaning, /Minimum super-accept/);
+  const retransfer = applyPracticeBid(superAccept, '3D');
+  assert.equal(applyPracticeBid(retransfer, 'Pass').contract.declarer, 'North');
+
+  const ordinaryTen = north.replace('D5', 'S5');
+  const ordinary = applyPracticeBid(advanceOpeningPartner(deal('WNT', ordinaryTen, south)), '2D');
+  assert.equal(ordinary.auction.at(-1).bid, '2H');
 });
 
 test('after a weak notrump transfer, a new-suit jump shows shortage and the lower call is natural', () => {

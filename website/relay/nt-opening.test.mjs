@@ -162,7 +162,7 @@ test('generated 2NT hands explore deep continuations in both seats and retain ev
       visited.add(s.opening.node);saved(s,history);
       assert.deepEqual(practiceView(s).playerHand,original.playerHand);assert.deepEqual(practiceView(s).partnerHand,original.partnerHand);
       const actions=availablePracticeActions(s).filter(r=>r.next!=='boundary'&&matchesConstraints(practiceView(s).playerHand,r.facts??[],s.trump));
-      const alternatives=actions.filter(r=>!['final','finish'].includes(r.next));
+      const alternatives=actions.filter(r=>!['final','finish'].includes(r.next) && (s.opening.node!=='open' || r.bid==='2NT'));
       let bid=ntOpeningPartnerBid({...s.opening,auction:s.auction,hand:practiceView(s).playerHand});
       // Human experiments use only their cards; rejected source/shape choices
       // leave the exact pre-call snapshot intact and fall back to the own-hand policy.

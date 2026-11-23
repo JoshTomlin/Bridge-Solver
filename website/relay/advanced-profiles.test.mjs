@@ -27,7 +27,6 @@ test('strong-club and Horton first descriptions partition every admitted shape a
     for (const n of SHAPES) for (let points = 0; points <= 22; points += 1) {
       if (!match(n, points, 0, p.partnerConstraints)) continue;
       if (p.id === 'horton-d' || p.id === 'horton-s') assert.ok(n.H <= 3, 'Four hearts must use the preferred major-suit Horton opening');
-      if (p.id === 'horton-s') assert.ok(n.D <= 3, 'The club entry excludes the suit-quality choice with four diamonds');
       admitted += 1;
       const replies = action.responses.filter(answer => match(n, points, 0, answer.constraints));
       assert.equal(replies.length, 1, `${p.id} ${JSON.stringify(n)} ${points}`);

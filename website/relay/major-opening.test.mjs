@@ -56,6 +56,27 @@ test('literal 1M–2D–2NT–3C answers preserve source shapes, facts and the f
   }
 });
 
+test('after 1H–2D the natural spade reverse shows 14+ and the reported 10-count rebids hearts', () => {
+  const minimum = 'SA SK SQ S2 HJ HT H9 H6 H5 H2 C7 C3 C2';
+  const reverse = minimum.replace('C7', 'CA');
+  const responder = 'S9 S8 S5 H4 H3 DA DK DJ D8 D3 CQ CT C8';
+
+  const rebid = applyPracticeBid(fixture('H', minimum, responder, 'North'), '1H');
+  assert.equal(rebid.auction.at(-1).bid, '2D');
+  assert.match(availablePracticeActions(rebid).find(row => row.bid === '2S').label, /Natural reverse/);
+  assert.throws(() => applyPracticeBid(rebid, '2S'), /four-plus spades, 14\+/);
+  assert.equal(applyPracticeBid(rebid, '2H').auction[2].bid, '2H');
+
+  const asOpener = applyPracticeBid(fixture('H', reverse, responder, 'North'), '1H');
+  const reversed = applyPracticeBid(asOpener, '2S');
+  assert.deepEqual(reversed.auction.map(call => call.bid), ['1H', '2D', '2S', '3NT']);
+  const asResponder = applyPracticeBid(fixture('H', reverse, responder), '2D');
+  assert.deepEqual(asResponder.auction, reversed.auction.slice(0, 3));
+  assert.throws(() => applyPracticeBid(asResponder, 'Pass'), /2S is forcing/);
+  assert.equal(applyPracticeBid(asResponder, '3NT').contract.declarer, 'South');
+  restore(asResponder);
+});
+
 test('three-way limit raise can stop at two or reach game; human acceptance is not graded by the bot cutoff',()=>{
   for(const [n,s,expected] of [
     ['SK HA HJ H9 H6 H2 DQ D8 D5 D2 C9 C8 C3','SA S8 S5 HK H8 H5 DJ D7 D4 CQ CJ C7 C2',['1H','2C','2H','Pass']],

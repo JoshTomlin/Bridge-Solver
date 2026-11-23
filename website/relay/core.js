@@ -240,7 +240,8 @@ export function createFamilyPractice(profile, seed, extraPlayerConstraints = [])
   const rng = makeRng(`${profile.id}:${seedValue}`);
   const base = practiceStartState({ profileId: profile.id, seed: seedValue });
   const playerConstraints = [...(profile.playerConstraints ?? []), ...extraPlayerConstraints];
-  const hands = drawConstrainedPair(base, playerConstraints, rng, (player, partner) =>
+  const deal = profile.dealPartnerConstraints ? { ...base, constraints: [...base.constraints, ...profile.dealPartnerConstraints] } : base;
+  const hands = drawConstrainedPair(deal, playerConstraints, rng, (player, partner) =>
     matchesInitialResponse(base.auction, handFeatures(player, trump), base.playerSeat)
     && matchesInitialResponse(base.auction, handFeatures(partner, trump), base.partnerSeat));
   return freeze({ ...base, ...hands });
@@ -302,8 +303,11 @@ function familyActions(session) {
   const actions = node ? node.actions.map(action => prepareFamilyAction(session, action)).filter(Boolean)
     : postRangeActions(session);
   const trump = session.trump;
-  const contracts = new Set([`${['C', 'D'].includes(trump) ? 5 : 4}${trump}`, `5${trump}`, `6${trump}`, `7${trump}`, '3NT', '6NT', '7NT']);
-  for (const bid of [...(getPracticeProfile(session.familyId).signoffs ?? []), ...(node?.signoffs ?? [])]) contracts.add(bid);
+  const contracts = new Set([`${['C', 'D'].includes(trump) ? 5 : 4}${trump}`, `5${trump}`, `6${trump}`, `7${trump}`]);
+  if (!node?.trumpContractsOnly) {
+    for (const bid of ['3NT', '6NT', '7NT', ...(getPracticeProfile(session.familyId).signoffs ?? [])]) contracts.add(bid);
+  }
+  for (const bid of node?.signoffs ?? []) contracts.add(bid);
   if (session.requireAgreement) for (const bid of contracts) if (bid !== '3NT') contracts.delete(bid);
   if (session.weakExitAllowed) {
     for (let bid = nextBid(lastBid(session)); bid; bid = nextBid(bid)) contracts.add(bid);
@@ -372,9 +376,12 @@ function applyFamilyBid(session, bid, chosenReply) {
   const inviteReply = action.kind === 'invitation'
     ? chosenReply ?? (matchesConstraints(session.partnerHand, action.acceptIf, next.trump) ? action.acceptBid : 'Pass')
     : null;
+  const cueChoice = action.kind === 'cue';
   const matches = action.responses.filter(response => inviteReply ? response.bid === inviteReply
-    : matchesConstraints(session.partnerHand, response.constraints ?? [], next.trump));
-  if (matches.length !== 1) throw new Error(`Relay definition must give exactly one answer for the fixed partner hand (found ${matches.length}).`);
+    : (!cueChoice || !chosenReply || response.bid === chosenReply)
+      && matchesConstraints(session.partnerHand, response.constraints ?? [], next.trump));
+  if (cueChoice && !matches.length) throw new Error('That cue does not match your hand.');
+  if (!cueChoice && matches.length !== 1) throw new Error(`Relay definition must give exactly one answer for the fixed partner hand (found ${matches.length}).`);
   const response = matches[0];
   next = mergeFamilyState(next, response.state);
   next.auction = [...session.auction,

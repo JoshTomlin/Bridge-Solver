@@ -6,9 +6,12 @@
 Added 16 November 2026. Choose **Practice settings → Whole auction → Opening
 family → Passed hand**. Mix the openings or select clubs, diamonds, a major,
 1NT, 2NT or 2C followed by 2NT. Choose third/fourth seat and vulnerability.
-Opener/responder is drawn independently; the human always displays South.
-The auction includes the actual prior passes, including the extra pass for
-a fourth-seat opener. Replay retains these settings and the same two hands.
+The trainer assigns the early or late partnership turn independently and
+displays the human as South. In the early seat, you choose Pass yourself.
+That brings in partner’s third- or fourth-seat opening. You can also open a
+qualifying Horton two and continue with the same cards. In the late seat,
+partner passes to start your third- or fourth-seat opening exercise.
+Replay retains the position, vulnerability and both hands.
 
 These are separate agreements from the first/second-seat transfer system.
 The authority is P1751–P1783 and P1808–P1830. Competitive P1784–P1806 remains

@@ -4,8 +4,9 @@ import { clickBid, closeSheets } from './helpers.mjs';
 
 const key = 'bridge-lab.relay-progress.v1';
 const saved = page => page.evaluate(key => JSON.parse(localStorage.getItem(key)),key);
-async function start(page, openingFamily, humanSeat, number) {
-  const session = createTrainingPractice({auctionMode:true, openingFamily, humanSeat, seed:`opening-audit-${number}`});
+async function start(page, openingFamily, humanSeat, replay) {
+  const seed = typeof replay === 'number' ? `opening-audit-${replay}` : replay;
+  const session = createTrainingPractice({auctionMode:true, openingFamily, humanSeat, seed});
   await page.addInitScript(({key,progress})=>{
     if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(progress));
   }, {key,progress:{version:1,session,history:[],preferences:{practiceMode:'auction',openingFamily}}});
@@ -45,6 +46,22 @@ test('Horton opener can decline or accept the same club invitation after Undo',a
   await expect(page.locator('#new-deal')).toBeEnabled();
   await clickBid(page,'5C');
   expect((await saved(page)).session.contract).toMatchObject({bid:'5C',declarer:'South'});
+});
+
+test('the Horton heart jump reaches 4H to play, then Undo returns to the cue', async ({page}) => {
+  await start(page, '2D', 'South', 'horton-jump-8');
+  await clickBid(page, '3H');
+  const cue = (await saved(page)).session;
+  expect(cue.auction.map(call => call.bid)).toEqual(['2D','3H','4D']);
+  await page.click('#auction [data-call-index="2"]');
+  await expect(page.locator('#bid-meaning-text')).toContainText('Control in diamonds');
+  await closeSheets(page);
+  await page.reload();
+  await expect(page.locator('#new-deal')).toBeEnabled();
+  await clickBid(page, '4H');
+  expect((await saved(page)).session.contract).toMatchObject({bid:'4H',declarer:'South'});
+  await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(cue);
 });
 
 test('the diamond-positive shortage ask shows the source boundary and Undo restores the five rebids', async ({page})=>{

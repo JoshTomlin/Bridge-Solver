@@ -24,6 +24,7 @@ const games = () => ['3NT', '4H', '4S', '5C', '5D', '6NT'].map(play);
 export const WEAK_NT_NOTES = [
   '1NT is the weak first/second-seat opening. Generated hands use 9–13 and common balanced or semi-balanced shapes. Rare 14-count and singleton-honour openings are outside this subset.',
   'The partner uses Stayman or a transfer to look for a major fit. For natural invitations it accepts with 12–13 and declines with 9–11. These are practice decisions.',
+  'With four-plus trumps, the bot super-accepts on 9 or 13 HCP, or on 10 HCP with a five-plus-card suit and at most three controls. The agreement leaves minimum and maximum quality to judgement.',
 ];
 
 export const weakNotrumpFacts = [alternatives(
@@ -82,7 +83,7 @@ export function weakNotrumpRows({ node, major, auction }) {
     case 'correct-hearts': return [pass(last), row('2S','Correct to spades with three spades and two hearts','P0207','final',[length('S',3,3),length('H',2,2)])];
     case 'transfer': return [
       row(`2${major}`, `Accept the transfer to ${names[major]}`,'P0213','transfer-continue'),
-      row('2NT', `Super-accept with four-plus ${names[major]}`,'P0217–P0218','super-accept',[length(major,4)]),
+      row('2NT', `Super-accept, 4+ ${names[major]}, bad minimum or big maximum`,'P0217–P0218','super-accept',[length(major,4)]),
     ];
     case 'transfer-continue': {
       const newSuits = suits.filter(s => s !== major);
@@ -159,7 +160,10 @@ export function weakNotrumpPartner({node, major, second, auction, hand}, choices
       if (f.hcp>=12) return '2NT';
       return last==='2D' ? pick(...(n.H>=4?['2H']:n.S>=4?['2S']:[]),'Pass') : 'Pass';
     case 'correct-hearts': return pick('2S','Pass');
-    case 'transfer': return f.hcp===13||f.hcp===9 ? pick('2NT',`2${major}`) : `2${major}`;
+    case 'transfer': {
+      const badMinimum = f.hcp === 9 || (f.hcp === 10 && f.shape[0] >= 5 && f.controls <= 3);
+      return badMinimum || f.hcp === 13 ? pick('2NT', `2${major}`) : `2${major}`;
+    }
     case 'transfer-continue':
       return f.hcp>=15 ? n[major]>=6?game(major):'3NT' : f.hcp>=12&&n[major]>=6?`3${major}`:'Pass';
     case 'super-accept': return f.hcp>=13?game(major):`3${major}`;

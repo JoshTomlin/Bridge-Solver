@@ -65,8 +65,13 @@ function splitProfile(minor, major, rangeEntry = false) {
         response('2D', 13, 13, 'further'), response(`2${major}`, 11, 12, 'further'), ...shapeResponses(hcp(14, 15)),
       ],
     }] };
-    nodes.further = session => ({ label: 'Continue the three-card-support relay', help: '2M can be played when legal; 2NT continues to shape.', signoffs: [`2${major}`],
-      actions: [makeAsk('2NT', hcp(11, 13))] });
+    const shapeAsk = nextBid(`2${major}`);
+    nodes.further = {
+      label: 'Continue the three-card-support relay',
+      help: `Two of the major is to play. ${shapeAsk} asks for shape.`,
+      signoffs: [`2${major}`],
+      actions: [{ ...makeAsk(shapeAsk, hcp(11, 13)), source: 'P0651; shape replies P1556–P1562' }],
+    };
   }
   nodes['single-shortage'] = session => {
     const [high, low] = SUITS.filter(s => ![minor, major].includes(s));
@@ -75,7 +80,7 @@ function splitProfile(minor, major, rangeEntry = false) {
     return { label: 'Find the remaining shortage', help: major === 'H' && minor === 'D' ? '3H agrees hearts; 3S is the shortage enquiry.' : 'The next step asks high/low shortage. You can agree a known suit instead.',
       actions: [{ bid: ask, label: 'Ask high/low shortage', kind: 'relay', responses: [high, low].map(suit => ({
         label: `${name(suit)} shortage`, constraints: [length(suit, 0, 1), length(suit === high ? low : high, 2, 13)], nextNode: 'agree-single', state: fit(major, { shortageSuit: suit, balanced: false, requireAgreement: false }),
-      })) }, ...agreementActions(session, [major, minor])],
+      })) }, ...agreementsWithKeycards(session, [major, minor])],
     };
   };
   function agreementActions(session, suits) {
@@ -91,19 +96,22 @@ function splitProfile(minor, major, rangeEntry = false) {
       return { bid, label: `Agree ${name(trump)} below game`, kind: 'relay', state: fit(trump), responses: cueResponses(bid, trump) };
     }).filter(Boolean);
   }
-  function agreementsWithKeycards(session, suits) {
+  function agreementsWithKeycards(session, suits, keycardSuits = suits) {
     const agreements = agreementActions(session, suits);
     const assigned = new Set(agreements.map(action => action.bid));
     // P1595: after the 3H shape answer, 4D agrees hearts. Club Kickback
     // cannot reuse it; agree clubs and follow the cue/4NT route instead.
-    return [...agreements, ...directKeycards(session, suits).filter(action => !assigned.has(action.bid))];
+    return [...agreements, ...directKeycards(session, keycardSuits).filter(action => !assigned.has(action.bid))];
   }
   rows.forEach((row, i) => { if (!row.single) nodes[`agree-${i}`] = session => ({
     label: 'Agree a suit at the lowest level', help: 'Agree the major or opened minor, or cue opener’s shortage to agree the second suit. 3NT is to play.',
     actions: agreementsWithKeycards(session, [major, minor, row.second]),
   }); });
+  // P1680–P1682: once the heart/diamond shortage is shown, 4H is heart game.
+  // Agree diamonds with 4D, hear opener's cue, then use 4NT for diamond RKCB.
+  const keycardSuitsAfterShortage = minor === 'D' && major === 'H' ? [major] : [major, minor];
   nodes['agree-single'] = session => ({ label: 'Agree a suit or choose a contract', help: 'The shortage is now known. Agree the minor, use Kickback, or choose game.',
-    actions: agreementsWithKeycards(session, [major, minor]) });
+    actions: agreementsWithKeycards(session, [major, minor], keycardSuitsAfterShortage) });
   nodes['four-support'] = session => ({ label: 'Four-card support established', help: 'Continue with Kickback or choose a final contract.', actions: directKeycards(session, [major]) });
   nodes.kickback = session => {
     const after = lastBid(session);
@@ -132,7 +140,10 @@ function splitProfile(minor, major, rangeEntry = false) {
 }
 
 function directKeycards(session, suits) {
-  return [...new Set(suits)].map(trump => ({ bid: kickback(trump), kind: 'keycard', trump, keycardMode: 'normal', label: `Kickback in ${name(trump)}` }))
+  return [...new Set(suits)].map(trump => ({
+    bid: kickback(trump), kind: 'keycard', trump, keycardMode: 'normal',
+    label: `Kickback in ${name(trump)}`, state: { requireAgreement: false },
+  }))
     .filter(action => bidIndex(action.bid) > bidIndex(lastBid(session)));
 }
 

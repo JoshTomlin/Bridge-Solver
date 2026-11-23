@@ -10,19 +10,18 @@ async function ready(page) {
   await expect(page.locator('#new-deal')).toBeEnabled();
   await expect(page.locator('#player-hand .playing-card')).toHaveCount(13);
 }
-async function load(page, humanSeat) {
-  const initial = createPassedPractice({ seed: 'passed-browser', openingFamily: 'PH-C', humanSeat, openingSeatNumber: 4 });
-  const session = advanceOpeningPartner({ ...initial,
-    playerHand: cards('AQ2 K32 AKQ2 J32'), partnerHand: cards('K43 QJ987 T9 T54') });
+async function load(page, humanSeat, openingFamily = 'PH-C', north = 'AQ2 K32 AKQ2 J32', south = 'K43 QJ987 T9 T54') {
+  const initial = createPassedPractice({ seed: 'passed-browser', openingFamily, humanSeat, openingSeatNumber: 4 });
+  const session = advanceOpeningPartner({ ...initial, playerHand: cards(north), partnerHand: cards(south) });
   await page.addInitScript(({ key, progress }) => {
     if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(progress));
-  }, { key, progress: { version: 1, session, history: [], preferences: { practiceMode: 'auction', openingFamily: 'PH-C' } } });
+  }, { key, progress: { version: 1, session, history: [], preferences: { practiceMode: 'auction', openingFamily } } });
   await page.goto('relay.html'); await ready(page);
 }
 
 for (const humanSeat of ['North', 'South']) test(`passed-hand club game force works in ${humanSeat} role with South display, alternatives and undo`, async ({ page }) => {
   await load(page, humanSeat);
-  await expect(page.locator('#practice-badge')).toHaveText('1♣ · Passed hand');
+  await expect(page.locator('#practice-badge')).toHaveText(humanSeat === 'North' ? '1♣ · Passed hand' : 'Opening decision');
   const initial = (await saved(page)).session;
   const hand = await page.locator('#player-hand').innerHTML();
   await expect(page.locator('#player-seat')).toContainText('South');
@@ -31,6 +30,8 @@ for (const humanSeat of ['North', 'South']) test(`passed-hand club game force wo
     await clickBid(page, '1H'); // game force; responder shows five hearts with 2D
     await clickBid(page, '4H');
   } else {
+    await clickBid(page, 'Pass');
+    await expect(page.locator('#practice-badge')).toHaveText('1♣ · Passed hand');
     await page.click('#auction [data-call-index="1"]');
     const labels = await page.locator('#bid-alternatives').innerText();
     expect(labels).toContain('Maximum passed hand');
@@ -56,6 +57,26 @@ for (const humanSeat of ['North', 'South']) test(`passed-hand club game force wo
   await page.setViewportSize({ width: 320, height: 568 }); await fitsScreen(page);
 });
 
+test('the early-seat player can open 2S and undo to choose Pass on the same deal', async ({ page }) => {
+  await load(page, 'South', 'PH-D', 'AKQ J98 AQ95 J98', 'J642 6 T862 KQ52');
+  const first = (await saved(page)).session;
+  await expect(page.locator('#practice-badge')).toHaveText('Opening decision');
+  await expect(page.locator('#auction td:nth-child(2) .opponent-pass')).toHaveText('Pass');
+  await expect(page.locator('#auction td:nth-child(3) .awaiting-bid')).toHaveCount(1);
+  const hand = await page.locator('#player-hand').innerHTML();
+  await clickBid(page, '2S');
+  await expect(page.locator('#practice-badge')).toHaveText('2♠ · Whole auction');
+  await expect(page.locator('#action-title')).toHaveText('Your response to 2NT');
+  await page.reload(); await ready(page);
+  await expect(page.locator('#action-title')).toHaveText('Your response to 2NT');
+  await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(first);
+  await clickBid(page, 'Pass');
+  await expect(page.locator('#practice-badge')).toHaveText('1♦ · Passed hand');
+  expect((await saved(page)).session.auction.map(call => call.bid)).toEqual(['Pass', '1D']);
+  expect(await page.locator('#player-hand').innerHTML()).toEqual(hand);
+});
+
 test('passed opening family, position and vulnerability survive replay and reopening', async ({ page }) => {
   await page.goto('relay.html'); await ready(page);
   await selectSetting(page, '#practice-mode', 'auction'); await ready(page);
@@ -64,7 +85,8 @@ test('passed opening family, position and vulnerability survive replay and reope
   await selectSetting(page, '#passed-vulnerability', 'v'); await ready(page);
   const first = await saved(page);
   expect(first.session.wholeAuction).toMatchObject({ passedHand: true, openingSeatNumber: 4, vulnerable: true });
-  await expect(page.locator('#practice-scope')).toContainText('Fourth-seat opening · Vulnerable');
+  await expect(page.locator('#practice-scope')).toContainText(first.session.wholeAuction.humanSeat === 'North'
+    ? 'Fourth-seat opening · Vulnerable' : 'Second-seat decision · Vulnerable');
   await settings(page);
   await page.locator('#study-menu > summary').click();
   await page.locator('.replay-options > summary').click();
