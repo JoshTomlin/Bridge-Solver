@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createPractice, applyBid, revealPractice, PRACTICE_PROFILES, availableActions, handFeatures } from './core.js';
-import { createTrainingPractice, availablePracticeActions, applyPracticeBid, practiceView, advanceAsker } from './practice.js';
+import { createTrainingPractice, availablePracticeActions, applyPracticeBid, practiceCalls, practiceView, advanceAsker } from './practice.js';
 import { tableView } from './seat-view.js';
 import { auctionCallDetails } from './auction-study.js';
 import { savePracticeProgress, loadPracticeProgress } from './progress.js';
@@ -56,6 +56,23 @@ test('teller accepts the screenshot 14-count as the first balanced Jacoby range 
   assert.equal(ranged.auction.at(-1).meaning, '12–14 HCP');
   assert.equal(ranged.pendingAsk.bid, '3S');
   assert.deepEqual(ranged.partnerHand, fixed.partnerHand);
+});
+
+test('Jacoby 4S can sign off after a void, and 4NT requires a keycard reply', () => {
+  const initial = {
+    ...createTrainingPractice({ profileId: 'major-S', role: 'teller', seed: 'jacoby-void-forcing' }),
+    partnerHand: 'SA SJ S9 S6 S5 DA DQ D9 D3 CJ C6 C5 C3'.split(' '),
+    playerHand: 'SK SQ ST S8 HA HK H9 DK D7 C8 C7 C4 C2'.split(' '),
+  };
+  const voidShown = ['3H', '4C', '4H'].reduce(applyPracticeBid, initial);
+  assert.deepEqual(practiceView(voidShown).auction.map(call => call.bid),
+    ['1S', '2NT', '3H', '3S', '4C', '4D', '4H', '4NT']);
+  assert.equal(availableActions(voidShown).find(call => call.bid === '4S').kind, 'signoff');
+  assert.equal(applyBid(voidShown, '4S').contract.bid, '4S');
+  assert.deepEqual(practiceCalls(voidShown).map(call => call.bid), ['5C', '5D', '5H', '5S']);
+  assert.throws(() => applyPracticeBid(voidShown, 'Pass'), /4NT is forcing/);
+  assert.throws(() => applyPracticeBid(voidShown, '5NT'), /not an available response/);
+  assert.equal(applyPracticeBid(voidShown, '5H').auction[8].bid, '5H');
 });
 
 test('Baron minor agreement hands the shortage enquiry to opener while the human stays South with the same cards', () => {
@@ -137,8 +154,19 @@ test('all 63 exercises support teller answers through source questions and termi
   let sourcePasses = 0;
   for (const profile of PRACTICE_PROFILES) for (const seed of ['role-a', 'role-b']) {
     let session = createTrainingPractice({ profileId: profile.id, seed, role: 'teller' });
-    const original = session;
+    const original = practiceView(session);
     for (let turn = 0; !session.finished && turn < 20; turn += 1) {
+      const view = practiceView(session);
+      assert.equal(view.playerSeat, original.playerSeat, profile.id);
+      assert.deepEqual(view.playerHand, original.playerHand);
+      assert.deepEqual(view.partnerHand, original.partnerHand);
+      if (view.role === 'asker') {
+        const coached = advanceAsker(session);
+        const bid = coached.auction[session.auction.length]?.bid ?? coached.pendingAsk?.bid;
+        assert.ok(bid, profile.id);
+        session = applyPracticeBid(session, bid);
+        continue;
+      }
       const pending = session.pendingAsk;
       assert.ok(pending, profile.id);
       const action = availableActions(session).find(action => action.bid === pending.bid);
@@ -159,8 +187,6 @@ test('all 63 exercises support teller answers through source questions and termi
         else sourcePasses += 1;
       }
       session = applyPracticeBid(session, answer.bid);
-      assert.deepEqual(session.playerHand, original.playerHand);
-      assert.deepEqual(session.partnerHand, original.partnerHand);
       answers += 1;
     }
     assert.equal(session.finished, true, profile.id);
@@ -168,7 +194,8 @@ test('all 63 exercises support teller answers through source questions and termi
     assert.deepEqual(availablePracticeActions(session), []);
     const revealed = revealPractice(session);
     assert.equal(revealed.revealed, true);
-    assert.deepEqual(practiceView(revealed).partnerHand, original.playerHand);
+    assert.deepEqual(practiceView(revealed).playerHand, original.playerHand);
+    assert.deepEqual(practiceView(revealed).partnerHand, original.partnerHand);
     assert.deepEqual(availablePracticeActions(revealed), []);
   }
   assert.ok(answers > 200);

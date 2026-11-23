@@ -2,6 +2,7 @@
 // P0993–P1052 and P1478–P1522. Tables and constraints are public.
 // Judgement acceptance is deliberately separate from truth-of-description.
 import { handFeatures, matchesConstraints, bidIndex } from './core.js';
+import { control, name } from './source-utils.js';
 const other = m => m === 'H' ? 'S' : 'H';
 const L = (suit,min,max=13) => ({type:'length',suit,min,max});
 const P = (min,max=37) => ({type:'hcp',min,max});
@@ -16,11 +17,16 @@ const r = (bid,label,source,facts=[],next='major-choice') => ({bid,label,source,
 const force = (...args) => ({ ...r(...args), forcing: true });
 const toPlay = bid => r(bid, `Play ${bid}`, 'Natural contract choice', [], 'final');
 const pass = last => r('Pass', `Play ${last}`, 'Natural contract choice', [], 'finish');
+const provisional = 'Provisional natural practice';
+const clubReverseSuit = (suit, source) => force(`3${suit}`,
+  `Natural ${name(suit)} or a control agreeing clubs`, source,
+  [OR([L(suit, 3)], [L('C', 4), control(suit)])], 'major-club-followup');
+const agreeForSlam = (bid, label, source, facts, trump) => ({ ...force(bid, label, source, facts, 'nt-cue'), trump });
 const heartSpadeBalanced = OR([B], [shape('H',5,2,4,2)], [shape('H',5,2,2,4)],
   [P(12,13), shape('H',6,3,2,2)], [P(12,13), shape('H',6,2,2,3)], [P(12,13), shape('H',6,2,3,2)]);
-export const MAJOR_NORTH_NODES = ['major-club-rebid','major-club-answer','major-diamond-rebid','major-diamond-answer','major-heart-rebid','major-heart-answer','major-invitation','major-describe',
+export const MAJOR_NORTH_NODES = ['major-club-rebid','major-club-answer','major-club-followup','major-club-detail','major-diamond-rebid','major-diamond-answer','major-heart-rebid','major-heart-answer','major-invitation','major-describe',
   'heart-spade-range', 'heart-spade-shape', 'heart-spade-puppet', 'heart-spade-club-resolve', 'heart-spade-club-game-force'];
-export const MAJOR_SOUTH_NODES = ['major-club-resolve','major-club-enquiry','major-diamond-enquiry','major-diamond-continue','major-heart-enquiry','major-heart-continue','major-choice',
+export const MAJOR_SOUTH_NODES = ['major-club-resolve','major-club-enquiry','major-club-choice','major-game-try','major-diamond-enquiry','major-diamond-continue','major-heart-enquiry','major-heart-continue','major-choice',
   'heart-spade-after-nt', 'heart-spade-after-range', 'heart-spade-after-club', 'heart-spade-after-suit', 'heart-spade-after-puppet'];
 export const MAJOR_NODES = [...MAJOR_NORTH_NODES,...MAJOR_SOUTH_NODES];
 
@@ -39,6 +45,21 @@ export function ordinaryMajorRows({system,node,auction}) {
     ...['H','S'].map(s=>r(`4${s}`,`Play 4${s}`,'Natural game choice',[],'final')),
     ...['C','D'].map(s=>r(`5${s}`,`Play 5${s}`,'Natural game choice',[],'final'))];
   switch(node) {
+    case 'weak-raise':
+      if (system !== '1H' && system !== '1S') return null;
+      return [
+        pass(last),
+        ...[m === 'H' ? '2S' : '3H', '3C', '3D'].map(bid => force(bid, `Game try in ${name(bid[1])}, three-plus`,
+          provisional, [L(bid[1], 3)], 'major-game-try')),
+        force('2NT', 'Natural game invitation', provisional, [B], 'major-game-try'),
+        r(`3${m}`, 'General game invitation', provisional, [], 'major-game-try'),
+        ...games(),
+      ];
+    case 'major-game-try': return [
+      last === `3${m}` ? pass(last) : toPlay(`3${m}`),
+      toPlay(`4${m}`),
+      ...(last === '2NT' ? [r('3NT', 'Accept in notrump', provisional, [B], 'final')] : []),
+    ];
     case 'rebid':
       if (system !== '1H' || last !== '1S') return null;
       return [
@@ -123,7 +144,7 @@ export function ordinaryMajorRows({system,node,auction}) {
       r(`2${m}`,'Decline limit raise','P1493',[],'major-club-resolve'),
       r(`2${om}`,`Four-plus ${om==='H'?'hearts':'spades'}; accept limit raise`,'P1500',[L(om,4)],'major-club-resolve'),
       r('2NT','18/19 balanced or reverse with diamonds','P1509',[OR([P(18,19),B],[P(16),L('D',4)])],'major-club-enquiry'),
-      r('3C','Four-plus clubs; reverse strength','P1511',[P(16),L('C',4)],'major-club-resolve'),
+      force('3C','Four-plus clubs; reverse strength','P1511',[P(16),L('C',4)],'major-club-resolve'),
       r('3D',`Strong six-plus ${m==='H'?'hearts':'spades'}; non-solid suit`,'P1519',[P(14),L(m,6),...['C','D',om].map(s=>L(s,0,3))],'major-club-resolve'),
       r(`3${m}`,'Strong six-plus major; solid suit','P1521',[P(14),L(m,6),...['C','D',om].map(s=>L(s,0,3))],'major-club-resolve'),
       r('3NT','15–17 balanced','P1522',[P(15,17),B],'major-club-resolve'),
@@ -137,15 +158,23 @@ export function ordinaryMajorRows({system,node,auction}) {
     ];
     case 'major-club-resolve': {
       const limited=last==='2D',declined=last===`2${m}`,second=last===`2${om}`;
+      if (last === '3C') return [
+        clubReverseSuit('D', 'P1512'),
+        clubReverseSuit(om, 'P1513'),
+        agreeForSlam(`3${m}`, 'Good three-card raise or better; agrees trumps', 'P1514', [L(m,3,3)], m),
+        agreeForSlam('4C', 'Three-card major support and four-plus clubs', 'P1516', [L(m,3,3),L('C',4)], 'C'),
+        { ...force('4D', 'Kickback in clubs', 'P1517', [L('C',4)], 'nt-answer'), trump: 'C' },
+        r(`4${m}`, 'Poor or average limit raise; to play', 'P1518', [L(m,3)], 'final'),
+        ...games().filter(row => row.bid !== `4${m}`),
+      ];
       if(!limited&&!declined&&!second) return [
         ...(last==='3D'?[force(`3${m}`, 'Three-card raise or balanced game force with a doubleton in the major',
           'P1520', [OR([L(m,3,3)], [P(12),B,L(m,2,2)])], 'major-describe')]:[]),
-        ...(last==='3NT'?[r('Pass','Play 3NT','P1522',[],'finish')]:[]),...games(),
-        ...(last==='3C'?[r('4D','Keycards in clubs','P1517',[],'boundary')]:[])];
+        ...(last==='3NT'?[r('Pass','Play 3NT','P1522',[],'finish')]:[]),...games()];
       return [
         ...(declined?[r('Pass',`Play 2${m}; limit raise declined`,'P1493',[],'finish')]:[]),
         ...(limited || second && m==='S'?[r(`2${m}`,'Poor/average limit raise; non-forcing','P1485/P1501',[L(m,3)],'major-invitation')]:[]),
-        ...(limited?[r(`2${om}`,'Three-card raise; 15+','P1486',[P(15),L(m,3,3)],'major-describe')]:[]),
+        ...(limited?[force(`2${om}`,'Exactly three-card support; 15+, game-forcing','P1486',[P(15),L(m,3,3)],'major-club-detail')]:[]),
         r('2NT','Balanced game force; doubleton major, fewer than five diamonds','P1487/P1494/P1502',[P(12),B,L(m,2,2),L('D',0,4)],'major-describe'),
         r('3C','Game force with clubs','P1488/P1495/P1503',[P(12),L('C',5)],'major-describe'),
         r('3D','Five diamonds; doubleton major, balanced game force','P1489/P1496/P1504',[P(12),B,L(m,2,2),L('D',5,5)],'major-describe'),
@@ -153,6 +182,22 @@ export function ordinaryMajorRows({system,node,auction}) {
         ...(second?[r(`3${om}`,'Agree the second major','P1506',[L(om,4)],'major-describe')]:[]),...games(),
       ];
     }
+    case 'major-club-detail': return [
+      force('2NT', 'Balanced shape', provisional, [B], 'major-club-choice'),
+      ...['C', 'D', om].map(suit => force(`3${suit}`, `Four-plus ${name(suit)}`, provisional, [L(suit,4)], 'major-club-choice')),
+      agreeForSlam(`3${m}`, `Six-plus ${name(m)}; agrees trumps`, provisional, [L(m,6)], m),
+      ...games(),
+    ];
+    case 'major-club-followup': return [
+      force(`3${m}`, `Six-plus ${name(m)}`, provisional, [L(m,6)], 'major-club-choice'),
+      agreeForSlam('4C', 'Agree clubs for slam investigation', provisional, [], 'C'),
+      ...(last === '3D' ? [agreeForSlam('4D', 'Four-plus diamonds; agrees diamonds', provisional, [L('D',4)], 'D')] : []),
+      ...games(),
+    ];
+    case 'major-club-choice': return [
+      agreeForSlam(`3${m}`, 'Three-card support; agrees trumps', provisional, [L(m,3)], m),
+      ...games(),
+    ];
     case 'major-diamond-rebid': return [
       r(`2${m}`,'9–13; fewer than three diamonds','P1024',[P(9,13),L('D',0,2)],'major-diamond-continue'),
       ...(m==='H'?[force('2S','Natural reverse; four-plus spades, 14+','P1021 (inferred)',[P(14),L('S',4)],'major-diamond-continue')]:[]),
@@ -248,6 +293,17 @@ export function ordinaryMajorPartnerBid(context,hand) {
   const rows=ordinaryMajorOptions(context);
   const truthful=bid=>rows.some(r=>r.bid===bid&&matchesConstraints(hand,r.facts,m));
   const first=bids=>bids.find(truthful);
+  if (node === 'weak-raise') {
+    if (f.hcp >= 19) return `4${m}`;
+    if (f.hcp < 15) return 'Pass';
+    return first(['3C', '3D', m === 'H' ? '2S' : '3H', '2NT', `3${m}`]);
+  }
+  if (node === 'major-game-try') {
+    const side = last[1];
+    const usefulSideValue = side !== m && last !== '2NT' && ['A','K','Q'].some(rank => hand.includes(side + rank));
+    if (f.hcp >= 8 || f.hcp >= 7 && (usefulSideValue || f.lengths[m] >= 4)) return `4${m}`;
+    return last === `3${m}` ? 'Pass' : `3${m}`;
+  }
   if (node === 'rebid' && system === '1H') {
     const spadeRaise = f.lengths.C === 2 && f.lengths.D === 2 || ['C','D'].some(suit =>
       f.lengths[suit] === 1 && (hand.includes(`${suit}A`) || hand.includes(`${suit}K`)));
@@ -283,14 +339,20 @@ export function ordinaryMajorPartnerBid(context,hand) {
   if(node.endsWith('-answer')) return rows.find(r=>matchesConstraints(hand,r.facts,m))?.bid;
   if(node.endsWith('-enquiry')) return '3C';
   if(node==='major-club-resolve') {
+    if (last === '3C') return first([...(f.lengths[m] === 3 && f.hcp >= 12 ? ['4C', `3${m}`] : []),
+      `4${m}`, '3D', `3${om}`, '3NT']);
     if(last==='3D' && truthful(`3${m}`)) return `3${m}`;
     if(last==='3NT') return f.lengths[m]>=3?`4${m}`:'Pass';
+    if(last==='2D' && truthful(`2${om}`)) return `2${om}`;
     if(last===`2${m}`&&f.hcp<=11) return 'Pass';
     if(last==='2D'&&f.lengths[m]===3&&f.hcp<=11) return `2${m}`;
     if(last===`2${om}`&&f.lengths[m]===3&&f.hcp<=11) return `4${m}`;
     if(f.lengths[m]>=3) return `4${m}`;
     return first([...(isMajorBalanced(f)?[f.lengths.D===5?'3D':'2NT']:[]),'3C','3NT']);
   }
+  if (node === 'major-club-detail') return first([`3${m}`, '2NT', '3C', '3D', `3${om}`, `4${m}`]);
+  if (node === 'major-club-followup') return first([`3${m}`, '4D', ...(f.lengths.C >= 5 ? ['4C'] : []), '3NT']);
+  if (node === 'major-club-choice') return first([`3${m}`, ...(f.lengths[m] >= 3 ? [`4${m}`] : []), '3NT']);
   if(node==='major-diamond-rebid') {
     if(f.hcp<=13) return first(['3D',`2${m}`]);
     return first(['2NT',...(f.lengths.D>=3?[`3${om}`]:[]),...(m==='H'?['2S']:[]),`3${m}`,'3C','3NT']);

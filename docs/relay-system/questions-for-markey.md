@@ -218,3 +218,23 @@ each shortage and no shortage? Does the 2♠ club description set clubs for SKC?
 P0442 makes 3♥ a shortage question after opener’s 3♦ raise. What order should
 opener use there? Whole-auction practice reaches each question and pauses.
 [Original paragraphs](../system-sources/main-notes.txt#L411)
+
+**Q18 — 3262 after the three-card spade-support rebid.** P0633 allows a
+12-point 3262 to open 1D, and P0651 gives 1NT to show three-card support
+after 1S. What shows the no-shortage shape after
+`1D–1S–1NT–2C–2S–2NT`? Josh suggested 3NT. P1658–P1660 list the shortage
+shapes for 3D and give 3H as the shortage enquiry, with no reply listed
+for a no-shortage hand. Confirm whether 3NT shows 3262.
+
+**Q19 — opener’s tries after a simple 1M–2M raise.** P0892 gives 5–9,
+usually with three-card support. What do new suits and 2NT mean after
+uncontested 1H–2H and 1S–2S? Are the new suits natural game tries,
+shortage tries, or game-forcing slam tries? Is there a separate meaning
+for a jump in a new suit? P1690 covers auctions already forced to game.
+
+**Q20 — deeper three-way club continuations.** After `1M–2♣–2♦–2OM`,
+P1486 asks opener for a descriptive bid. Are 2NT balanced, three of a
+side suit natural, and 3M six-plus cards a fair reading? After
+`1M–2♣–3♣–3♦/3OM`, how do you distinguish the natural bid from a club
+cue, and what is the shortest holding that makes a natural bid? Practice
+accepts a natural three-card holding or a control with four-plus clubs.

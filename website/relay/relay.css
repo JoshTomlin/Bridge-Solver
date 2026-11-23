@@ -56,6 +56,9 @@ svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width:
 .bid-button:not(:disabled):active { transform: translateY(1px); }
 .bid-button.suit-H { background: #f2c7c0; }.bid-button.suit-D { background: #f2d7b4; }.bid-button.suit-C { background: #d1e2c9; }.bid-button.suit-S { background: #c7d5ee; }
 .bid-button:disabled.suit-H, .bid-button:disabled.suit-D, .bid-button:disabled.suit-C, .bid-button:disabled.suit-S { background: #ffffff04; color: #718c9655; }
+.bid-button.double-bid { grid-row: 2; grid-column: 1 / -1; height: 36px; background: #f2c7c0; color: #782f30; }
+.bid-button.redouble-bid { background: #c7d5ee; color: #284979; }
+.bid-button.double-bid strong { font-size: 15px; letter-spacing: 0; }
 .bid-button.pass-bid { background: #739f75; color: #f3fae9; }.bid-button.pass-bid:disabled { background: #ffffff04; color: #718c9655; }
 .bid-button.pass-bid strong { font-size: clamp(12px, 3.6vw, 17px); letter-spacing: 0; }
 .suit-S { color: #b5caee; }.suit-H { color: #efada6; }.suit-D { color: #edc48e; }.suit-C { color: #a9d0a5; }.suit-NT { color: #e0e6e7; }

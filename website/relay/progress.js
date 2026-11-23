@@ -1,6 +1,7 @@
-import { getPracticeProfile, handFeatures, matchesConstraints, bidIndex, practiceNode } from './core.js';
+import { applyBid, getPracticeProfile, handFeatures, matchesConstraints, bidIndex, practiceNode } from './core.js';
 import { availablePracticeActions, practiceView, advanceAsker } from './practice.js';
 import { validateOpeningSession, isOpeningFamily, OPENING_FAMILIES, openingFamilyFor } from './opening-practice.js';
+import { AUCTION_SEATS } from './table-ui.js';
 import { SYSTEM } from './system.js';
 import { restorePassedFirstTurn } from './passed-hand.js';
 
@@ -30,11 +31,15 @@ function validateSession(session) {
     throw new Error('Saved hands do not match the auction constraints.');
   }
   const openingPending = session.opening?.node === 'open' && session.wholeAuction?.humanSeat === 'North'
-    || session.opening?.node === 'first-call' && session.wholeAuction?.passedHand;
+    || session.opening?.node === 'first-call' && session.wholeAuction?.passedHand
+    || session.opening?.quiet === 'open' && session.wholeAuction?.competition;
   if (!Array.isArray(session.auction) || !session.auction.length && !openingPending) throw new Error('Saved auction is missing.');
+  const competitive = Boolean(session.wholeAuction?.competition);
+  const callSeats = competitive ? AUCTION_SEATS : ['North', 'South'];
+  const specials = competitive ? ['Pass', 'X', 'XX'] : ['Pass'];
   for (const call of session.auction) {
-    if (!call || !['North', 'South'].includes(call.seat)) throw new Error('Saved auction seat is invalid.');
-    if (call.bid !== 'Pass') bidIndex(call.bid);
+    if (!call || !callSeats.includes(call.seat)) throw new Error('Saved auction seat is invalid.');
+    if (!specials.includes(call.bid)) bidIndex(call.bid);
   }
   // Check source-node and pending-question compatibility before rendering.
   practiceNode(session);
@@ -53,7 +58,7 @@ function validateSession(session) {
   if (session.contract) {
     bidIndex(session.contract.bid);
     if (session.contract.bid !== `${session.contract.level}${session.contract.strain}`
-        || !['North', 'South'].includes(session.contract.declarer)) throw new Error('Saved contract is invalid.');
+        || !callSeats.includes(session.contract.declarer)) throw new Error('Saved contract is invalid.');
   }
 }
 
@@ -117,6 +122,9 @@ export function loadPracticeProgress(storage) {
     // or any actual call already made in the auction.
     const refreshCoach = session => {
       if (session.practiceRole !== 'teller' || !session.pendingAsk || session.finished || session.revealed) return session;
+      const oldDiamondAgreement = ['split-d-s', 'split-d-s-1nt'].includes(session.familyId)
+        && session.phase === 'family' && session.nodeId === 'agree-single' && session.pendingAsk.bid === '4D';
+      if (oldDiamondAgreement) return applyBid({ ...session, pendingAsk: null }, '4D');
       const oldHeartSupportAsk = session.familyId === 'split-d-h-1nt' && session.phase === 'family'
         && session.nodeId === 'further' && session.pendingAsk.bid === '2NT';
       return oldHeartSupportAsk || ['post-keycard', 'suit-ask', 'unsupported'].includes(session.phase)

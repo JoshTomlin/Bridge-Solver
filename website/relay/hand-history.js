@@ -7,9 +7,12 @@ import { auctionRounds, AUCTION_SEATS } from './table-ui.js';
 
 export const HAND_HISTORY_KEY = 'bridge-lab.relay-hand-history.v1';
 export const HAND_HISTORY_LIMIT = 100;
+export const partnershipDealKey = (first, second) =>
+  [first, second].map(hand => [...hand].sort().join('')).sort().join('/');
 const VERSION = 1;
 const seats = ['North', 'South'];
-const validBid = bid => typeof bid === 'string' && /^(?:[1-7](?:C|D|H|S|NT)|Pass)$/.test(bid);
+const validContractBid = bid => typeof bid === 'string' && /^[1-7](?:C|D|H|S|NT)$/.test(bid);
+const validBid = bid => validContractBid(bid) || ['Pass', 'X', 'XX'].includes(bid);
 const text = (value, limit = 2000) => typeof value === 'string' && value.length <= limit;
 const bidLabel = bid => bid.replace(/([1-7])(NT|[SHDC])/g, (_, level, suit) => level + ({ S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' })[suit]);
 
@@ -25,6 +28,7 @@ export function createHandRecord(session, history, { id, createdAt = new Date().
     role: session.wholeAuction ? humanIsOpener(session) ? 'Opener' : 'Responder'
       : session.practiceRole === 'teller' ? 'Teller' : 'Asker',
     humanSeat: view.playerSeat,
+    ...(session.wholeAuction?.competition ? { competitive: true } : {}),
     ...(view.dealerSeat ? { dealerSeat: view.dealerSeat } : {}),
     hands: { [tableSeat(session, session.playerSeat)]: [...session.playerHand], [tableSeat(session, session.partnerSeat)]: [...session.partnerHand] },
     revealed: session.revealed, finished: session.finished,
@@ -51,7 +55,8 @@ function validateRecord(record) {
   }
   for (const seat of seats) handFeatures(record.hands?.[seat], 'S');
   if (new Set([...record.hands.North, ...record.hands.South]).size !== 26) throw new Error('Invalid recorded hands.');
-  const validCall = call => call && seats.includes(call.seat) && validBid(call.bid) && text(call.meaning);
+  const callSeats = record.competitive ? AUCTION_SEATS : seats;
+  const validCall = call => call && callSeats.includes(call.seat) && validBid(call.bid) && text(call.meaning);
   if (!Array.isArray(record.auction) || record.auction.length > 100
       || !record.auction.every(call => validCall(call) && call.study
         && (call.study.question === null || validCall(call.study.question))
@@ -61,8 +66,8 @@ function validateRecord(record) {
         && call.study.alternatives.every(answer => validBid(answer.bid) && text(answer.label)))) {
     throw new Error('Invalid recorded auction.');
   }
-  if (record.contract && (!validBid(record.contract.bid) || record.contract.bid === 'Pass'
-      || !seats.includes(record.contract.declarer))) throw new Error('Invalid recorded contract.');
+  if (record.contract && (!validContractBid(record.contract.bid) || !callSeats.includes(record.contract.declarer)
+      || (record.competitive && !['', 'X', 'XX'].includes(record.contract.doubling)))) throw new Error('Invalid recorded contract.');
   return record;
 }
 
@@ -78,7 +83,7 @@ export function loadHandHistory(storage) {
         validateRecord(record);
         let displayed = record;
         if (record.humanSeat === 'North') {
-          const seat = value => value === 'North' ? 'South' : value === 'South' ? 'North' : value;
+          const seat = value => ({ North: 'South', South: 'North', East: 'West', West: 'East' })[value] ?? value;
           const call = value => value && ({ ...value, seat: seat(value.seat) });
           displayed = { ...record, humanSeat: 'South', hands: { North: record.hands.South, South: record.hands.North },
             contract: record.contract && { ...record.contract, declarer: seat(record.contract.declarer) },
@@ -116,7 +121,7 @@ export function recordedCallDetails(record, index) {
 
 export function recordedHandStatus(record) {
   if (record.undiscussed) return `Undiscussed${record.contract ? ` · ${bidLabel(record.contract.bid)} by ${record.contract.declarer}` : ''}`;
-  if (record.contract) return `${bidLabel(record.contract.bid)} by ${record.contract.declarer}`;
+  if (record.contract) return `${bidLabel(record.contract.bid)}${record.contract.doubling ?? ''} by ${record.contract.declarer}`;
   return record.revealed ? 'Revealed' : record.finished ? 'Complete' : 'Unfinished';
 }
 
@@ -134,8 +139,8 @@ export function handRecordText(record, currentHandId) {
       ? SUITS.map(suit => `${({ S: '♠', H: '♥', D: '♦', C: '♣' })[suit]} ${RANKS.filter(rank => record.hands[seat].includes(suit + rank)).join('') || '—'}`).join('  ')
       : 'Hidden while this hand is in progress'}`);
   }
-  lines.push('', 'Auction · East and West pass', AUCTION_SEATS.join('\t'));
-  for (const row of auctionRounds(record.auction, record.finished || record.revealed, record.dealerSeat ?? record.humanSeat)) {
+  lines.push('', record.competitive ? 'Auction · Scripted opponents' : 'Auction · East and West pass', AUCTION_SEATS.join('\t'));
+  for (const row of auctionRounds(record.auction, record.finished || record.revealed, record.dealerSeat ?? record.humanSeat, Boolean(record.competitive))) {
     lines.push(row.map(call => !call ? '—' : call.kind === 'pending' ? '?' : bidLabel(call.bid)).join('\t'));
   }
   lines.push('', 'Bid explanations');

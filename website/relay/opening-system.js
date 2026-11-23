@@ -4,14 +4,16 @@
 // own cards and the public auction, never the sampling stratum or other hand.
 import { DECK, PRACTICE_PROFILES, createPractice, createFamilyPractice, getPracticeProfile, practiceStartState, availableActions, applyBid,
   handFeatures, makeRng, matchesConstraints, bidIndex } from './core.js';
-import { NT_SHAPES, usesTwoNotrump, ntOpeningActions, applyNtOpeningCall, ntOpeningPartnerBid, validateNtOpening } from './nt-opening.js';
+import { NT_SHAPES, usesOpeningRelay, ntOpeningActions, applyNtOpeningCall, ntOpeningPartnerBid, validateNtOpening, startOpeningKeycards } from './nt-opening.js';
 import { declarerFor } from './profile-utils.js';
 import { entryContinuations } from './bid-reference.js';
 import { DIAMOND_RAISE } from './diamond-raise.js';
 import { naturalOpeningNode, naturalOpeningActions, naturalOpeningPartnerBid } from './natural-opening.js';
 import { PASSED_FAMILIES } from './passed-hand.js';
+import { WEAK_NT_COMPETITION } from './weak-notrump-competition.js';
 import { weakNotrumpRows, weakNotrumpPartner, weakNotrumpFacts, WEAK_NT_NOTES } from './weak-notrump.js';
 import { strongTwoRows, strongTwoPartner, strongTwoEligible, isBalancedStrongTwo, STRONG_TWO_NOTES } from './strong-club-two.js';
+import { PREEMPT_BIDS, preemptRows, preemptPartnerBid } from './preempt-opening.js';
 
 import { MAJOR_NODES, MAJOR_NORTH_NODES, isMajorBalanced, majorResponseFacts, ordinaryMajorOptions, ordinaryMajorCheck, ordinaryMajorPartnerBid } from './major-opening.js';
 
@@ -31,12 +33,14 @@ export function isForcingOpeningCall(session) {
   const last = session.auction.at(-1);
   if (last?.forcing) return true;
   if (session.opening.system === 'passed' && ['controls','strong-rebid'].includes(session.opening.node)) return true;
-  if (session.opening.system === '2C' && usesTwoNotrump('2C', session.auction))
+  if (usesOpeningRelay(session.opening.system, session.auction, session.opening.node)
+    && (session.opening.system === '2C' || /^1[HS]$/.test(session.opening.system)))
     return !session.finished && !ntOpeningActions(session).some(row => row.bid === 'Pass');
   if (extraOpenings[session.opening.system] && session.opening.node !== 'open')
     return !extraActions(session).some(row => row.bid === 'Pass');
   // Saves from before the flag was stored still have their original opening and response.
-  return session.auction.length === 2 && (forcingResponses[session.opening.system]?.includes(last.bid) ?? false);
+  return session.auction.length === 2 && (forcingResponses[session.opening.system]?.includes(last.bid) ?? false)
+    || session.opening.node === 'major-club-resolve' && last?.bid === '3C';
 }
 
 export const freezeOpening = value => {
@@ -45,16 +49,19 @@ export const freezeOpening = value => {
   }
   return value;
 };
-const openingBids = {C:'1C', D:'1D', H:'1H', S:'1S', WNT:'1NT', '2C':'2C', '2D':'2D', '2H':'2H', '2S':'2S', NT:'2NT'};
+const openingBids = {C:'1C', D:'1D', H:'1H', S:'1S', WNT:'1NT', '2C':'2C', '2D':'2D', '2H':'2H', '2S':'2S', NT:'2NT',
+  ...Object.fromEntries(PREEMPT_BIDS.map(bid => [bid, bid]))};
 export const openingBidForFamily = family => openingBids[family];
 export const firstSeatOpenings = Object.freeze(Object.values(openingBids));
-export const openingFamilyFor = session => session.wholeAuction?.passedHand ? session.wholeAuction.openingFamily
+export const openingFamilyFor = session => session.wholeAuction?.competition ? WEAK_NT_COMPETITION
+  : session.wholeAuction?.passedHand ? session.wholeAuction.openingFamily
   : Object.entries(openingBids).find(([, bid]) => bid === (session.dealOpeningBid ?? openingBidFor(session)))?.[0];
 const hortonBid = bid => ['2D','2H','2S'].includes(bid);
-export const OPENING_FAMILIES = Object.freeze([...Object.keys(openingBids), 'M', 'HT', 'all', ...PASSED_FAMILIES]);
+export const OPENING_FAMILIES = Object.freeze([...Object.keys(openingBids), 'M', 'HT', '3X', WEAK_NT_COMPETITION, 'all', ...PASSED_FAMILIES]);
 const extraOpenings = {
   '1NT': { rows:weakNotrumpRows, partner:weakNotrumpPartner },
   '2C': { rows:strongTwoRows, partner:strongTwoPartner },
+  ...Object.fromEntries(PREEMPT_BIDS.map(bid => [bid, { rows: preemptRows, partner: preemptPartnerBid }])),
 };
 
 function extraActions(context) {
@@ -77,12 +84,14 @@ export const openingBidFor = session => session.wholeAuction?.passedHand
 export const humanIsOpener = session => session.opening?.node === 'first-call'
   || (session.auction.find(call => call.bid !== 'Pass')?.seat ?? 'North') === session.wholeAuction.humanSeat;
 export const openingTitle = session => session.opening?.node === 'first-call' ? 'Opening decision'
-  : `${openingBidFor(session)} · ${session.wholeAuction?.passedHand && session.auction[0]?.bid === 'Pass' ? 'Passed hand' : 'Whole auction'}`;
+  : `${openingBidFor(session)} · ${session.wholeAuction?.competition ? 'Doubles and runouts'
+    : session.wholeAuction?.passedHand && session.auction[0]?.bid === 'Pass' ? 'Passed hand' : 'Whole auction'}`;
 export const isOpeningFamily = session => session.familyId?.startsWith('opening-');
 export const SYSTEM_OPENING_NOTES = [
   ...WEAK_NT_NOTES,
   ...STRONG_TWO_NOTES,
   '2♦/2♥/2♠ Horton openings describe spades and diamonds/hearts/clubs respectively. Whole auction uses the same response tables as the Horton drill.',
+  'Natural 3C/3D/3H/3S openings show six-plus cards and 0–8 HCP. A new suit below its game is natural and forcing one round. Opener usually bids 3NT without two-card support when legal.',
   'Whole auction: first/second-seat, uncontested. Both hands are fixed before the opening; your physical seat stays fixed when the asker changes.',
   '1D includes the weak club response, invitational diamond raise, five-plus diamond game-force with 2NT, and the existing 1NT, major-response and reordered routes.',
   '1M includes three-way 2C, natural 2D and 1S–2H responses, Jacoby, weak raises and 1H–1S rebids with a range enquiry over 1NT. New-suit responses are forcing where indicated. The direct 1NT response is nonforcing.',
@@ -102,9 +111,13 @@ export function chooseOpeningFamily(family, seed) {
   if (family === 'all') {
     family = pick(openingGroups, rng);
     const strongBalanced = family === 'NT' || family === '2C' && !systemOpeningDraw('2C', seed).distributional;
-    if (strongBalanced && rng() >= 0.25) family = pick(commonOpeningGroups, rng);
+    if (strongBalanced && rng() >= 0.25) {
+      family = makeRng(`mixed-preempt:${seed}`)() < 0.2 ? '3X' : pick(commonOpeningGroups, rng);
+    }
+    if (family === 'WNT' && makeRng(`mixed-weak-nt-competition:${seed}`)() < 0.125) return WEAK_NT_COMPETITION;
   }
   if (family === 'HT') return pick(['2D','2H','2S'], rng);
+  if (family === '3X') return pick(PREEMPT_BIDS, rng);
   return family === 'M' ? (rng() < 0.5 ? 'H' : 'S') : family;
 }
 
@@ -236,7 +249,7 @@ function diamondResponse(f) {
 
 export function systemOpeningPartnerBid(context) {
   const { system, node, major, auction, hand }=context;
-  if (usesTwoNotrump(system, auction)) return ntOpeningPartnerBid(context);
+  if (usesOpeningRelay(system, auction, node)) return ntOpeningPartnerBid(context);
   if (extraOpenings[system]) {
     if (node === 'open') return system;
     const choices = extraActions(context).filter(row => matchesConstraints(hand,row.facts,'C'));
@@ -248,6 +261,7 @@ export function systemOpeningPartnerBid(context) {
   if (node === 'open') return system;
   const naturalNode = naturalOpeningNode(node, auction);
   if (naturalNode) return naturalOpeningPartnerBid(naturalNode, auction, hand);
+  if (node === 'weak-raise' && /^1[HS]$/.test(system)) return ordinaryMajorPartnerBid(context, hand);
   if (node === 'weak-raise' || node === 'final') return 'Pass';
   if (MAJOR_NODES.includes(node) || system === '1H' && node === 'rebid') return ordinaryMajorPartnerBid(context,hand);
   if (system === '1D') {
@@ -298,6 +312,9 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
       const base = practiceStartState({profileId});
       hands = drawJoint(rng, (n,s,north) => s.hcp >= 4 && s.hcp <= 24 && matchesConstraints(north,base.constraints,'S'));
     }
+  } else if (PREEMPT_BIDS.includes(openingBid)) {
+    const [opening] = preemptRows({ system: openingBid, node: 'open' });
+    hands = drawJoint(rng, (n,s,north) => matchesConstraints(north,opening.facts,'C') && s.hcp <= 23);
   } else if (openingBid === '1NT') {
     hands = drawJoint(rng, (n,s,north) => matchesConstraints(north,weakNotrumpFacts,'C') && s.hcp <= 22);
   } else if (openingBid === '2C') {
@@ -342,12 +359,15 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
       return target === '1S' ? ['1NT','2C'].includes(rebid) : Boolean(rebid);
     });
   }
-  else if (rng() < 0.2) hands = drawJoint(rng, (n,s) => {
+  else if (rng() < 0.2) {
     const major = openingBid.slice(1);
-    if (n.hcp < 9 || n.hcp > 11 || n.balanced || s.hcp < 5 || s.hcp > 8) return false;
-    if (openingBid === '1D') return n.lengths.D >= 6 && s.lengths.D >= 4 && Math.max(s.lengths.H,s.lengths.S) <= 3;
-    return n.lengths[major] >= 5 && n.lengths[other(major)]<=3 && n.lengths.C<=4 && n.lengths.D<=4 && s.lengths[major] === 3 && s.lengths[other(major)] <= 3;
-  });
+    const gameTry = openingBid !== '1D' && makeRng(`major-game-try:${seed}`)() < 0.4;
+    hands = drawJoint(rng, (n,s) => {
+      if (n.hcp < (gameTry ? 15 : 9) || n.hcp > (gameTry ? 17 : 11) || n.balanced || s.hcp < 5 || s.hcp > 8) return false;
+      if (openingBid === '1D') return n.lengths.D >= 6 && s.lengths.D >= 4 && Math.max(s.lengths.H,s.lengths.S) <= 3;
+      return n.lengths[major] >= 5 && n.lengths[other(major)]<=3 && n.lengths.C<=4 && n.lengths.D<=4 && s.lengths[major] === 3 && s.lengths[other(major)] <= 3;
+    });
+  }
   else {
     const major = openingBid.slice(1);
     const candidates = openingBid === '1D' ? diamondProfiles
@@ -443,7 +463,7 @@ function openingActionsTable(session) {
 }
 
 export function systemOpeningActions(session) {
-  if (usesTwoNotrump(session.opening.system, session.auction)) return ntOpeningActions(session);
+  if (usesOpeningRelay(session.opening.system, session.auction, session.opening.node)) return ntOpeningActions(session);
   if (extraOpenings[session.opening.system]) return extraActions(session);
   if (hortonBid(session.opening.system)) {
     const bid = session.opening.system;
@@ -508,7 +528,7 @@ function openingFactsForCall(session,bid) {
 }
 
 export function applySystemOpeningCall(session,bid) {
-  if (usesTwoNotrump(session.opening.system, session.auction)) return applyNtOpeningCall(session,bid);
+  if (usesOpeningRelay(session.opening.system, session.auction, session.opening.node)) return applyNtOpeningCall(session,bid);
   const { system,node,major,seat } = session.opening;
   const option = systemOpeningActions(session).find(call => call.bid === bid);
   const next = { ...session, opening: { ...session.opening }, constraints: [...session.constraints],
@@ -536,7 +556,14 @@ export function applySystemOpeningCall(session,bid) {
   }
   if (extraOpenings[system]) {
     if (system === '2C' && node === 'open') require(strongTwoEligible(hand), '2C needs 23+ balanced or a distributional game force.');
-    require(matchesConstraints(hand,option.facts,'C'),`This call shows ${option.label.toLowerCase()}.`);
+    if (node === 'open' && PREEMPT_BIDS.includes(system) && system !== '3S'
+        && f.lengths[system[1]] >= 6 && [4, 5].includes(f.lengths.S)) {
+      throw new Error('With four or five spades and that long side suit, use the corresponding Horton two.');
+    }
+    const weakFlatPass = system === '1NT' && node === 'respond' && bid === 'Pass';
+    require(matchesConstraints(hand,option.facts,'C'), weakFlatPass
+      ? 'With 0–7 HCP and 4333 or 4432, choose Junk Stayman or an advanced-run transfer.'
+      : `This call shows ${option.label.toLowerCase()}.`);
     next.openingConstraintsBySeat[seat].push(...option.facts.map(fact=>({...fact,label:option.label,source:option.source})));
     next.constraints = next.openingConstraintsBySeat[next.partnerSeat];
     if (option.next === 'finish') return finishOpening(next);
@@ -556,6 +583,14 @@ export function applySystemOpeningCall(session,bid) {
     if (bid === 'Pass' && !row) return finishOpening(next); // Generic signoff added to an ordinary asking node.
     if(!row || row.next==='boundary') return openingBoundary(next);
     if(row.next==='finish') return finishOpening(next);
+    if (row.next === 'nt-answer') {
+      next.openingFacts[seat].push(option.label);
+      return startOpeningKeycards(next, row.trump);
+    }
+    if (row.trump) {
+      next.major = next.trump = row.trump;
+      return move(row.next, { major: row.trump });
+    }
     if (row.next === 'relay-handover') {
       const target = prefixProfile(next.auction);
       if (!target) return openingBoundary(next);
@@ -639,7 +674,7 @@ export function validateSystemOpeningSession(session) {
   if (session.opening) {
     const { system,node,seat }=session.opening;
     if (system!==whole.openingBid || !['North','South'].includes(seat) || typeof node!=='string') throw new Error('Saved opening node is invalid.');
-    if (usesTwoNotrump(system, session.auction)) return validateNtOpening(session);
+    if (usesOpeningRelay(system, session.auction, node)) return validateNtOpening(session);
     if (extraOpenings[system] || hortonBid(system)) {
       if (hortonBid(system) && node !== 'open') throw new Error('Saved Horton opening node is invalid.');
       systemOpeningActions(session);

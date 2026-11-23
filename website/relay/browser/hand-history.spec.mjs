@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { createTrainingPractice, applyPracticeBid } from '../practice.js';
 import { revealPractice } from '../core.js';
+import { createHandRecord } from '../hand-history.js';
 import { closeSheets, clickBid, fitsScreen } from './helpers.mjs';
 
 const progressKey = 'bridge-lab.relay-progress.v1';
@@ -61,6 +62,38 @@ test('a completed auction survives the next deal and reload; review and sharing 
   await page.screenshot({ path: info.outputPath('saved-hand-review.png') });
   await closeSheets(page);
   await fitsScreen(page);
+});
+
+test('New hand skips completed seeds and identical deals while explicit replay still works', async ({ page }) => {
+  const initial = createTrainingPractice({ seed: 'relay-used-seed', profileId: 'major-S' });
+  const completed = revealPractice(applyPracticeBid(initial, '4S'));
+  const sameCards = createTrainingPractice({ seed: 'relay-repeated-cards', profileId: 'major-S' });
+  const previous = createHandRecord(revealPractice(applyPracticeBid(sameCards, '4S')), [sameCards], { id: 'archived-deal' });
+  previous.seed = 'relay-different-seed';
+  await page.addInitScript(({ progressKey, archiveKey, completed, initial, previous }) => {
+    if (!localStorage.getItem(progressKey)) localStorage.setItem(progressKey, JSON.stringify({ version: 1,
+      session: completed, history: [initial], handId: 'completed-deal', preferences: { studyProfileId: 'major-S' } }));
+    if (!localStorage.getItem(archiveKey)) localStorage.setItem(archiveKey, JSON.stringify({ version: 1, records: [previous] }));
+    const original = crypto.randomUUID.bind(crypto);
+    Object.defineProperty(crypto, 'randomUUID', { value: () => window.dealSeeds?.shift() ?? original() });
+  }, { progressKey, archiveKey, completed, initial, previous });
+  await page.goto('relay.html');
+  await ready(page);
+  await expect.poll(async () => (await archive(page)).records.length).toBe(2);
+  await page.reload();
+  await ready(page);
+  await page.evaluate(() => { window.dealSeeds = ['used-seed', 'repeated-cards', 'fresh-deal']; });
+  await page.click('#new-deal');
+  await expect.poll(async () => (await progress(page)).session.seed).toBe('relay-fresh-deal');
+  expect((await archive(page)).records.filter(record => record.finished)).toHaveLength(2);
+
+  await page.click('#settings-open');
+  await page.locator('.replay-options > summary').click();
+  await page.fill('#seed', initial.seed);
+  await page.click('#replay-deal');
+  await expect.poll(async () => (await progress(page)).session.seed).toBe(initial.seed);
+  expect((await progress(page)).session.playerHand).toEqual(initial.playerHand);
+  expect((await progress(page)).session.partnerHand).toEqual(initial.partnerHand);
 });
 
 test('the current hand keeps one record through bid, undo and reload and does not reveal hidden cards in review or text', async ({ page }) => {

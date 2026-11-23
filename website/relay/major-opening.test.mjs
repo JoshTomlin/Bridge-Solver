@@ -91,6 +91,100 @@ test('three-way limit raise can stop at two or reach game; human acceptance is n
   }
 });
 
+test('three-way 2C uses the 15+ three-card raise after 2D in both majors and seats', () => {
+  const opener = 'SK HA HK H9 H6 H2 DQ DJ D5 D2 CQ C8 C3';
+  const responder = 'SA SQ S8 HQ H8 H5 DK D8 D7 CA C7 C6 C2';
+  for (const major of ['H', 'S']) {
+    const north = major === 'H' ? opener : swap(opener);
+    const south = major === 'H' ? responder : swap(responder);
+    const otherMajor = major === 'H' ? '2S' : '2H';
+
+    const opening = applyPracticeBid(fixture(major, north, south, 'North'), `1${major}`);
+    const asOpener = applyPracticeBid(opening, '2D');
+    assert.deepEqual(asOpener.auction.map(call => call.bid), [`1${major}`, '2C', '2D', otherMajor]);
+    assert.match(asOpener.auction.at(-1).meaning, /three-card support; 15\+/);
+    assert.throws(() => applyPracticeBid(asOpener, 'Pass'), /is forcing/);
+    restore(asOpener, [opening]);
+
+    const asResponder = applyPracticeBid(fixture(major, north, south), '2C');
+    assert.deepEqual(asResponder.auction, asOpener.auction.slice(0, 3));
+    const described = applyPracticeBid(asResponder, otherMajor);
+    assert.deepEqual(described.auction.slice(0, 4), asOpener.auction);
+    assert.equal(described.auction.at(-1).bid, '3D');
+    assert.equal(applyPracticeBid(described, `4${major}`).contract.bid, `4${major}`);
+  }
+});
+
+test('after 1S–2C–3C the reported hand can show diamonds or agree spades', () => {
+  const opener = 'SA SK SJ S8 S7 HA H8 H2 D2 CA CJ C9 C8';
+  const responder = 'ST S6 S5 HQ HJ HT DA DK DT D6 D4 D3 CQ';
+  const reverse = applyPracticeBid(fixture('S', opener, responder), '2C');
+  assert.deepEqual(reverse.auction.map(call => call.bid), ['1S', '2C', '3C']);
+  assert.throws(() => applyPracticeBid(reverse, 'Pass'), /3C is forcing/);
+
+  const diamonds = applyPracticeBid(reverse, '3D');
+  assert.match(diamonds.auction[3].meaning, /Natural diamonds/);
+  assert.equal(applyPracticeBid(diamonds, 'Pass').contract.bid, '3NT');
+  const spades = applyPracticeBid(reverse, '3S');
+  assert.match(spades.auction[3].meaning, /three-card raise/);
+  assert.equal(spades.auction[4].bid, '4NT');
+  assert.match(spades.auction[4].meaning, /Keycards in spades/i);
+  assert.equal(applyPracticeBid(spades, '5D').auction[5].bid, '5D');
+  restore(spades, [reverse]);
+
+  const west = applyPracticeBid(fixture('S', opener, responder, 'North'), '1S');
+  const agreed = applyPracticeBid(west, '3C');
+  assert.equal(agreed.auction.at(-1).bid, '3S');
+  assert.match(availablePracticeActions(agreed).find(call => call.bid === '3NT').label, /non-serious/i);
+
+  const missingKeycards = applyPracticeBid(fixture('S', 'SA SK SJ S8 S7 HA HK H2 D2 CK CJ C9 C8',
+    'SQ ST S6 HQ HJ HT DK DQ DT D6 D4 D3 CQ'), '2C');
+  const asked = applyPracticeBid(missingKeycards, '3S');
+  const signedOff = applyPracticeBid(asked, '5C');
+  assert.deepEqual(signedOff.auction.slice(-3).map(call => call.bid), ['4NT', '5C', '5S']);
+  assert.equal(applyPracticeBid(signedOff, 'Pass').contract.bid, '5S');
+});
+
+test('the delayed heart agreement shows non-serious 3S and a serious spade cue at 3NT', () => {
+  const opener = 'HA HK HJ H8 H7 SA S8 S2 D2 CA CJ C9 C8';
+  const responder = 'HT H6 H5 SQ SJ ST DA DK DT D6 D4 D3 CQ';
+  const start = applyPracticeBid(fixture('H', opener, responder, 'North'), '1H');
+  const agreed = applyPracticeBid(start, '3C');
+  assert.deepEqual(agreed.auction.map(call => call.bid), ['1H', '2C', '3C', '3H']);
+  const actions = availablePracticeActions(agreed);
+  assert.match(actions.find(call => call.bid === '3S').label, /^Non-serious/);
+  assert.match(actions.find(call => call.bid === '3NT').label, /^Serious slam interest; spade control/);
+  const cue = applyPracticeBid(agreed, '3NT');
+  assert.equal(cue.auction.at(-1).bid, '4H');
+  assert.equal(applyPracticeBid(cue, 'Pass').contract.bid, '4H');
+});
+
+test('the source 4D club Kickback after a three-way reverse uses the ordinary replies', () => {
+  const opener = 'SA SK SJ S8 S7 HA H8 H2 D2 CA CJ C9 C8';
+  const responder = 'SQ S9 S4 HK HQ H9 DA D8 D5 CK CQ CT C7';
+  const reverse = applyPracticeBid(fixture('S', opener, responder), '2C');
+  const answer = applyPracticeBid(reverse, '4D');
+  assert.equal(answer.auction.at(-1).bid, '4H');
+  assert.equal(answer.trump, 'C');
+  assert.match(answer.auction.at(-1).meaning, /0 or 3 keycards/);
+  assert.equal(applyPracticeBid(answer, '5C').contract.bid, '5C');
+  restore(answer, [reverse]);
+});
+
+test('a provisional suit game try after a simple raise can be accepted or declined', () => {
+  const opener = 'SA SK SQ S8 S7 HA H8 H2 D2 CK CJ C9 C8';
+  for (const [responder, reply] of [
+    ['SJ S6 S5 HQ HJ HT D9 D4 D3 CQ C7 C6 C2', '3S'],
+    ['SJ S6 S5 HQ HJ HT DQ D4 D3 CQ C7 C6 C2', '4S'],
+  ]) {
+    const auction = applyPracticeBid(fixture('S', opener, responder, 'North'), '1S');
+    assert.equal(auction.auction.at(-1).bid, '2S');
+    const tryGame = applyPracticeBid(auction, '3C');
+    assert.deepEqual(tryGame.auction.slice(-2).map(call => call.bid), ['3C', reply]);
+    assert.equal(applyPracticeBid(tryGame, 'Pass').contract.bid, reply);
+  }
+});
+
 test('source 1S–2H balanced enquiry distinguishes the explicit 14–17 and 18/19 answers',()=>{
   for(const [n,answer] of [
     ['SA SK SQ S9 S3 H8 H3 DK D8 D3 CQ C8 C3','3NT'],

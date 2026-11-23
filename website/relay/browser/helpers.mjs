@@ -27,7 +27,7 @@ export async function newHand(page) {
 
 export async function clickBid(page, bid) {
   await closeSheets(page);
-  if (bid !== 'Pass') {
+  if (/^[1-7]/.test(bid)) {
     const level = page.locator(`[data-level="${bid[0]}"]`);
     if (await level.getAttribute('aria-pressed') !== 'true') await level.click();
   }

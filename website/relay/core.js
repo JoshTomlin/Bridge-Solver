@@ -347,8 +347,9 @@ function applyFamilyBid(session, bid, chosenReply) {
   }
   if (action.kind === 'handover') {
     const profile = getPracticeProfile(session.familyId);
-    const constraints = (session.relayRolesSwapped ? profile.partnerConstraints : profile.playerConstraints)
-      .map(constraint => ({ ...constraint, label: constraintLabel(constraint) }));
+    const handoverConstraints = action.handoverConstraints
+      ?? (session.relayRolesSwapped ? profile.partnerConstraints : profile.playerConstraints);
+    const constraints = handoverConstraints.map(constraint => ({ ...constraint, label: constraintLabel(constraint) }));
     return freeze({ ...next,
       auction: [...session.auction, { seat: session.playerSeat, bid, meaning: action.label, source: action.source }],
       playerSeat: session.partnerSeat, partnerSeat: session.playerSeat,

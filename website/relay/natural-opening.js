@@ -53,13 +53,14 @@ export function naturalOpeningActions(node, auction) {
 }
 
 export function naturalOpeningPartnerBid(node, auction, hand) {
-  const { hcp, lengths } = handFeatures(hand, 'C');
+  const { balanced: isBalanced, hcp, lengths } = handFeatures(hand, 'C');
   const opening = auction[0].bid[1];
   const response = auction[1].bid;
   const last = auction.at(-1).bid;
   const choices = naturalOpeningActions(node, auction).filter(row => matchesConstraints(hand, row.facts, opening));
   const pick = (...bids) => bids.find(bid => choices.some(row => row.bid === bid));
   if (node === 'ordinary-rebid') {
+    if (opening === 'C' && response === '1NT' && isBalanced && hcp < 17) return 'Pass';
     if (response === '3D') {
       return hcp >= 15 ? pick(lengths.D >= 6 ? '5D' : '3NT', 'Pass') : 'Pass';
     }

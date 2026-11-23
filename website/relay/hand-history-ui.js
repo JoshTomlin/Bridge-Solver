@@ -37,7 +37,7 @@ export function setupHandHistory({ getCurrentId, showCall }) {
     byId('saved-hand-cards').innerHTML = ['North', 'South'].map(seat => `<section><h3>${seat} · ${seat === record.humanSeat ? 'You' : 'Partner'}</h3>${both || seat === record.humanSeat
       ? `<div class="record-hand">${SUITS.map(suit => `<span class="suit-holding suit-${suit}"><span class="symbol">${({ S: '♠', H: '♥', D: '♦', C: '♣' })[suit]}</span>${RANKS.filter(rank => record.hands[seat].includes(suit + rank)).join('') || '—'}</span>`).join('')}</div>`
       : '<p class="muted">Hidden while you are bidding this hand.</p>'}</section>`).join('');
-    byId('saved-hand-auction').innerHTML = auctionRounds(record.auction, record.finished || record.revealed, record.dealerSeat ?? record.humanSeat).map(row => `<tr>${row.map(call => `<td>${!call ? '' : call.kind === 'pending' ? '<span class="awaiting-bid">?</span>'
+    byId('saved-hand-auction').innerHTML = auctionRounds(record.auction, record.finished || record.revealed, record.dealerSeat ?? record.humanSeat, Boolean(record.competitive)).map(row => `<tr>${row.map(call => `<td>${!call ? '' : call.kind === 'pending' ? '<span class="awaiting-bid">?</span>'
       : call.kind === 'opponent' ? '<span class="opponent-pass">Pass</span>'
       : `<button type="button" class="bid auction-call" data-recorded-call="${call.index}" aria-label="${escapeHtml(bidLabel(call.bid))}, ${call.seat}. Show saved meaning and alternatives">${escapeHtml(bidLabel(call.bid))}</button>`}</td>`).join('')}</tr>`).join('');
     byId('saved-hand-text').value = handRecordText(record, getCurrentId());
@@ -93,6 +93,9 @@ export function setupHandHistory({ getCurrentId, showCall }) {
 
   renderList();
   return {
+    completedHands() {
+      return [...loadHandHistory().records, ...records].filter(record => record.finished);
+    },
     save(session, history, id) {
       // UI preferences also autosave; only record changes to bidding state.
       if (session === lastSession && id === lastId && !saveError) return;

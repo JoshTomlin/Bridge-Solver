@@ -14,7 +14,7 @@ const policy = session => session.opening
 
 test('new opening families complete from either seat, preserving hands, progress and all earlier calls at relay handovers', () => {
   const roots=new Set(),routes=new Set();
-  for(const family of ['D','H','S','NT','WNT','2C','2D','2H','2S','all']) for(const humanSeat of ['North','South']) for(let i=0;i<16;i++) {
+  for(const family of ['D','H','S','NT','WNT','2C','2D','2H','2S','3C','3D','3H','3S','all']) for(const humanSeat of ['North','South']) for(let i=0;i<16;i++) {
     let session=createTrainingPractice({auctionMode:true,openingFamily:family,humanSeat,seed:`system-opening-${i}`});
     const initial=copy(practiceView(session)),history=[];
     for(let turn=0;!session.finished && turn<35;turn++) {
@@ -39,7 +39,7 @@ test('new opening families complete from either seat, preserving hands, progress
     const store=storage();savePracticeProgress({session,history,preferences:{practiceMode:'auction',openingFamily:family}},store);
     assert.equal(loadPracticeProgress(store).error,undefined,'Completed games retain the full undo history');
   }
-  assert.deepEqual([...roots].sort(),['1C','1D','1H','1NT','1S','2C','2D','2H','2NT','2S']);
+  assert.deepEqual([...roots].sort(),['1C','1D','1H','1NT','1S','2C','2D','2H','2NT','2S','3C','3D','3H','3S']);
   assert.ok([...routes].some(route=>route.startsWith('minor-d')));
   assert.ok([...routes].some(route=>route.startsWith('rebid-')));
   assert.ok(routes.has('major-H') && routes.has('major-S'));
@@ -66,6 +66,26 @@ const ntFourSpades='SA SK SQ S2 HA HK H3 DK D4 D2 CJ C8 C7'; // 20, 4333
 const ntResponder='SJ ST S9 S8 HQ HT H9 DA D8 D6 CQ CT C2';
 const threeHeartOpener = 'SQ S9 S5 HA H8 H6 DA D8 D7 D6 D4 D3 CQ';
 const fiveHeartResponder = 'SA S8 SJ HK HQ HJ HT H9 DK D5 CA C8 C7';
+
+test('a new suit after a natural preempt forces a rebid; opener uses 3NT without a fit', () => {
+  const north = 'S9 S8 H4 DK DJ D9 D7 D6 D5 C8 C7 C6 C5';
+  const south = 'SA SK SQ HA HK HQ HJ H8 H7 DA D2 CK C2';
+  for (const [opener, answer] of [[north, '3NT'], [north.replace('S8','H3'), '4H']]) {
+    const asResponder = advanceOpeningPartner(deal('3D', opener, south));
+    const rebid = applyPracticeBid(asResponder, '3H');
+    assert.deepEqual(rebid.auction.map(call => call.bid), ['3D', '3H', answer]);
+    assert.equal(rebid.auction[1].forcing, true);
+    const northTurn = applyPracticeBid(deal('3D', opener, south, 'North'), '3D');
+    assert.deepEqual(northTurn.auction, rebid.auction.slice(0, 2));
+    assert.throws(() => applyPracticeBid(northTurn, 'Pass'), /3H is forcing/);
+    assert.equal(applyPracticeBid(rebid, 'Pass').contract.declarer, answer === '3NT' ? 'North' : 'South');
+  }
+  const bothSuits = 'SK S9 S8 S7 H4 DK DJ D9 D7 D6 D5 C6 C5';
+  const noOverlap = south.replace('SK', 'S3');
+  const early = deal('3D', bothSuits, noOverlap, 'North');
+  assert.throws(() => applyPracticeBid(early,'3D'), /Horton/);
+  assert.equal(applyPracticeBid(early,'2D').familyId, 'horton-d');
+});
 
 test('Horton forcing new-suit jumps set trump and reach the natural game from either seat', () => {
   const cases = [
@@ -170,6 +190,44 @@ test('the heart-support auction uses diamond Kickback before shortage and the cu
   assert.equal(afterCue.askType, 'keycard');
   assert.equal(afterCue.trump, 'D');
   assert.deepEqual(applyPracticeBid(agreed, '4NT').auction.slice(-2).map(call => call.bid), ['4NT','5H']);
+});
+
+test('after the spade-support shortage sequence, 4D hands diamond Kickback to opener', () => {
+  const north = 'SA S6 S2 HA DK DJ DT D9 D7 D5 C7 C6 C2';
+  const south = 'SK SQ S9 S8 S4 HK HQ H9 DQ D8 CA CJ C9';
+  const throughShortage = ['1D', '1S', '1NT', '2C', '2S', '2NT', '3D', '3H', '3S'];
+
+  let fromOpener = deal('D', north, south, 'North');
+  const initial = fromOpener;
+  for (const bid of ['1D', '1NT', '2S', '3D', '3S']) fromOpener = applyPracticeBid(fromOpener, bid);
+  assert.deepEqual(fromOpener.auction.map(call => call.bid), [...throughShortage, '4D']);
+  assert.equal(fromOpener.practiceRole, 'asker');
+  assert.deepEqual(practiceView(fromOpener).playerHand, north.split(' '));
+  const kickback = practiceCalls(fromOpener).find(call => call.bid === '4H');
+  assert.equal(kickback.askType, 'keycard');
+  assert.equal(kickback.trump, 'D');
+  const answered = applyPracticeBid(fromOpener, '4H');
+  assert.deepEqual(answered.auction.slice(-2).map(call => [call.seat, call.bid]), [['North', '4H'], ['South', '4NT']]);
+  assert.match(answered.auction.at(-1).meaning, /1 or 4 keycards/);
+
+  let fromResponder = advanceOpeningPartner(deal('D', north, south));
+  for (const bid of ['1S', '2C', '2NT', '3H']) fromResponder = applyPracticeBid(fromResponder, bid);
+  assert.deepEqual(fromResponder.auction.map(call => call.bid), throughShortage);
+  assert.equal(practiceCalls(fromResponder).find(call => call.bid === '4H').askType, 'keycard');
+  const choice = applyPracticeBid(fromResponder, '4D');
+  assert.equal(choice.practiceRole, 'teller');
+  assert.equal(choice.pendingAsk.bid, '4H');
+  assert.deepEqual(practiceView(choice).playerHand, south.split(' '));
+  assert.deepEqual(applyPracticeBid(choice, '4NT').auction.slice(0, answered.auction.length), answered.auction);
+
+  const legacy = { ...fromResponder, practiceRole: 'teller', wholeAuction: initial.wholeAuction,
+    pendingAsk: { bid: '4D', label: 'Agree diamonds below game', responseLadder: [{ bid: '4H', label: 'Control in hearts' }] } };
+  const store = storage();
+  savePracticeProgress({ session: legacy, history: [initial], preferences: { practiceMode: 'mixed' } }, store);
+  const loaded = loadPracticeProgress(store);
+  assert.equal(loaded.error, undefined);
+  assert.deepEqual(loaded.progress.session, copy(fromOpener));
+  assert.deepEqual(loaded.progress.history, [copy(initial)]);
 });
 
 test('the reported four-spade, three-heart responder can force a rebid with 1S', () => {
@@ -597,6 +655,21 @@ test('a flat invitation with a five-card major goes through weak-notrump Stayman
   const transfer = applyPracticeBid(advanceOpeningPartner(deal('WNT', north, south)), '2H');
   assert.equal(transfer.auction.at(-1).bid, '2S');
   assert.equal(practiceCalls(transfer).find(row => row.bid === '2NT').discussed, false);
+});
+
+test('the club opener passes a weak 1NT response with 14–16 balanced and two four-card minors', () => {
+  const north = 'S5 S2 HK HJ H7 DA DT D7 D5 CA CQ C5 C4';
+  const south = 'SJ S8 S3 HT H6 DJ D6 D3 D2 CK C9 C6 C3';
+  for (const opener of [north, north.replace('H7', 'HQ')]) {
+    const responder = advanceOpeningPartner(deal('C', opener, south));
+    const done = applyPracticeBid(responder, '1NT');
+    assert.deepEqual(done.auction.map(call => call.bid), ['1C', '1NT', 'Pass']);
+    assert.equal(done.contract.bid, '1NT');
+    assert.equal(done.contract.declarer, 'South');
+  }
+
+  const unbalanced = advanceOpeningPartner(deal('C', north.replace('S2', 'C2'), south));
+  assert.equal(applyPracticeBid(unbalanced, '1NT').auction.at(-1).bid, '2D');
 });
 
 test('weak 1C–1NT is playable in both seats and opener can invite naturally', () => {

@@ -110,8 +110,25 @@ function splitProfile(minor, major, rangeEntry = false) {
   // P1680–P1682: once the heart/diamond shortage is shown, 4H is heart game.
   // Agree diamonds with 4D, hear opener's cue, then use 4NT for diamond RKCB.
   const keycardSuitsAfterShortage = minor === 'D' && major === 'H' ? [major] : [major, minor];
-  nodes['agree-single'] = session => ({ label: 'Agree a suit or choose a contract', help: 'The shortage is now known. Agree the minor, use Kickback, or choose game.',
-    actions: agreementsWithKeycards(session, [major, minor], keycardSuitsAfterShortage) });
+  const openerCanAsk = minor === 'D' && major === 'S';
+  nodes['agree-single'] = session => {
+    const actions = agreementsWithKeycards(session, [major, minor], keycardSuitsAfterShortage);
+    return {
+      label: 'Agree a suit or choose a contract',
+      help: 'The shortage is now known. Agree the minor, use Kickback, or choose game.',
+      preferHandover: openerCanAsk,
+      actions: openerCanAsk ? actions.map(action => action.bid === '4D' ? {
+        bid: '4D', kind: 'handover', label: 'Agree diamonds; opener can use Kickback',
+        source: 'P1684–P1685; partnership clarification', state: fit('D'), nextNode: 'opener-kickback',
+        handoverConstraints: session.openingConstraintsBySeat?.[session.playerSeat],
+      } : action) : actions,
+    };
+  };
+  if (openerCanAsk) nodes['opener-kickback'] = session => ({
+    label: 'Diamonds agreed',
+    help: '4H is Kickback in diamonds.',
+    actions: directKeycards(session, ['D']),
+  });
   nodes['four-support'] = session => ({ label: 'Four-card support established', help: 'Continue with Kickback or choose a final contract.', actions: directKeycards(session, [major]) });
   nodes.kickback = session => {
     const after = lastBid(session);

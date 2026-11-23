@@ -20,7 +20,10 @@ function bidOnPolicy(session) {
   if (session.opening) {
     return openingPartnerBid({ ...session.opening, auction:session.auction, hand:practiceView(session).playerHand });
   }
-  if (session.practiceRole === 'asker') return advanceAsker(session).pendingAsk?.bid ?? 'Pass';
+  if (session.practiceRole === 'asker') {
+    const next = advanceAsker(session);
+    return next.auction[session.auction.length]?.bid ?? next.pendingAsk?.bid ?? 'Pass';
+  }
   const after = applyBid(session,session.pendingAsk.bid);
   return after.auction.slice(session.auction.length).find(call => call.seat === session.partnerSeat).bid;
 }
@@ -54,8 +57,8 @@ test('Just Bid can reach every implemented study entry from the opening in eithe
 
 test('Just Bid randomly assigns both physical seats for every supported opening', () => {
   const seedsByOpeningAndSeat = [
-    0, 1, 2, 3, 4, 5, 8, 10, 11, 13, 14, 17, 19, 21, 24, 25, 26,
-    34, 36, 37, 38, 53, 56, 75, 80, 83, 97, 101, 114, 223, 258, 313, 561, 607,
+    0, 1, 2, 3, 4, 5, 6, 8, 10, 11, 13, 14, 17, 19, 21, 24, 25, 26, 34, 36, 37, 38,
+    48, 51, 53, 56, 75, 80, 83, 97, 111, 114, 116, 223, 258, 306, 307, 313, 373, 561, 661, 679,
   ];
   const reached = { North:[],South:[] };
   for (const number of seedsByOpeningAndSeat) {
@@ -66,7 +69,7 @@ test('Just Bid randomly assigns both physical seats for every supported opening'
     assert.deepEqual(session.auction.filter(call=>call.bid!=='Pass').map(call=>call.bid),humanSeat==='North' || passedHand ? [] : [openingBid]);
     reached[humanSeat].push(passedHand ? `PH-${openingBid}` : openingBid);
   }
-  const expected = ['1C','1D','1H','1S','1NT','2C','2D','2H','2S','2NT',
+  const expected = ['1C','1D','1H','1S','1NT','2C','2D','2H','2S','2NT','3C','3D','3H','3S',
     'PH-1C','PH-1D','PH-1H','PH-1S','PH-1NT','PH-2C','PH-2NT'].sort();
   for (const bids of Object.values(reached)) assert.deepEqual(bids.sort(),expected);
 });

@@ -61,7 +61,8 @@ test('Just bid preserves whole-auction mode on reload and has no prefilled human
   for(let i=0;i<120;i++) {
     const session=createTrainingPractice({auctionMode:true,openingFamily:'all',seed:`just-from-start-${i}`});
     assert.equal(session.auction.some(c=>c.seat===session.wholeAuction.humanSeat && c.bid!=='Pass'),false);
-    assert.ok(session.auction.length<=(session.wholeAuction.passedHand ? 2 : 1));
+    const partnershipCalls = session.auction.filter(call => ['North', 'South'].includes(call.seat));
+    assert.ok(partnershipCalls.length <= (session.wholeAuction.passedHand ? 2 : 1));
     if (session.wholeAuction.passedHand) passedPositions.add(session.wholeAuction.openingSeatNumber);assert.equal(session.pendingAsk,null);
     seats.add(session.wholeAuction.humanSeat);openings.add(session.wholeAuction.openingBid??'1C');
     savePracticeProgress({session,history:[],preferences:{practiceMode:'mixed'}},storage);

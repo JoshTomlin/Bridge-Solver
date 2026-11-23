@@ -14,8 +14,9 @@ with third/fourth-seat and vulnerability controls. Those ranges and meanings
 must not be inferred from the first/second-seat tables below.
 
 In the mixed modes, the sampler keeps one quarter of ordinary 2NT and balanced
-strong 2C draws. It reallocates the other draws to 1C, 1D, 1M, weak 1NT and
-Horton. Within the passed-hand group, it keeps one third of strong notrump
+strong 2C draws. It reallocates the other draws to 1C, 1D, 1M, weak 1NT,
+Horton and occasional three-level preempts. Within the passed-hand group,
+it keeps one third of strong notrump
 and 2C draws and reallocates the rest to one-level suit openings. Named
 opening families deal from their own ranges. These are practice weights.
 
@@ -32,11 +33,46 @@ asker/teller roles may change. Undo and reopening work across this transition.
 | 1C | Major transfers, artificial 1S into balanced, two-minor or major-shortage rebids, positive 2C with all five opener rebids, weak 1NT, weak suit jumps at two and three, and the existing Bourke/split/reordered rebids | P0439/P0440/P0442 give shortage questions but omit the reply steps. Further 1S Baron and detailed Dappleton shortage routes remain incomplete. |
 | 1D | Natural 1H/1S, artificial 1NT, weak 2C, invitational 3D, or the Jacoby-style 2NT diamond raise. Also the implemented July minor, 1NT support, direct weak support, reordered single-suit, support-2NT, reverse and mini–mega entries | The 2NT diamond raise needs five-plus diamonds and game-forcing values. Weak 2C and invitational 3D use provisional natural rebids. Two-major response priorities and strong reverses after 1D–1NT are incomplete |
 | 1H/1S | Three-way 2C, natural 2D and 1S–2H, natural invitations, weak raises and Jacoby. 1H–1S continues through natural rebids, the 1NT range and shape enquiries, the 2C resolver and reordered rebids | After the direct nonforcing 1NT response, opener may pass or continue with provisional natural rebids. Some later slam, shortage and invitation continuations are incomplete |
-| Weak 1NT | Stayman, invitations, Smolen, transfers to majors, super-accept and splinter entries, 2NT minor puppet, Baron, natural game and quantitative choices | Uses a 9–13 subset of P0070–P0072. Later control/Keycard and competitive routes are incomplete |
+| Weak 1NT | Stayman, invitations, Smolen, transfers to majors, super-accept and splinter entries, 2NT minor puppet, Baron, natural game and quantitative choices | Uses a 9–13 subset of P0070–P0072. Later control and Keycard routes are incomplete. The doubles and runouts family is described below |
 | Strong 2C | 2D = 0/1/4 controls; 2H = 2/5; 2S = 3. Direct 2NT/3C/3D/3H transfer to clubs/diamonds/hearts/spades and opener's acceptance asks exact controls. After a control reply, a 2NT rebid uses Muppet, transfers and minor Stayman | 23+ balanced and selected distributional game forces. After the 2NT rebid opener alone can use Keycard. Later slam continuations after natural suit rebids are incomplete |
 | Horton 2D/2H/2S | Signoffs, mild invitations, direct Kickback, 2NT enquiry and subsequent shortage/keycard routes use the same tables as the focused drills | Four/five spades, four-plus diamonds/hearts/clubs respectively, 0–8. One fifth of whole-auction deals target a responder with a strong fit in one shown suit |
+| 3C/3D/3H/3S | Natural weak preempts, direct game or partscore choices and a natural forcing new suit below game. Opener usually bids 3NT without two-card support when legal. | Six-plus cards and 0–8 HCP. With four/five spades and a long side suit, the matching Horton bid has priority. Six spades prefer a spade preempt. Four-level opening choices and vulnerable exceptions are matters of judgement in P1062 and P1435–P1439. |
 | Passed hand | Third/fourth-seat club, diamond, major, strong 1NT, strong 2NT and strong 2C into 2NT | See [the passed-hand tables](passed-hand.md) for prior passes, vulnerability, response tables and gaps |
 | 2NT | Muppet and direct/delayed minor Stayman; major transfers/re-transfers; major/minor slam tries; cues, Kickback, queen and specific-suit enquiries; quantitative choices | 20–22 in 4333/4432/5332; responder 6–16. Subjective policies and remaining Exclusion/general-grand-try questions are disclosed in the [2NT tables](notrump-opening.md) |
+
+## Weak 1NT doubles and runouts
+
+Choose **Whole auction → Opening family → 1NT · Doubles and runouts**.
+In Just bid and Mix all openings, one in eight weak 1NT draws uses this
+family. It deals the same cards and the same scripts on replay from either
+seat. Calls, including opponents' bids, stay in the auction through Undo
+and saved-hand review.
+
+| Position | Agreement |
+|---|---|
+| `1NT – (Pass) – ?` | 0–7 with 4333 or 4432 must act. Junk Stayman can lack a four-card major, and an advanced-run transfer can have fewer than five in the target major. With a five-plus suit, responder can pass and show the suit later. |
+| `1NT – (X) – ?` | Responder's immediate XX is (7)8+ and balanced or suitably semi-balanced. Natural two-level escapes show five-plus. Pass asks opener for a five-plus suit or a redouble. The notes allow a rare opener pass with 4333. |
+| `1NT – (X) – Pass – (Pass) – XX – (Pass) – ?` | Start with the lower of two suits. The trainer uses four-plus in both suits and a natural correction when needed. With one five-plus suit, bidding it directly is the preferred route. |
+| `1NT – (Pass) – Pass – (X) – ?` | Opener automatically redoubles in the practice deals. Responder can run naturally in a five-plus suit. |
+| After immediate responder XX or automatic opener XX | If the opponents escape, our first double of a suit is takeout. The next partnership double and any later doubles are penalty. The opponents can run to 2♥ and raise to 3♥. |
+| Competitive 2NT | Immediately over X it is Lebensohl, puppeting to 3♣ and then passing or correcting. Going through Lebensohl is more willing to defend than a direct three-level bid. After responder initially passes and an opponent bids a suit, 2NT is scrambling with two places to play. In practice those are two four-plus suits. |
+
+The ordinary weak 1NT and this family both apply the 0–7 rule.
+[P0229](../system-sources/main-notes.txt#L208) allows a partnership to lower
+the upper limit to five or six in second seat. The trainer uses 0–7.
+[P0230–P0231](../system-sources/main-notes.txt#L209) also cover rare natural
+opener exceptions to the automatic redouble and exceptional (32)44 escapes
+after it. The practice deals use the standard routes. Doubled Stayman,
+doubled transfers and an immediate suit overcall have separate treatments
+in [P0236–P0239](../system-sources/main-notes.txt#L215). Those positions
+remain outside this exercise.
+
+The competitive controller reads the actual four-seat calls to determine
+which agreement applies and counts only partnership doubles for the
+takeout-to-penalty change. It reuses the weak escape routes from the ordinary
+1NT table when responder acts after an opponent pass. The opponents follow scripts
+conditioned on public calls. Their cards and double-dummy scoring are
+outside the exercise.
 
 The diamond and major opening tables follow P0631–P0691, P0885–P0924,
 P1478–P1522, the July email and the separate reordering document. The strong
@@ -52,7 +88,9 @@ also leaves 5D available as the agreed diamond game. Hands with two
 shortages are outside this relay’s current subset.
 
 After 1C–1NT, 1D–2C, 1D–3D and 1M–1NT, natural continuation ranges and
-automatic invitations are provisional. The menus label those continuations.
+automatic invitations are provisional. The menus label those continuations. After
+1C–1NT, the bot passes with 14–16 balanced, including hands with both
+four-card minors. It invites with 17–19 balanced.
 
 In first or second seat, 1♥–1♠ shows four-plus spades and forces opener to
 rebid. Four spades and three hearts can take this route. After opener's
@@ -149,11 +187,28 @@ honour-count thresholds for human answers. The bot uses the existing conservativ
 AKQJT9-or-better policy when choosing the solid-major rebid. Human responders may pass an artificial reply or
 choose a final slam, as previously clarified by Josh.
 
-Detailed later descriptive rebids, cue-bidding, keycard after these natural
-agreements, and quantitative slam acceptance remain incomplete. The automated
-partner chooses a game or accepts the selected contract. This increment does
-not claim complete ordinary-major or slam coverage. The missing **1M–1NT**
-continuation table is recorded as Q9 rather than filled from generic Acol.
+After **1M–2♣–3♣**, opener has made a natural, forcing club reverse.
+P1511–P1518 give responder **3♦** or **3OM** as natural or a club cue,
+**3M** as a good three-card limit raise or better, **3NT** to play,
+**4♣** for three-card major support and four-plus clubs, **4♦** as club
+Kickback, and **4M** as a poor or average limit raise. For practice, the
+natural side-suit options accept three-plus cards, or four-plus clubs and
+a control in the side suit. A low trump agreement leads to the partnership's
+control-bidding and keycard methods, including P1690's serious/non-serious
+distinction with a major fit below game.
+
+After **1M–2♣–2♦–2OM**, P1486 defines 15+ HCP and exactly three trumps.
+Opener can now describe shape and the pair can agree the major below game.
+The notes leave the descriptive calls unspecified. Practice uses natural
+shape descriptions and a delayed trump agreement, following the [ACBL's
+two-over-one examples](https://cdn.acbl.org/assets/documents/teachers/Teacher-Manuals/More-Commonly-Used-Conventions-Lesson-8.pdf).
+After **1M–2M**, practice offers natural help-suit tries, a balanced 2NT
+invite and a general 3M try. These are provisional while Q19 is open.
+[ACBL weak major-suit raises](https://web2.acbl.org/documentLibrary/teachers/MajorSuitRaises1.pdf)
+describes how to evaluate help-suit tries.
+
+The remaining ordinary-major gaps include the full **1M–1NT** table (Q9)
+and quantitative slam invitations after natural agreements.
 
 Independent expected-auction tests cover both physical seats, partscore and
 game after the three-way response, diamond/heart enquiry replies, declared

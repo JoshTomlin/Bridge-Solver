@@ -113,6 +113,11 @@ Kickback** (P1655–P1657). If responder first asks shortage with 3S, **4H is
 to play**. Responder can instead agree diamonds with 4D. Opener’s 4H then
 shows a heart control and responder’s 4NT asks diamond keycards (P1680–P1682).
 
+In the spade-support route, responder can use **4H as direct diamond
+Kickback** after the shortage reply (P1685). After responder instead agrees
+diamonds with **4D**, opener can take over with **4H diamond Kickback**, as
+Josh clarified.
+
 ## Horton Two openings and 2NT
 
 Sources: P1060–P1292. In this practice set opener has 0–8 HCP, four/five

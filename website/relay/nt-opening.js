@@ -4,6 +4,7 @@
 import { handFeatures, matchesConstraints, bidIndex } from './core.js';
 import { declarerFor } from './profile-utils.js';
 import { keycardAction, postRangeActions, applyPostRangeBid } from './continuations.js';
+import { slamAction } from './slam-policy.js';
 
 const suits = ['S','H','D','C'];
 const names = { S:'Spades', H:'Hearts', D:'Diamonds', C:'Clubs' };
@@ -40,9 +41,11 @@ const northNodes = ['open','muppet','fit-major','both-majors','puppet-nt','trans
   'nt-54-try','nt-54-force','nt-55-try','nt-55-force','nt-minors-shortage','nt-quant'];
 const variableNodes = ['final','nt-cue','nt-answer','nt-continue'];
 
-export function usesTwoNotrump(system, auction) {
+const isMajorOpening = system => system === '1H' || system === '1S';
+export function usesOpeningRelay(system, auction, node) {
   return system === '2NT' || (system === '2C' && auction[0]?.bid === '2C'
-    && ['2D', '2H', '2S'].includes(auction[1]?.bid) && auction[2]?.bid === '2NT');
+    && ['2D', '2H', '2S'].includes(auction[1]?.bid) && auction[2]?.bid === '2NT')
+    || isMajorOpening(system) && ['nt-cue', 'nt-answer', 'nt-continue'].includes(node);
 }
 
 function resumeTwoNotrump(ctx) {
@@ -66,6 +69,12 @@ function keycards(ctx,bid,trump=ctx.major) {
 }
 function cueOptions(ctx) {
   const trump=ctx.major, rows=[keycards(ctx,ctx.kickbackBid ?? kickback(trump)),play(game(trump))];
+  if (isMajorOpening(ctx.system) && trump === 'C') rows.push(play(`4${ctx.system[1]}`));
+  if (isMajorOpening(ctx.system) && ctx.auction.at(-1)?.bid === `3${trump}` && 'HS'.includes(trump)) {
+    rows.push(row(trump === 'H' ? '3S' : '3NT', 'Non-serious slam interest', 'nt-cue', [], { source: 'P1690' }));
+    if (trump === 'H') rows.push(row('3NT', 'Serious slam interest; spade control', 'nt-cue',
+      [control('S')], { source: 'P1690' }));
+  }
   if ('CD'.includes(trump) && !rows.some(r=>r?.bid==='4NT')) rows.push(play('4NT'));
   if(ctx.retransfers && ctx.seat==='South' && 'HS'.includes(trump))
     rows.push(row(trump==='H'?'4D':'4H',`Re-transfer to ${names[trump]}`,'retransfer',[],{updates:{major:trump}}));
@@ -181,7 +190,10 @@ function ntTable(ctx) {
     case 'nt-cue': return cueOptions(ctx);
     case 'nt-quant': return [row('Pass','Decline quantitative invitation','finish'),play('6NT')];
     case 'nt-answer': return ctx.relayAction.responseLadder.map(answer=>row(answer.bid,answer.label,'nt-continue',[],{source:ctx.relayAction.askType==='keycard'?'P1456/P1462':'Shared queen/specific-suit responses'}));
-    case 'nt-continue': return postRangeActions({...relayState(ctx),auction}).map(ask=>row(ask.bid,ask.label,'nt-answer',[],{relayAction:ask,responseLadder:ask.responseLadder}));
+    case 'nt-continue': return [
+      ...postRangeActions({...relayState(ctx),auction}).map(ask=>row(ask.bid,ask.label,'nt-answer',[],{relayAction:ask,responseLadder:ask.responseLadder})),
+      ...(isMajorOpening(ctx.system) ? [play(`5${major}`)] : []),
+    ];
     case 'final': return [];
     default: throw new Error('Unknown 2NT continuation.');
   }
@@ -192,7 +204,9 @@ function legalRows(ctx) {
   const rows=ntTable(ctx).filter(Boolean);
   // Reserve an explicit source meaning before adding ordinary contract choices.
   if(!['open','nt-answer'].includes(ctx.node)) {
-    if((ctx.seat==='South'||['nt-cue','nt-continue','final'].includes(ctx.node))&&!rows.some(r=>r.bid==='Pass'))
+    if((ctx.seat==='South'||['nt-cue','nt-continue','final'].includes(ctx.node))
+      && !(isMajorOpening(ctx.system) && ctx.node === 'nt-cue')
+      && !rows.some(r=>r.bid==='Pass'))
       rows.push(row('Pass',last?`Play ${last.bid}`:'Pass','finish'));
     if(ctx.node==='final' || ctx.seat==='South' || ['nt-cue','nt-continue'].includes(ctx.node)) {
       for(const level of [6,7])for(const strain of ['C','D','H','S','NT'])rows.push(play(`${level}${strain}`));
@@ -213,6 +227,18 @@ function legalRows(ctx) {
 export function ntOpeningActions(session) { return legalRows(context(session)); }
 
 const relayFields = ['phase','major','trump','balanced','shortageSuit','relayPolicy','constraints','remainingAskSuits','queenAskAllowed','keycardScheme','agreementOptions'];
+export function startOpeningKeycards(session, trump) {
+  const call = session.auction.at(-1);
+  const ctx = context(session);
+  const state = relayState(ctx, trump);
+  const ask = keycardAction(state, call.bid, trump, 'normal');
+  return freeze({ ...session, major: trump, trump,
+    auction: [...session.auction.slice(0, -1), { ...call, responseLadder: ask.responseLadder }],
+    opening: { ...session.opening, major: trump, node: 'nt-answer', seat: opponent(call.seat),
+      relayAsker: call.seat, relayAction: ask,
+      relayState: Object.fromEntries(relayFields.filter(key => state[key] !== undefined).map(key => [key, state[key]])) },
+  });
+}
 function resolveAnswer(ctx,hand) {
   const state={...ctx.relayState,auction:ctx.auction.slice(0,-1),partnerHand:hand,playerSeat:opponent(ctx.seat),partnerSeat:ctx.seat};
   const ask=ctx.relayAction;
@@ -220,7 +246,7 @@ function resolveAnswer(ctx,hand) {
 }
 export function applyNtOpeningCall(session,bid) {
   const ctx=context(session),option=legalRows(ctx).find(r=>r.bid===bid);
-  if(!option)throw new Error('This call has no documented 2NT continuation.');
+  if(!option)throw new Error('This call has no documented continuation.');
   const hand=ctx.seat===session.playerSeat?session.playerHand:session.partnerHand;
   const f=shape(hand);
   if(ctx.node==='transfer' && bid===`3${ctx.major}` && f.lengths[ctx.major]>3)throw new Error('Four/five-card support requires a super-accept.');
@@ -320,10 +346,22 @@ export function ntOpeningPartnerBid(input) {
   else if(node==='nt-minors-choice')bid=n.C>=n.D?'6C':'6D';
   else if(node==='nt-quant')bid=maximum?'6NT':'Pass';
   else if(node==='nt-answer')bid=resolveAnswer(ctx,hand).auction.at(-1).bid;
-  else if(node==='nt-continue')bid=admissible.find(r=>r.relayAction)?.bid??choose(game(major),`6${major}`,`7${major}`,'6NT','7NT','Pass');
-  else if(node==='nt-cue')bid=admissible.find(r=>r.relayAction)?.bid??choose(game(major),`6${major}`,'Pass');
+  else if(node==='nt-continue') {
+    if (isMajorOpening(ctx.system)) {
+      const state = relayState(ctx);
+      const actions = admissible.map(option => option.relayAction ?? { bid: option.bid, kind: 'signoff' });
+      bid = slamAction({ ...state, hand, actions })?.bid;
+    }
+    bid ??= admissible.find(r=>r.relayAction)?.bid??choose(game(major),`6${major}`,`7${major}`,'6NT','7NT','Pass');
+  }
+  else if(node==='nt-cue') {
+    if (isMajorOpening(ctx.system)) {
+      const trySlam = f.hcp >= 16 && f.controls >= 5;
+      bid = (trySlam ? admissible.find(r => r.relayAction)?.bid : undefined) ?? choose(game(major), `6${major}`);
+    } else bid=admissible.find(r=>r.relayAction)?.bid??choose(game(major),`6${major}`,'Pass');
+  }
   else if(node==='final')bid='Pass';
-  if(!bid || !has(bid))throw new Error(`No compatible automatic 2NT continuation at ${node}: ${ctx.auction.map(c=>c.bid).join('–')}.`);
+  if(!bid || !has(bid))throw new Error(`No compatible automatic continuation at ${node}: ${ctx.auction.map(c=>c.bid).join('–')}.`);
   return bid;
 }
 

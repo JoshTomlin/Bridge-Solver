@@ -13,6 +13,7 @@ function seedFor(family,seat) {
     const uuid=`mixed-whole-browser-${i}`,seed=`relay-${uuid}`;
     if(chooseOpeningFamily('all',seed)!==family)continue;
     const s=createTrainingPractice({auctionMode:true,openingFamily:'all',seed});
+    if (family === 'PH' && !s.opening) continue;
     if(s.wholeAuction.humanSeat===seat){seeds.set(key,uuid);return uuid;}
   }
   throw new Error('Missing opening fixture seed');

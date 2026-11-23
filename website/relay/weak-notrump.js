@@ -13,7 +13,8 @@ const points = (min, max) => ({ type: 'hcp', min, max });
 const shapeKind = lengths => Object.values(lengths).sort().join('');
 const shapeFact = test => ({ type: 'shapes', values: SHAPES.filter(test).map(n => `${n.S}${n.H}${n.D}${n.C}`) });
 const hasSecondFour = n => Object.values(n).filter(length => length >= 4).length > 1;
-const weakRun = [points(0, 7), shapeFact(n => ['3334', '2344'].includes(shapeKind(n)))];
+const flat = n => ['3334', '2344'].includes(shapeKind(n));
+const weakRun = [points(0, 7), shapeFact(flat)];
 const alternatives = (...options) => ({ type: 'anyOf', options });
 const game = suit => `${majors.includes(suit) ? 4 : 5}${suit}`;
 const row = (bid, label, source, next = 'final', facts = [], extra = {}) => ({ bid, label, source, next, facts, ...extra });
@@ -22,6 +23,7 @@ const pass = bid => row('Pass', `Play ${bid}`, 'Natural signoff', 'finish');
 const games = () => ['3NT', '4H', '4S', '5C', '5D', '6NT'].map(play);
 
 export const WEAK_NT_NOTES = [
+  'After 1NT–Pass, a 0–7 HCP responder with 4333 or 4432 uses an advanced runout. Junk Stayman and short major transfers are available.',
   '1NT is the weak first/second-seat opening. Generated hands use 9–13 and common balanced or semi-balanced shapes. Rare 14-count and singleton-honour openings are outside this subset.',
   'The partner uses Stayman or a transfer to look for a major fit. For natural invitations it accepts with 12–13 and declines with 9–11. These are practice decisions.',
   'With four-plus trumps, the bot super-accepts on 9 or 13 HCP, or on 10 HCP with a five-plus-card suit and at most three controls. The agreement leaves minimum and maximum quality to judgement.',
@@ -51,7 +53,9 @@ export function weakNotrumpRows({ node, major, auction }) {
   switch (node) {
     case 'open': return [row('1NT', '9–13 in this weak notrump practice subset', 'P0069–P0079', 'respond', weakNotrumpFacts)];
     case 'respond': return [
-      pass(last), row('2C', 'Stayman, including weak and invitational hands', 'P0206', 'stayman'),
+      row('Pass', '1NT to play. With 0–7 and 4333 or 4432, choose a runout bid instead', 'P0229', 'finish',
+        [alternatives([points(8, 37)], [shapeFact(n => !flat(n))])]),
+      row('2C', 'Stayman, including weak and invitational hands', 'P0206', 'stayman'),
       ...majors.map((s, i) => row(i ? '2H' : '2D', `Transfer to ${names[s]}, usually five-plus`, 'P0213', 'transfer',
         [alternatives([length(s,5)], [...weakRun,length(s,2)])], { major:s })),
       row('2S', 'Baron, mild slam interest or better', 'P0220', 'baron'),

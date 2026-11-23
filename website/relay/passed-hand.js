@@ -3,12 +3,14 @@
 import { DECK, makeRng, handFeatures, matchesConstraints, bidIndex, getPracticeProfile } from './core.js';
 import { declarerFor } from './profile-utils.js';
 import { SHAPES } from './source-utils.js';
+import { PREEMPT_BIDS, preemptRows } from './preempt-opening.js';
 
 export const PASSED_RULES_VERSION = 1;
 export const PASSED_FAMILIES = ['PH', 'PH-C', 'PH-D', 'PH-M', 'PH-H', 'PH-S', 'PH-NT', 'PH-2NT', 'PH-2C'];
 export const passedSeatOpenings = Object.freeze(['1C', '1D', '1H', '1S', '1NT', '2NT', '2C']);
 export const PASSED_NOTES = [
-  'Both hands are fixed. When you have the first partnership turn, you can pass or open a Horton two. When you practise the later opening, partner passes to enter that exercise.',
+  'Both hands are fixed. On the early turn you can pass, open a Horton two or preempt at the three level. Partner will open a qualifying Horton two on its early turn.',
+  'For vulnerable 4432 hands, the bot treats each shown suit as good with two of A–10 including at least one of A–Q. This is its practice judgement for P1064.',
   'After clubs, maximum passed hands use artificial 1D: 6–8 nonvulnerable or 7–9 vulnerable. Practice treats the lower band as minimum; borderline judgement is not a new partnership rule.',
   'Club openers are 9–19 in third seat or 13–19 in fourth, balanced or a five-plus club hand. Sub-opening lead-directing choices and extreme shapes are not generated.',
   'After diamonds/majors, fit-showing 2/1 responses follow the printed 5–8 range and promise the side suit plus three-card support. These are not first-seat game forces.',
@@ -27,6 +29,15 @@ const shapeFact = predicate => ({ type: 'shapes', values: SHAPES.filter(predicat
 const balancedShapes = shapeFact(n => ['3334', '2335', '2344'].includes(Object.values(n).sort().join('')));
 const pairs = n => n.H >= 5 && n.C >= 5 ? 'HC' : n.D >= 5 && n.C >= 5 ? 'DC' : n.H >= 5 && n.D >= 5 ? 'HD' : null;
 const maxPassedHcp = (bid, vulnerable) => vulnerable && ['1C', '1NT', '2NT', '2C'].includes(bid) ? 9 : 8;
+
+function hortonOpeningRows() {
+  return ['H', 'D', 'S'].map(strain => {
+    const profile = getPracticeProfile(`horton-${strain.toLowerCase()}`);
+    const second = profile.initialState.hortonSecondSuit;
+    return { ...call(`2${strain}`, `Horton: four/five spades and four-plus ${names[second]}; weak`,
+      profile.partnerConstraints, 'P1061–P1065', 'horton'), second };
+  });
+}
 
 function firstTurn(session) {
   const { bid, vulnerable } = session.opening;
@@ -86,10 +97,10 @@ export function passedActions(session) {
   let rows;
   if (node === 'first-call') rows = [
     call('Pass', 'Pass your first turn', [hcp(0, maxPassedHcp(opening, vulnerable))], 'Passed-hand practice', 'open'),
-    ...['D', 'H', 'S'].map(strain => {
-      const profile = getPracticeProfile(`horton-${strain.toLowerCase()}`);
-      return call(`2${strain}`, `Horton: four/five spades and four-plus ${names[profile.initialState.hortonSecondSuit]}; weak`,
-        profile.partnerConstraints, 'P1061–P1065', 'horton');
+    ...hortonOpeningRows(),
+    ...PREEMPT_BIDS.map(bid => {
+      const [preempt] = preemptRows({ system: bid, node: 'open' });
+      return call(bid, preempt.label, preempt.facts, preempt.source, 'preempt');
     }),
   ];
   else if (node === 'open') {
@@ -178,7 +189,12 @@ export function applyPassedCall(session, bid) {
     openingConstraintsBySeat: { North: [...session.openingConstraintsBySeat.North], South: [...session.openingConstraintsBySeat.South] } };
   if (!row) return pause(next, 'This passed-hand continuation is not yet transcribed. Undo to try a listed source route.');
   const hand = seat === session.playerSeat ? session.playerHand : session.partnerHand;
-  if (!matchesConstraints(hand, row.facts, session.trump)) throw new Error(`This call shows: ${row.label}.`);
+  if (!matchesConstraints(hand, row.facts, session.trump)) {
+    const n = feat(hand).lengths;
+    const horton = row.next === 'preempt' && bid !== '3S' && n[bid[1]] >= 6 && [4, 5].includes(n.S);
+    throw new Error(horton ? 'With four or five spades and that long side suit, use the corresponding Horton two.'
+      : `This call shows: ${row.label}.`);
+  }
   if (bid === 'Pass' && session.opening.node !== 'first-call') return terminal(next);
   if (row.next === 'unresolved') return freeze({ ...pause(next, 'P1780 repeats clubs/diamonds already shown by 2H. The intended 2S meaning needs clarification; no shape fact has been invented.'), sourceAmbiguity: true });
   next.openingFacts[seat].push(row.label);
@@ -195,7 +211,15 @@ export function applyPassedCall(session, bid) {
 
 export function passedPartnerBid({ node, bid, vulnerable, auction, major, hand, shownFacts = [] }) {
   const f = feat(hand), n = f.lengths, minimum = vulnerable ? 7 : 6;
-  if (node === 'first-call') return 'Pass';
+  if (node === 'first-call') {
+    const needsGoodSuits = vulnerable && f.shape.join('') === '4432';
+    const goodSuit = suit => [...'AKQ'].some(rank => hand.includes(suit + rank))
+      && [...'AKQJT'].filter(rank => hand.includes(suit + rank)).length >= 2;
+    const candidates = hortonOpeningRows().filter(row => matchesConstraints(hand, row.facts, 'S')
+      && (!needsGoodSuits || goodSuit('S') && goodSuit(row.second)));
+    if (candidates.length === 2 && goodSuit('C') && !goodSuit('D')) return '2S';
+    return candidates[0]?.bid ?? 'Pass';
+  }
   if (node === 'open') return bid;
   if (node === 'controls') return [0, 1, 4].includes(f.controls) ? '2D' : [2, 5].includes(f.controls) ? '2H' : '2S';
   if (node === 'strong-rebid') return '2NT';
@@ -304,11 +328,14 @@ export function createPassedPractice({ seed, humanSeat, openingFamily = 'PH', op
 export function validatePassedSession(session) {
   const first = session.auction?.[0];
   const firstCall = session.opening?.node === 'first-call';
+  const earlyPreempt = first?.seat === 'South' && PREEMPT_BIDS.includes(first.bid) && session.opening?.system === first.bid;
   const validEntry = firstCall ? !first && session.wholeAuction.humanSeat === 'South'
-    : first?.seat === 'South' && (first.bid === 'Pass' || !session.opening);
+    : first?.seat === 'South' && (first.bid === 'Pass' || !session.opening || earlyPreempt);
   if (session.wholeAuction?.passedRulesVersion !== PASSED_RULES_VERSION || ![3, 4].includes(session.wholeAuction.openingSeatNumber)
     || !['North', 'South'].includes(session.wholeAuction.humanSeat)) throw new Error('Saved passed-hand practice is incompatible.');
-  if (session.opening && (session.opening.system !== 'passed' || session.opening.bid !== session.wholeAuction.openingBid || !passedActions(session).length))
+  const validNode = earlyPreempt ? session.opening.node !== 'open' && preemptRows({ ...session.opening, auction: session.auction })?.length
+    : !session.opening || session.opening.system === 'passed' && session.opening.bid === session.wholeAuction.openingBid && passedActions(session).length;
+  if (!validNode)
     throw new Error('Saved opening node is invalid.');
   if (!validEntry) throw new Error('Saved passed-hand practice is incompatible.');
   if (session.opening && !session.finished && session.opening.seat !== session.wholeAuction.humanSeat) throw new Error('Saved passed-hand turn is invalid.');

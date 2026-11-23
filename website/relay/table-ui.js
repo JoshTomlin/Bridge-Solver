@@ -2,7 +2,20 @@ export const AUCTION_SEATS = ['North', 'East', 'South', 'West'];
 
 // The practice engine records the partnership's calls. Insert the two
 // opponents' automatic passes without changing the underlying auction.
-export function auctionRounds(calls, finished = false, firstSeat = 'North') {
+export function auctionRounds(calls, finished = false, firstSeat = 'North', explicit = false) {
+  if (explicit) {
+    const rounds = [];
+    let previous = 3;
+    const add = (seat, entry) => {
+      const column = AUCTION_SEATS.indexOf(seat);
+      if (column <= previous) rounds.push(Array(4).fill(null));
+      rounds.at(-1)[column] = entry;
+      previous = column;
+    };
+    for (const [index, call] of calls.entries()) add(call.seat, { ...call, kind: 'call', index });
+    if (!finished) add(calls.length ? AUCTION_SEATS[(previous + 1) % 4] : firstSeat, { kind: 'pending' });
+    return rounds;
+  }
   const rounds = [];
   let row;
   let previous = 3;

@@ -77,6 +77,20 @@ test('the early-seat player can open 2S and undo to choose Pass on the same deal
   expect(await page.locator('#player-hand').innerHTML()).toEqual(hand);
 });
 
+test('partner opens the reported Horton 2S hand in second seat', async ({ page }) => {
+  await load(page, 'North', 'PH-S', 'AJ432 9 KT8 QJ54', 'KQ865 62 5 98763');
+  await expect(page.locator('#practice-badge')).toHaveText('2♠ · Whole auction');
+  await expect(page.locator('#practice-scope')).toContainText('Second-seat opening');
+  await expect(page.locator('#auction .opponent-pass').first()).toHaveText('Pass');
+  const original = (await saved(page)).session;
+  expect(original.auction.map(call => call.bid)).toEqual(['2S']);
+  await clickBid(page, 'Pass');
+  await expect(page.locator('#action-title')).toHaveText('2♠ · North');
+  await page.reload(); await ready(page);
+  await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(original);
+});
+
 test('passed opening family, position and vulnerability survive replay and reopening', async ({ page }) => {
   await page.goto('relay.html'); await ready(page);
   await selectSetting(page, '#practice-mode', 'auction'); await ready(page);
@@ -85,8 +99,10 @@ test('passed opening family, position and vulnerability survive replay and reope
   await selectSetting(page, '#passed-vulnerability', 'v'); await ready(page);
   const first = await saved(page);
   expect(first.session.wholeAuction).toMatchObject({ passedHand: true, openingSeatNumber: 4, vulnerable: true });
-  await expect(page.locator('#practice-scope')).toContainText(first.session.wholeAuction.humanSeat === 'North'
-    ? 'Fourth-seat opening · Vulnerable' : 'Second-seat decision · Vulnerable');
+  const openingCall = first.session.auction[0];
+  const position = first.session.opening?.node === 'first-call' ? 'Second-seat decision'
+    : openingCall?.seat === 'South' && openingCall.bid !== 'Pass' ? 'Second-seat opening' : 'Fourth-seat opening';
+  await expect(page.locator('#practice-scope')).toContainText(`${position} · Vulnerable`);
   await settings(page);
   await page.locator('#study-menu > summary').click();
   await page.locator('.replay-options > summary').click();

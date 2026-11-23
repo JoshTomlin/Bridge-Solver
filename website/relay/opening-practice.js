@@ -7,6 +7,8 @@ import { declarerFor, hcp, length } from './profile-utils.js';
 import { naturalOpeningNode, naturalOpeningActions, naturalOpeningPartnerBid } from './natural-opening.js';
 import { createPassedPractice, passedActions, applyPassedCall, passedPartnerBid, validatePassedSession, PASSED_FAMILIES, passedSeatOpenings, mixedPassedFamily } from './passed-hand.js';
 export { PASSED_NOTES } from './passed-hand.js';
+import { WEAK_NT_COMPETITION, createWeakNotrumpCompetition, weakNotrumpCompetitionActions,
+  applyWeakNotrumpCompetitionCall, weakNotrumpCompetitionPartner, validateWeakNotrumpCompetition } from './weak-notrump-competition.js';
 import { chooseOpeningFamily, createSystemOpeningPractice, createSystemOpeningState, systemOpeningActions, firstSeatOpenings,
   systemOpeningPartnerBid, applySystemOpeningCall, validateSystemOpeningSession, openingBidFor, openingBidForFamily, startRelay, joinOpeningRelay } from './opening-system.js';
 export { OPENING_FAMILIES, SYSTEM_OPENING_NOTES, openingBidFor, openingFamilyFor, openingTitle, humanIsOpener, isOpeningFamily } from './opening-system.js';
@@ -41,6 +43,7 @@ export const OPENING_NOTES = [
 export function createOpeningPractice({ seed, humanSeat, openingFamily = 'C', openingSeatNumber, vulnerable } = {}) {
   seed = String(seed);
   const selected = chooseOpeningFamily(openingFamily, seed);
+  if (selected === WEAK_NT_COMPETITION) return advanceOpeningPartner(createWeakNotrumpCompetition({ seed, humanSeat }));
   if (PASSED_FAMILIES.includes(selected)) {
     const rng = makeRng(`passed-settings:${seed}`);
     openingSeatNumber ??= openingFamily === 'all' && rng() < 0.5 ? 4 : 3;
@@ -224,6 +227,7 @@ export function openingChoices(session) {
 
 export function openingActions(session) {
   if (session.finished) return [];
+  if (session.opening.system === WEAK_NT_COMPETITION) return weakNotrumpCompetitionActions({ ...session.opening, auction: session.auction });
   if (session.opening.system === 'passed') return passedActions(session);
   if (session.opening.system) return systemOpeningActions(session);
   const naturalNode = naturalOpeningNode(session.opening.node, session.auction);
@@ -319,9 +323,14 @@ function bridge(session, minor, baron = false) {
 
 /** Apply one call. Only the acting hand is read; partner's policy is separate. */
 export function applyOpeningCall(session, bid) {
+  if (session.opening.system === WEAK_NT_COMPETITION) return freeze(applyWeakNotrumpCompetitionCall(session, bid));
   if (session.opening.system === 'passed') {
     const next = applyPassedCall(session, bid);
-    return next.opening?.node === 'horton' ? startRelay(next, `horton-${bid[1].toLowerCase()}`, 'South') : next;
+    if (next.opening?.node === 'horton') return startRelay(next, `horton-${bid[1].toLowerCase()}`, 'South');
+    if (next.opening?.node === 'preempt') {
+      return freeze({ ...next, major: bid[1], trump: bid[1], opening: { system: bid, node: 'respond', seat: 'North' } });
+    }
+    return next;
   }
   if (session.opening.system) return applySystemOpeningCall(session, bid);
   const action = openingActions(session).find(action => action.bid === bid);
@@ -515,6 +524,7 @@ export function applyOpeningCall(session, bid) {
  * recipe is passed to the bot's selection function. */
 export function openingPartnerBid(context) {
   const { system, node, major, puppet, auction, hand, description } = context;
+  if (system === WEAK_NT_COMPETITION) return weakNotrumpCompetitionPartner(context);
   if (system === 'passed') return passedPartnerBid(context);
   if (system) return systemOpeningPartnerBid(context);
   const f = feature(hand);
@@ -564,6 +574,7 @@ export function advanceOpeningPartner(session) {
 }
 
 export function validateOpeningSession(session) {
+  if (session.wholeAuction?.competition) return validateWeakNotrumpCompetition(session);
   if (session.wholeAuction?.passedHand) return validatePassedSession(session);
   if (session.wholeAuction?.openingBid && session.wholeAuction.openingBid !== '1C') return validateSystemOpeningSession(session);
   if (session.wholeAuction?.rulesVersion !== OPENING_RULES_VERSION

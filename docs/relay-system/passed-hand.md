@@ -9,8 +9,10 @@ family → Passed hand**. Mix the openings or select clubs, diamonds, a major,
 The trainer assigns the early or late partnership turn independently and
 displays the human as South. In the early seat, you choose Pass yourself.
 That brings in partner’s third- or fourth-seat opening. You can also open a
-qualifying Horton two and continue with the same cards. In the late seat,
-partner passes to start your third- or fourth-seat opening exercise.
+qualifying Horton two or natural three-level preempt and continue with the same cards. In the late seat,
+partner can open a Horton two when its cards qualify. Vulnerable 4432 hands
+need two of A–10 including at least one of A–Q in each shown suit for the
+bot to open (a practice interpretation of P1064).
 Replay retains the position, vulnerability and both hands.
 
 These are separate agreements from the first/second-seat transfer system.
@@ -45,6 +47,11 @@ After **1C–1D**, opener chooses **1NT to play** or **1H artificial GF**.
 No HCP rule for choosing the game force is supplied. The bot uses 19+ or
 17+ unbalanced with six clubs as a practice policy; human choice is not graded
 against that policy.
+
+For third-seat nonvulnerable practice, select **Passed hand · 1♣** and replay
+`passed-club-audit-3` for the 1NT rebid or `passed-club-audit-17` for the
+artificial 1H game force. Out of 1,500 mixed deals, 29 reached the artificial
+1D response with the bot's passed-hand policy.
 
 | After 1C–1D–1H | Responder's shape (SHDC) |
 |---|---|

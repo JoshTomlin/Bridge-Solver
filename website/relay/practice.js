@@ -74,8 +74,9 @@ export function advanceAsker(session) {
     const preferred = lengths.D > lengths.C ? 'D' : 'C';
     minorFit = actions.find(action => action.kind === 'relay' && (action.trump ?? action.state?.trump) === preferred);
   }
-  const action = slam ?? hortonResponse ?? minorFit ?? actions.find(action => action.kind === 'relay' || action.kind === 'transfer-to-3nt')
-    ?? actions.find(action => action.kind === 'handover')
+  const handover = actions.find(action => action.kind === 'handover');
+  const action = slam ?? hortonResponse ?? minorFit ?? (node?.preferHandover ? handover : undefined)
+    ?? actions.find(action => action.kind === 'relay' || action.kind === 'transfer-to-3nt') ?? handover
     ?? signoffs.find(action => action.bid !== 'Pass' || session.weakExitAllowed || usualContracts.has(last))
     ?? signoffs[0];
   if (!action) return Object.freeze({ ...session, pendingAsk: null, finished: true,
@@ -118,10 +119,20 @@ export function availablePracticeActions(session) {
   return Object.freeze([...calls.values()]);
 }
 
+function pendingKeycardQuestion(session) {
+  return session.practiceRole === 'teller' && session.pendingAsk?.kind === 'relay'
+    && ['keycard', 'void-keycard'].includes(session.phase);
+}
+
 /** Public agreement metadata for every legal call, independent of either hand. */
 export function practiceCalls(session) {
   if (session.finished || session.revealed) return [];
-  const discussed = new Map(availablePracticeActions(session).map(action => [action.bid, action]));
+  const actions = availablePracticeActions(session);
+  // A keycard reply is limited to the ladder, even when the ask is a game bid.
+  if (session.wholeAuction?.competition || pendingKeycardQuestion(session)) {
+    return actions.map(action => ({ ...action, discussed: true }));
+  }
+  const discussed = new Map(actions.map(action => [action.bid, action]));
   const last = practiceView(session).auction.findLast(call => call.bid !== 'Pass');
   const minimum = last ? bidIndex(last.bid) : -1;
   const bids = Array.from({ length: 35 }, (_, index) => `${Math.floor(index / 5) + 1}${['C', 'D', 'H', 'S', 'NT'][index % 5]}`)
@@ -138,8 +149,9 @@ export function practiceCalls(session) {
 
 export function applyPracticeBid(session, bid) {
   const call = practiceCalls(session).find(call => call.bid === bid);
-  if (!call && bid === 'Pass' && isForcingOpeningCall(session)) {
-    throw new Error(`${session.auction.at(-1).bid} is forcing. Choose a rebid.`);
+  if (!call && bid === 'Pass') {
+    if (pendingKeycardQuestion(session)) throw new Error(`${session.pendingAsk.bid} is forcing. Choose a keycard response.`);
+    if (isForcingOpeningCall(session)) throw new Error(`${session.auction.at(-1).bid} is forcing. Choose a rebid.`);
   }
   if (!call) throw new Error(`${bid} is not an available response or legal call at this point in the auction.`);
   if (!call.discussed) {

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DECK, makeRng, handFeatures, matchesConstraints } from './core.js';
+import { DECK, applyBid, makeRng, handFeatures, matchesConstraints } from './core.js';
 import { createPassedPractice, passedActions, applyPassedCall, passedPartnerBid } from './passed-hand.js';
-import { createTrainingPractice, applyPracticeBid, practiceView } from './practice.js';
-import { openingPartnerBid } from './opening-practice.js';
+import { advanceAsker, createTrainingPractice, applyPracticeBid, practiceView } from './practice.js';
+import { advanceOpeningPartner, openingPartnerBid } from './opening-practice.js';
 import { tableView } from './seat-view.js';
 import { auctionRounds } from './table-ui.js';
 import { savePracticeProgress, loadPracticeProgress } from './progress.js';
@@ -192,6 +192,50 @@ test('the human can open a Horton two or pass on the same fourth-seat practice d
   assert.deepEqual(loadPracticeProgress(store).progress.session, initial);
 });
 
+test('six spades and a side four-card suit can preempt 3S on the early turn of a passed-hand deal', () => {
+  const options = { auctionMode: true, openingFamily: 'PH-D', seed: 'passed-early-preempt', humanSeat: 'South', openingSeatNumber: 4 };
+  const start = { ...createTrainingPractice(options), playerHand: cards('AQ3 QJ9 AKQ2 J98'), partnerHand: cards('K98765 4 J965 65') };
+  assert.equal(new Set([...start.playerHand, ...start.partnerHand]).size, 26);
+  assert.throws(() => applyPracticeBid(start, '2D'), /four\/five spades/);
+  const opened = applyPracticeBid(start, '3S');
+  assert.deepEqual(opened.auction.map(call => call.bid), ['3S','4S']);
+  assert.deepEqual(practiceView(opened).playerHand, start.partnerHand);
+  const store = { setItem(key, value) { this.value = value; }, getItem() { return this.value; } };
+  savePracticeProgress({ session: opened, history: [start], preferences: { practiceMode: 'mixed' } }, store);
+  assert.deepEqual(loadPracticeProgress(store).progress.session, JSON.parse(JSON.stringify(opened)));
+  assert.equal(applyPracticeBid(opened, 'Pass').contract.declarer, 'South');
+  assert.deepEqual(applyPracticeBid(start, 'Pass').auction.map(call => call.bid), ['Pass','1D']);
+});
+
+test('the early-seat bot opens Horton 2S on the reported hand on the same deal', () => {
+  for (const vulnerable of [false, true]) {
+    const first = {
+      ...createPassedPractice({ openingFamily: 'PH-S', seed: 'reported-horton-pass', humanSeat: 'North', openingSeatNumber: 4, vulnerable }),
+      playerHand: cards('AJ432 9 KT8 QJ54'),
+      partnerHand: cards('KQ865 62 5 98763'),
+    };
+    const opened = advanceOpeningPartner(first);
+    const view = tableView(opened);
+    assert.deepEqual(view.auction.map(({ seat, bid }) => [seat, bid]), [['North', '2S']]);
+    assert.equal(view.dealerSeat, 'West');
+    assert.deepEqual(view.playerHand, first.playerHand);
+    assert.deepEqual(view.partnerHand, first.partnerHand);
+    assert.equal(opened.familyId, 'horton-s');
+    const store = { setItem(key, value) { this.value = value; }, getItem() { return this.value; } };
+    savePracticeProgress({ session: opened, history: [], preferences: { practiceMode: 'mixed' } }, store);
+    assert.deepEqual(loadPracticeProgress(store).progress.session, JSON.parse(JSON.stringify(opened)));
+    assert.equal(applyPracticeBid(opened, 'Pass').contract.bid, '2S');
+  }
+});
+
+test('the bot applies the vulnerable 4432 suit-quality exception to Horton openings', () => {
+  const weak = cards('K986 Q975 654 82');
+  const good = cards('KJ86 QT75 654 82');
+  assert.equal(passedPartnerBid({ node: 'first-call', vulnerable: false, hand: weak }), '2H');
+  assert.equal(passedPartnerBid({ node: 'first-call', vulnerable: true, hand: weak }), 'Pass');
+  assert.equal(passedPartnerBid({ node: 'first-call', vulnerable: true, hand: good }), '2H');
+});
+
 test('all passed opening families replay, finish with fixed hands and restore each human turn across position/vulnerability', () => {
   for (const family of ['PH-C', 'PH-D', 'PH-H', 'PH-S', 'PH-NT', 'PH-2NT', 'PH-2C']) for (const humanSeat of ['North', 'South'])
     for (const openingSeatNumber of [3, 4]) for (const vulnerable of [false, true]) for (let seed = 0; seed < 4; seed++) {
@@ -204,8 +248,17 @@ test('all passed opening families replay, finish with fixed hands and restore ea
       savePracticeProgress({ session, history, preferences: { practiceMode: 'auction', openingFamily: family } }, storage);
       const loaded = loadPracticeProgress(storage);
       assert.equal(loaded.error, undefined, `${family}: ${loaded.error}`);
-      const bid = openingPartnerBid({ ...session.opening, auction: session.auction,
-        hand: session.opening.seat === session.playerSeat ? session.playerHand : session.partnerHand });
+      let bid;
+      if (session.opening) {
+        bid = openingPartnerBid({ ...session.opening, auction: session.auction, hand: practiceView(session).playerHand });
+      } else if (session.pendingAsk) {
+        const answered = applyBid(session, session.pendingAsk.bid);
+        bid = answered.auction[session.auction.length + 1].bid;
+      } else {
+        const coached = advanceAsker(session);
+        bid = coached.auction[session.auction.length]?.bid ?? coached.pendingAsk?.bid;
+      }
+      assert.ok(bid, family);
       history.push(session); session = applyPracticeBid(session, bid);
       for (const seat of ['North', 'South']) assert.equal(matchesConstraints(seat === session.playerSeat ? session.playerHand : session.partnerHand,
         session.openingConstraintsBySeat[seat], session.trump), true, `${family}: ${seat} facts`);

@@ -76,3 +76,25 @@ test('1S–2H–2S lets the reported hand show four diamonds and get a reply',as
   expect((await saved(page)).session.contract.bid).toBe('3H');
   await expect(page.locator('#partner-cards [data-card]')).toHaveCount(13);
 });
+
+test('1S–2C–3C lets the reported hand describe diamonds or agree spades', async ({ page }) => {
+  await load(page, 'S', 'SA SK SJ S8 S7 HA H8 H2 D2 CA CJ C9 C8', 'ST S6 S5 HQ HJ HT DA DK DT D6 D4 D3 CQ', 'South');
+  await clickBid(page, '2C');
+  for (const bid of ['3D', '3H', '3S']) await expect(page.locator(`[data-bid="${bid}"]`)).toHaveAttribute('data-discussed', 'true');
+  await expect(page.getByRole('button', { name: 'Pass unavailable' })).toBeDisabled();
+  await page.locator('#auction [data-call-index="2"]').click();
+  await expect(page.locator('#bid-alternatives')).toContainText('Natural diamonds');
+  await closeSheets(page);
+  await clickBid(page, '3D');
+  expect((await saved(page)).session.auction.map(call => call.bid)).toEqual(['1S', '2C', '3C', '3D', '3NT']);
+  await page.click('#undo-bid');
+  await clickBid(page, '3S');
+  const keycards = await saved(page);
+  expect(keycards.session.auction.map(call => call.bid)).toEqual(['1S', '2C', '3C', '3S', '4NT']);
+  await page.reload();
+  await ready(page);
+  expect(await saved(page)).toEqual(keycards);
+  await clickBid(page, '5D');
+  expect((await saved(page)).session.auction[5].bid).toBe('5D');
+  await fitsScreen(page);
+});

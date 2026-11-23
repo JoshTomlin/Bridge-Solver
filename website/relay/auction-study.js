@@ -8,6 +8,16 @@ import { openingActions } from './opening-practice.js';
 // node (which may already be several questions further down the tree).
 export function auctionCallDetails(session, history, index) {
   const auction = practiceView(session).auction;
+  if (session.wholeAuction?.competition) {
+    const call = auction[index];
+    if (!call) return null;
+    const following = auction[index + 1];
+    const alternatives = following?.callAlternatives
+      ?? (!following && session.auction.length === index + 1 ? openingActions(session) : []);
+    return { call, question: alternatives.length ? call : null, auction: auction.slice(0, index + 1),
+      alternatives, callAlternatives: call.callAlternatives ?? [], playedBid: following?.bid ?? null,
+    };
+  }
   let call = describeEntryAuction(auction)[index];
   if (!call) return null;
   if (index === 0) return { call, isOpening: true, question: null, auction: [call], alternatives: [], callAlternatives: [], playedBid: null };

@@ -15,6 +15,7 @@ const openings = {
   '2D': 'Horton: four/five spades and four-plus diamonds; weak',
   '2H': 'Horton: four/five spades and four-plus hearts; weak',
   '2S': 'Horton: four/five spades and four-plus clubs; weak',
+  ...Object.fromEntries(Object.entries(names).map(([suit, label]) => [`3${suit}`, `Natural preempt, six-plus ${label}, 0–8 HCP`])),
 };
 table('1C', [
   ['1D', 'Four-plus hearts; preferred with 4/4 majors'], ['1H', 'Four-plus spades'],
