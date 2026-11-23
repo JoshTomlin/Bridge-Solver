@@ -241,12 +241,20 @@ try {
   assert.deepEqual(errors, []);
   console.log('Browser asker checks passed: real DDS, assessment before signoff, paired outcomes, revealed-partnership review, alternate assessment, undo, Stop and mobile layout.');
 
-  const unavailable = await browser.newPage();
-  await unavailable.route('**/engine/bridge_engine.js', route => route.abort());
+  // Keep the offline cache out of this test so the route can block the DDS module.
+  const unavailableContext = await browser.newContext({ serviceWorkers: 'block' });
+  let engineRequestBlocked = false;
+  await unavailableContext.route('**/engine/bridge_engine.js', route => {
+    engineRequestBlocked = true;
+    return route.abort();
+  });
+  const unavailable = await unavailableContext.newPage();
   await unavailable.goto(url);
   await unavailable.waitForFunction(() => document.getElementById('dds-status').textContent.includes('unavailable'));
+  assert.equal(engineRequestBlocked, true, 'The DDS module request was intercepted');
   assert.equal(await unavailable.locator('#evaluate').isDisabled(), true);
   assert.equal(await unavailable.locator('#evaluation-results').textContent(), '');
+  await unavailableContext.close();
   console.log('Browser missing-DDS check passed: evaluation disabled without placeholder results.');
 
   // Reopen Chromium itself with the same browser profile, not just the page.
