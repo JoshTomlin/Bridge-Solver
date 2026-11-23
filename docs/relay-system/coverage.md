@@ -128,7 +128,7 @@ from `website/build.js`; generated `website/dist/` and build logs are ignored.
 |---|---|
 | 1D–1NT–2D = 9–11; 2C = 12–15 | User confirmed; not reordered into step = bust |
 | After completed shape, proceed to keycards | User confirmed; known strength does not remove the 0/3 KC category |
-| Ask skips 4M, answer counts 4M in 1M–2NT | User confirmed, including void follow-up ask |
+| 4M in 1M–2NT | Range and initial keycard asks skip 4M. Answers count 4M. The keycard follow-up after a void also counts 4M. |
 | Balanced KC and rare five keycards | User confirmed ordinary ladder without void, retaining 2/5 possibilities |
 | Public length compression | User confirmed; four cards cannot produce Kx; no hidden-card compression |
 | Balanced Jacoby range replies | User confirmed 11 November: after 1M–2NT–3C–3D, 3H/3S/3NT = 12–14/15–17/18–19. Balanced 9–11 hands take 1NT or the direct great-suit 4M route; balanced practice floor is 12 |

@@ -191,7 +191,7 @@ function dappletonTransfer(major, minor, viaPuppet) {
       'The opening 1NT rebid is narrowed to 18/19 balanced with two/three cards in the transferred major. This excludes the exceptional four-card-major escape.',
       `Responder has exactly ${majorLength} major cards and five in the transferred minor, 12–19 HCP, and no four-card second major.`,
       `${viaPuppet ? 'Five-five shape cannot have no shortage: the answers are high/low.' : 'Four-five shape can be balanced: the answers are no shortage/high/low.'} Response bids count consecutively, including NT or trump bids.`,
-      'After accepting the minor, SKC asks skip 3NT. After agreeing the major, 3NT is available as an ask and game in the agreed major is reserved for play.',
+      'After accepting the minor, SKC asks skip 3NT. After agreeing the major, 3NT is available as an ask and major game is reserved for play. The keycard ask after a void can use major game if it is the next step.',
       ...(viaPuppet ? ['For the optional major agreement, the program checks a three-card major fit and no four-card fit in the shown minor. The source’s “good” fit requirement remains a player judgement; no honour formula is invented.'] : []),
     ],
     limitations: [...commonLimitations, 'Transfer rejection, exceptional four-card-major support and responder shapes with a longer second major are outside this profile.'],

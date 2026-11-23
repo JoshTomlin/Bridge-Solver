@@ -8,6 +8,8 @@ import { buildWebsite, staticFiles } from '../../build.js';
 import { clickBid } from './helpers.mjs';
 
 const basePath = '/Bridge-Solver/';
+const oldPush = '2026-11-23T06:27:10.000Z';
+const newPush = '2026-11-23T21:01:05.000Z';
 const contentTypes = { '.js':'text/javascript', '.html':'text/html', '.css':'text/css',
   '.wasm':'application/wasm', '.webmanifest':'application/manifest+json', '.png':'image/png', '.svg':'image/svg+xml' };
 
@@ -19,9 +21,11 @@ async function hostReleases() {
     mkdirSync(dirname(target),{recursive:true});
     copyFileSync(fileURLToPath(new URL(`../../${file}`,import.meta.url)),target);
   }
-  const oldRelease = buildWebsite({sourceRoot,destination:join(tmp,'old')});
+  const oldRelease = buildWebsite({sourceRoot,destination:join(tmp,'old'),
+    release: { revision: 'a'.repeat(40), timestamp: new Date(oldPush), pushed: true } });
   appendFileSync(join(sourceRoot,'styles.css'),'\n/* Second release for update testing. */\n');
-  const newRelease = buildWebsite({sourceRoot,destination:join(tmp,'new')});
+  const newRelease = buildWebsite({sourceRoot,destination:join(tmp,'new'),
+    release: { revision: 'b'.repeat(40), timestamp: new Date(newPush), pushed: true } });
   let active = oldRelease;
   let broken = false;
   const server = createServer((request,response)=>{
@@ -66,8 +70,10 @@ test('a manual update retries a failed download, keeps other tabs open, and rest
     await page.locator('#install-menu > summary').click();
     const update = page.locator('#update-app');
     const status = page.locator('#update-status');
+    const build = page.locator('#app-build');
+    await expect(build).toHaveText('Pushed 23 Nov 2026, 06:27 UTC · aaaaaaa');
     await update.click();
-    await expect(status).toHaveText('Bridge Lab is up to date.');
+    await expect(status).toHaveText('You have the latest published build.');
 
     releases.publish({incomplete:true});
     await update.click();
@@ -79,6 +85,7 @@ test('a manual update retries a failed download, keeps other tabs open, and rest
     await update.click();
     await expect(update).toHaveText('Restart to update');
     expect(await installedVersion(page)).toBe(releases.oldRelease.version);
+    await expect(build.locator('time')).toHaveAttribute('datetime', oldPush);
 
     await page.evaluate(() => {
       const setItem = Storage.prototype.setItem;
@@ -96,6 +103,7 @@ test('a manual update retries a failed download, keeps other tabs open, and rest
 
     await update.click();
     await expect.poll(() => installedVersion(page)).toBe(releases.newRelease.version);
+    await expect(build.locator('time')).toHaveAttribute('datetime', newPush);
     expect(await installedVersion(otherTab)).toBe(releases.oldRelease.version);
     await expect(page.locator('#new-deal')).toBeEnabled();
     expect(await saved(page)).toEqual(before);
@@ -105,6 +113,7 @@ test('a manual update retries a failed download, keeps other tabs open, and rest
       `./${releases.oldRelease.assetPrefix}/relay/sampling-worker.js`)).toBe(true);
     await page.reload();
     await expect(page.locator('#dds-status')).toHaveText('DDS ready');
+    await expect(build.locator('time')).toHaveAttribute('datetime', newPush);
     expect(await saved(page)).toEqual(before);
     await page.click('#undo-bid');
     expect((await saved(page)).session).toEqual(before.history.at(-1));

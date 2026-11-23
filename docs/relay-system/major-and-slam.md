@@ -41,7 +41,7 @@ phone tests also check the displayed alternatives and reopening/undo.
 
 | Reservation | Rule |
 |---|---|
-| 4M | Skip it when choosing a relay ask, including the ask after a void |
+| 4M | Reserve it for play before keycard. After a void reply, count 4M as the next keycard ask when it is the next step. |
 | 4M as an answer | Count it normally; e.g. 1H–2NT–3H–3S–4H = 18–19 |
 | 3NT after no shortage | Offer to play; if it would be the next ask, move to 4C |
 | 3NT after shortage | Can be an artificial answer/ask according to the branch; do not infer an offer to play |
@@ -101,7 +101,9 @@ ordinary balanced-keycard and five-keycard clarifications.
 | 5 | Singleton shortage; 2 or 5 with trump queen |
 
 After the void answer, the next eligible ask uses the four ordinary KC
-responses. After no shortage, use ordinary KC directly. A source-defined
+responses. This can be 4M. For example, after 1♠–2NT–3♥–3♠–4♣–4♦–4♥,
+4♠ asks for keycards and 4NT/5♣/5♦/5♥ are the four replies.
+After no shortage, use ordinary KC directly. A source-defined
 ordinary Kickback call remains ordinary even when shortage is already known.
 Keep 0/3; a known 12–15 range removes the redundant strength question, not
 the first keycard category. Horton has its separate 0/1/2 ladder below.

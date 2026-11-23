@@ -235,6 +235,6 @@ They use ordinary Horton KC, including when a void was already described.
 | 4 | Singleton shortage, two keycards |
 
 After an SKC void reply the separate KC enquiry also has zero/one/two answers.
-Offer the two-answer queen ask after zero or one; omit it after two. Later
-asks skip the actual game in the agreed suit: 4M or 5m. Specific-suit asks
-then use the shared public-length compression rules.
+The enquiry counts 4M if it is the next step. The two-answer queen ask is
+available after zero or one. Later asks skip game in the agreed suit.
+Specific-suit asks use the shared public-length compression rules.

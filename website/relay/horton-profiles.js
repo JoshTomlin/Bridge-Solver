@@ -141,7 +141,7 @@ export function createHortonProfile(opening, policy = HORTON_POLICY) {
       `The source does not quantify “minimum”. The configurable practice policy currently uses 0–${policy.minimumMaxHcp} HCP minimum and ${policy.minimumMaxHcp + 1}–${policy.maxHcp} nonminimum; this is not a confirmed partnership rule.`,
       'Main replies are 3C minimum, 3D longer second suit, 3H longer spades, 3S four-four, then five-five no/high/low void. Minimum follow-up replies retain five-five possibilities without claiming exactly four in the second suit.',
       'Responder 3NT is always to play, including after 2S–2NT–3C–3D–3S. This follows the general rule over the contradictory printed 3NT-shortage-ask row at P1274.',
-      'Shortage answers count ordinary steps. Later asks skip game in the agreed suit. Horton keycard answers are 0/1/2; the queen ask is offered after zero or one, and omitted after two.',
+      'Shortage answers count ordinary steps. The keycard ask after a void can use 4M. Later asks skip game in the agreed suit. Horton keycard answers are 0/1/2; the queen ask is offered after zero or one, and omitted after two.',
     ],
     limitations: ['The vulnerable nine-count and poor-six-spade exceptions are excluded. Basic shape hands with two shortages are excluded; the separate five-five void cases are included. Last Train replies and the auction beyond the forcing-jump cue and game choices remain open.'],
   };

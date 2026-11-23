@@ -49,7 +49,7 @@ No HCP rule for choosing the game force is supplied. The bot uses 19+ or
 against that policy.
 
 For third-seat nonvulnerable practice, select **Passed hand · 1♣** and replay
-`passed-club-audit-3` for the 1NT rebid or `passed-club-audit-17` for the
+`passed-club-audit-3` for the 1NT rebid or `passed-club-audit-20` for the
 artificial 1H game force. Out of 1,500 mixed deals, 29 reached the artificial
 1D response with the bot's passed-hand policy.
 

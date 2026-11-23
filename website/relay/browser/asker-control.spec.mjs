@@ -89,7 +89,7 @@ test('the whole-auction responder may pass an early Baron answer and restore tha
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')).session)).toEqual(JSON.parse(JSON.stringify(session)));
 });
 
-test('a Jacoby keycard question after a void only offers the answer ladder', async ({ page }) => {
+test('Jacoby 4S asks keycards after a void and only offers the answer ladder', async ({ page }) => {
   const initial = {
     ...createTrainingPractice({ auctionMode: true, openingFamily: 'S', humanSeat: 'North', seed: 'jacoby-void-forcing' }),
     playerHand: 'SA SJ S9 S6 S5 DA DQ D9 D3 CJ C6 C5 C3'.split(' '),
@@ -100,10 +100,10 @@ test('a Jacoby keycard question after a void only offers the answer ladder', asy
     if (!localStorage.getItem('bridge-lab.relay-progress.v1')) localStorage.setItem('bridge-lab.relay-progress.v1', JSON.stringify(progress));
   }, { version: 1, session, history: [], preferences: { practiceMode: 'auction', openingFamily: 'S' } });
   await page.goto('relay.html');
-  await expect(page.locator('#action-title')).toHaveText('Your response to 4NT');
+  await expect(page.locator('#action-title')).toHaveText('Your response to 4♠');
   await expect(page.locator('#bid-options [data-bid]')).toHaveCount(4);
   await expect(page.locator('#bid-options [aria-label="Pass unavailable"]')).toBeDisabled();
-  await clickBid(page, '5H');
+  await clickBid(page, '5D');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('bridge-lab.relay-progress.v1')));
-  expect(saved.session.auction[8].bid).toBe('5H');
+  expect(saved.session.auction[8].bid).toBe('5D');
 });

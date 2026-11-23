@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createPractice, applyBid, revealPractice, PRACTICE_PROFILES, availableActions, handFeatures } from './core.js';
 import { createTrainingPractice, availablePracticeActions, applyPracticeBid, practiceCalls, practiceView, advanceAsker } from './practice.js';
+import { applyPostRangeBid, keycardAction } from './continuations.js';
 import { tableView } from './seat-view.js';
 import { auctionCallDetails } from './auction-study.js';
 import { savePracticeProgress, loadPracticeProgress } from './progress.js';
@@ -58,21 +59,51 @@ test('teller accepts the screenshot 14-count as the first balanced Jacoby range 
   assert.deepEqual(ranged.partnerHand, fixed.partnerHand);
 });
 
-test('Jacoby 4S can sign off after a void, and 4NT requires a keycard reply', () => {
-  const initial = {
-    ...createTrainingPractice({ profileId: 'major-S', role: 'teller', seed: 'jacoby-void-forcing' }),
-    partnerHand: 'SA SJ S9 S6 S5 DA DQ D9 D3 CJ C6 C5 C3'.split(' '),
-    playerHand: 'SK SQ ST S8 HA HK H9 DK D7 C8 C7 C4 C2'.split(' '),
-  };
-  const voidShown = ['3H', '4C', '4H'].reduce(applyPracticeBid, initial);
-  assert.deepEqual(practiceView(voidShown).auction.map(call => call.bid),
-    ['1S', '2NT', '3H', '3S', '4C', '4D', '4H', '4NT']);
-  assert.equal(availableActions(voidShown).find(call => call.bid === '4S').kind, 'signoff');
-  assert.equal(applyBid(voidShown, '4S').contract.bid, '4S');
-  assert.deepEqual(practiceCalls(voidShown).map(call => call.bid), ['5C', '5D', '5H', '5S']);
-  assert.throws(() => applyPracticeBid(voidShown, 'Pass'), /4NT is forcing/);
-  assert.throws(() => applyPracticeBid(voidShown, '5NT'), /not an available response/);
-  assert.equal(applyPracticeBid(voidShown, '5H').auction[8].bid, '5H');
+test('Jacoby uses 4M for keycards after a void and refreshes a saved pending ask', () => {
+  const cases = [
+    {
+      major: 'S',
+      partner: 'SA SJ S9 S6 S5 DA DQ D9 D3 CJ C6 C5 C3',
+      player: 'SK SQ ST S8 HA HK H9 DK D7 C8 C7 C4 C2',
+      openerCalls: ['3H', '4C', '4H'],
+      expectedAuction: ['1S', '2NT', '3H', '3S', '4C', '4D', '4H', '4S'],
+      replies: ['4NT', '5C', '5D', '5H'], answer: '5D', oldAsk: '4NT',
+    },
+    {
+      major: 'H',
+      partner: 'SA SQ S9 S3 HA HJ H9 H6 H5 CJ C6 C5 C3',
+      player: 'SK S7 S4 HK HQ HT H8 DA DK D7 C8 C7 C2',
+      openerCalls: ['3D', '3NT', '4D'],
+      expectedAuction: ['1H', '2NT', '3D', '3H', '3NT', '4C', '4D', '4H'],
+      replies: ['4S', '4NT', '5C', '5D'], answer: '5C', oldAsk: '4S',
+    },
+  ];
+  for (const { major, partner, player, openerCalls, expectedAuction, replies, answer, oldAsk } of cases) {
+    const initial = {
+      ...createTrainingPractice({ profileId: `major-${major}`, role: 'teller', seed: 'jacoby-void-forcing' }),
+      partnerHand: partner.split(' '), playerHand: player.split(' '),
+    };
+    const voidShown = openerCalls.reduce(applyPracticeBid, initial);
+    assert.deepEqual(practiceView(voidShown).auction.map(call => call.bid), expectedAuction);
+    assert.equal(availableActions(voidShown).find(call => call.bid === `4${major}`).askType, 'keycard');
+    assert.deepEqual(practiceCalls(voidShown).map(call => call.bid), replies);
+    assert.throws(() => applyPracticeBid(voidShown, 'Pass'), /is forcing/);
+    assert.throws(() => applyPracticeBid(voidShown, '5NT'), /not an available response/);
+
+    const oldAction = keycardAction(voidShown, oldAsk, major, 'normal');
+    const legacy = { ...voidShown, pendingAsk: { ...voidShown.pendingAsk, bid: oldAsk, responseLadder: oldAction.responseLadder } };
+    const storage = { data: null, setItem(key, value) { this.data = value; }, getItem() { return this.data; } };
+    const answered = applyPracticeBid(voidShown, answer);
+    assert.equal(answered.auction[8].bid, answer);
+    savePracticeProgress({ session: legacy, history: [initial] }, storage);
+    assert.deepEqual(loadPracticeProgress(storage).progress.session, JSON.parse(JSON.stringify(voidShown)));
+    const legacyAnswered = advanceAsker(applyPostRangeBid({ ...legacy, pendingAsk: null }, oldAsk, oldAction));
+    assert.equal(legacyAnswered.auction[7].bid, oldAsk);
+    savePracticeProgress({ session: legacyAnswered, history: [initial, legacy] }, storage);
+    const restored = loadPracticeProgress(storage).progress;
+    assert.deepEqual(restored.session.auction, JSON.parse(JSON.stringify(legacyAnswered.auction)));
+    assert.deepEqual(restored.history[1], JSON.parse(JSON.stringify(voidShown)));
+  }
 });
 
 test('Baron minor agreement hands the shortage enquiry to opener while the human stays South with the same cards', () => {

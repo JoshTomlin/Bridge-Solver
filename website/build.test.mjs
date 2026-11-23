@@ -19,7 +19,12 @@ test('HTML and the complete runtime graph share a content version', t => {
   fs.mkdirSync(wasmSource);
   fs.writeFileSync(path.join(wasmSource, 'bridge_engine.js'), 'export default {};');
   fs.writeFileSync(path.join(wasmSource, 'bridge_engine.wasm'), Buffer.from([0, 97, 115, 109]));
-  const build = () => buildWebsite({ sourceRoot, wasmSource, destination });
+  const release = {
+    revision: 'a123456789bcde0f123456789bcde0f123456789', timestamp: new Date('2026-11-23T21:01:05Z'), pushed: true,
+  };
+  const build = (revision = release.revision) => buildWebsite({
+    sourceRoot, wasmSource, destination, release: { ...release, revision },
+  });
   const first = build();
   for (const html of ['index.html', 'relay.html']) {
     const built = fs.readFileSync(path.join(destination, html), 'utf8');
@@ -59,6 +64,9 @@ test('HTML and the complete runtime graph share a content version', t => {
     assert.match(html, new RegExp(`<meta name="relay-build" content="${first.version}">`));
     assert.equal(fs.readFileSync(path.join(destination, first.assetPrefix, page), 'utf8'), html);
   }
+  const relay = fs.readFileSync(path.join(destination, 'relay.html'), 'utf8');
+  assert.match(relay, /<p id="app-build"[^>]*><span data-revision="a123456789bcde0f123456789bcde0f123456789">Pushed <time datetime="2026-11-23T21:01:05.000Z">23 Nov 2026, 21:01 UTC<\/time> · a123456/);
+  assert.notEqual(build('b' + release.revision.slice(1)).version, first.version, 'A new revision invalidates offline HTML even when source files are identical');
   let previous = first.version;
   for (const file of ['relay/families.js', 'relay/sampling-worker.js', 'relay/evaluation-worker.js', 'relay/relay.css', 'relay-sw.js', 'relay.webmanifest']) {
     fs.appendFileSync(path.join(sourceRoot, file), '\n/* changed */\n');

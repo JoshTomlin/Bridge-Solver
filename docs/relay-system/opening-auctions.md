@@ -219,7 +219,7 @@ these routes on desktop and phone layouts, including reload, undo and reveal.
 ## First- and second-seat 1♣ suit responses
 
 After **1♣–2♣** responder has 10+ HCP and six-plus diamonds, single-suited.
-All five opener calls are at the same level in the original notes.
+The sampler targets this response on one in six dedicated 1♣ deals.
 
 | Opener | Meaning | What can be practised next |
 |---|---|---|
@@ -228,6 +228,10 @@ All five opener calls are at the same level in the original notes.
 | 2♠ | Six-plus decent clubs, shortage ask | Strength relay and Shortage Keycard follow. The shortage replies and trump agreement await confirmation. |
 | 3♣ | 9–11 with (6)7+ clubs, probably short in diamonds | Pass or choose game. Diamond shortage is a tendency. |
 | 3♦ | 9–12 unbalanced, three-plus diamonds | Pass, choose game, or bid 3♥ to ask **opener** for shortage. The answer order awaits confirmation. |
+
+In Whole Auction with opening family 1♣, replay `positive-club-29` for 2♦,
+`positive-club-2` for 2♥, `positive-club-10` for 2♠,
+`positive-club-45` for 3♣ or `positive-club-20` for 3♦.
 
 After a weak **1♣–2♦/2♥/2♠**, opener's 2NT genuinely invites. Responder
 may pass, correct to three of the long suit or choose game. An immediate

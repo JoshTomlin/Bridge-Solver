@@ -51,7 +51,7 @@ export const SYSTEM = deepFreeze({
     'Side suits are ranked high/middle/low after removing the opened major: hearts/diamonds/clubs over spades, and spades/diamonds/clubs over hearts.',
     'Low shortage already shows range: 3S = 9–11, 3NT = 12–14, 4C = 15–17, 4D = 18–19. Balanced, middle and high shortage use a separate range ask (P1475–P1476).',
     'The partnership confirmed that after 1M–2NT–3C–3D, balanced range replies start at 12–14: 3H = 12–14, 3S = 15–17, 3NT = 18–19. Balanced 9–11 hands open 1NT or jump to 4M with a great suit; they do not consume a range step after 3C.',
-    'Relay asks reserve 3NT for a balanced hand and reserve game in the opened major. Range answers count every legal bid, including 4M; the partnership confirmed the 4M omission applies only to asks (P1477).',
+    'Relay asks generally reserve game in the opened major. The keycard ask after a void includes 4M if it is the next step. Range answers always count 4M. After a balanced description, 3NT is available to play.',
     'After a balanced range, ordinary keycard omits the impossible void response. The partnership confirmed 0/3, 1/4, 2/5 without the trump queen, and 2/5 with the trump queen; shortage hands first have the additional void step.',
     'Opponents pass throughout and partner passes a selected final contract. All compatible hands are sampled uniformly within the disclosed training restrictions, with no additional bidding-style model.',
   ],

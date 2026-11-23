@@ -47,6 +47,8 @@ function nextAsk(after, session, specific = false, legacySkip3NT = false) {
   for (let index = indexOfBid(after) + 1; index < 35; index += 1) {
     const bid = bidAt(index);
     if (skip3NT && bid === '3NT') continue;
+    // A void reply uses the next step for keycards, including game in the agreed major.
+    if (session.phase === 'void-keycard' && ['H', 'S'].includes(trump) && bid === `4${trump}`) return bid;
     if (session.relayPolicy?.skipBids?.includes(bid)) continue;
     if (specific) {
       // Trump bids below game remain asking steps in a game-forcing relay.
@@ -230,8 +232,6 @@ export function postRangeActions(session) {
       if (action) actions.push({ ...action, playerConstraints: [{ type: 'length', suit, min: 5, max: 9 }] });
     }
   } else if (session.phase === 'void-keycard') {
-    // User confirmed 1M–2NT asks skip 4M here too. The document's splinter
-    // exception which includes 4M does not govern this separate auction family.
     addAction(actions, nextAsk(lastBid(session), session), session.keycardScheme === 'horton' ? HORTON_KEYCARDS : KEYCARDS,
       { label: 'Ask keycards after the void answer', askType: 'keycard' }, session);
   } else if (session.phase === 'post-keycard' || session.phase === 'suit-ask') {

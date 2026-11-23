@@ -55,15 +55,21 @@ test('answering the first suit preserves the second ask and skips trump/grand-tr
   assert.equal(postRangeActions(artificial)[0].bid, '6NT', '6H is the grand try and 6S is trumps');
 });
 
-test('SKC identifies a void before normal keycard and every 1M–2NT ask skips 4M', () => {
+test('ordinary SKC skips major game and the keycard follow-up after a void includes it', () => {
   const hand = 'SA SQ SJ S9 S8 HA HJ H6 H4 CK C8 C6 C2'.split(' ');
   const voidAnswer = applyPostRangeBid(practice({ partnerHand: hand }), '4D');
   assert.equal(voidAnswer.auction.at(-1).bid, '4H');
   assert.equal(voidAnswer.phase, 'void-keycard');
   assert.deepEqual(voidAnswer.constraints.at(-1), { type: 'length', suit: 'D', equals: 0, label: 'Diamonds void' });
-  assert.equal(postRangeActions(voidAnswer)[0].bid, '4NT', 'the next relay skips 4S');
-  const cards = applyPostRangeBid(voidAnswer, '4NT');
-  assert.equal(cards.auction.at(-1).bid, '5S', 'the normal four-answer ladder includes trump responses');
+  const [ask] = postRangeActions(voidAnswer);
+  assert.equal(ask.bid, '4S');
+  assert.deepEqual(ask.responseLadder.map(answer => answer.bid), ['4NT', '5C', '5D', '5H']);
+  const cards = applyPostRangeBid(voidAnswer, '4S');
+  assert.equal(cards.auction.at(-1).bid, '5H');
+  const explicitReservation = { ...voidAnswer, keycardScheme: 'horton', relayPolicy: { skipBids: ['4S'] } };
+  const [hortonAsk] = postRangeActions(explicitReservation);
+  assert.equal(hortonAsk.bid, '4S');
+  assert.deepEqual(hortonAsk.responseLadder.map(answer => answer.bid), ['4NT', '5C', '5D']);
   assert.equal(cards.constraints.find(c => c.type === 'trumpQueen').value, true);
   const hearts = practice({ major: 'H', shortageSuit: 'D', auction: [call('North', '4D')] });
   assert.equal(postRangeActions(hearts)[0].bid, '4S');

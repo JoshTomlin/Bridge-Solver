@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 export const staticFiles = [
@@ -64,8 +65,40 @@ export const staticFiles = [
   "engine-worker.js"
 ];
 
+function releaseFromGit(sourceRoot) {
+  let revision, committedAt;
+  try {
+    [revision, committedAt] = execFileSync('git', ['log', '-1', '--format=%H%n%cI'], {
+      cwd: sourceRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim().split('\n');
+  } catch {
+    return null;
+  }
+  if (process.env.GITHUB_EVENT_NAME === 'push' && process.env.GITHUB_EVENT_PATH) {
+    const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+    const pushedAt = event.repository?.pushed_at;
+    if (event.after === revision && pushedAt) {
+      const timestamp = new Date(typeof pushedAt === 'number' ? pushedAt * 1000 : pushedAt);
+      if (!Number.isNaN(timestamp.valueOf())) return { revision, timestamp, pushed: true };
+    }
+  }
+  return { revision, timestamp: new Date(committedAt), pushed: false };
+}
+
+function buildLabel(release) {
+  if (!release) return 'Local preview';
+  const datetime = release.timestamp.toISOString();
+  const date = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short',
+  }).format(release.timestamp);
+  const label = release.pushed ? 'Pushed' : 'Commit from';
+  return `<span data-revision="${release.revision}">${label} <time datetime="${datetime}">${date} UTC</time> · ${release.revision.slice(0, 7)}</span>`;
+}
+
 export function buildWebsite({ sourceRoot = root, destination = path.join(root, 'dist'),
-  wasmSource = process.env.BRIDGE_WASM_DIR || path.join(root, '..', 'build-wasm', 'wasm') } = {}) {
+  wasmSource = process.env.BRIDGE_WASM_DIR || path.join(root, '..', 'build-wasm', 'wasm'),
+  release = releaseFromGit(sourceRoot) } = {}) {
+  const label = buildLabel(release);
   const files = new Map(staticFiles.map(file => [file, fs.readFileSync(path.join(sourceRoot, file))]));
   for (const file of ['bridge_engine.js', 'bridge_engine.wasm']) {
     const source = path.join(wasmSource, file);
@@ -76,6 +109,7 @@ export function buildWebsite({ sourceRoot = root, destination = path.join(root, 
   // entry script alone would still allow cached transitive modules to mix builds.
   const hash = createHash('sha256');
   for (const [file, contents] of files) hash.update(`${file}\0${contents.length}\0`).update(contents);
+  hash.update(label);
   const version = hash.digest('hex').slice(0, 20);
   const assetPrefix = `assets/${version}`;
   fs.rmSync(destination, { recursive: true, force: true });
@@ -91,6 +125,7 @@ export function buildWebsite({ sourceRoot = root, destination = path.join(root, 
     if (file.endsWith('.html')) {
       let html = contents.toString().replace(/\b(src|href)="\.\/([^"\s]+\.(?:css|js))"/g,
         (_, attribute, asset) => `${attribute}="./${assetPrefix}/${asset}"`);
+      html = html.replace('<!-- release-stamp -->Local preview', label);
       html = html.replace('</head>', `<meta name="relay-build" content="${version}">\n  </head>`);
       // Served at the original URL when offline so relative links still work.
       write(`${assetPrefix}/${file}`, html);

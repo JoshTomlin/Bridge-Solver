@@ -127,7 +127,7 @@ export function loadPracticeProgress(storage) {
       if (oldDiamondAgreement) return applyBid({ ...session, pendingAsk: null }, '4D');
       const oldHeartSupportAsk = session.familyId === 'split-d-h-1nt' && session.phase === 'family'
         && session.nodeId === 'further' && session.pendingAsk.bid === '2NT';
-      return oldHeartSupportAsk || ['post-keycard', 'suit-ask', 'unsupported'].includes(session.phase)
+      return oldHeartSupportAsk || ['void-keycard', 'post-keycard', 'suit-ask', 'unsupported'].includes(session.phase)
         ? advanceAsker(session) : session;
     };
     const refresh = session => refreshCoach(restorePassedFirstTurn(session));

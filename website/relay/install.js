@@ -131,8 +131,12 @@ export function setupInstall({ beforeReload = () => true } = {}) {
         const [nextVersion, activeVersion] = await Promise.all([
           versionOf(registration.waiting), versionOf(registration.active),
         ]);
-        const ready = Boolean(nextVersion && nextVersion !== (activeVersion ?? version) || activeVersion && activeVersion !== version);
-        showUpdate(ready, ready ? 'Update downloaded.' : 'Bridge Lab is up to date.');
+        if (!activeVersion || registration.waiting && !nextVersion) {
+          showUpdate(false, 'Could not verify the app version. Check again in a moment.');
+          return;
+        }
+        const ready = Boolean(nextVersion && nextVersion !== activeVersion || activeVersion !== version);
+        showUpdate(ready, ready ? 'Update downloaded.' : 'You have the latest published build.');
       }
     } catch {
       showUpdate(restart, navigator.onLine ? 'Could not update. Try again in a moment.' : 'Connect to the internet to check for updates.');
