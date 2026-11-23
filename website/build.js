@@ -88,11 +88,12 @@ function releaseFromGit(sourceRoot) {
 function buildLabel(release) {
   if (!release) return 'Local preview';
   const datetime = release.timestamp.toISOString();
-  const date = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short',
+  const date = new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Sydney', day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZoneName: 'short',
   }).format(release.timestamp);
   const label = release.pushed ? 'Pushed' : 'Commit from';
-  return `<span data-revision="${release.revision}">${label} <time datetime="${datetime}">${date} UTC</time> · ${release.revision.slice(0, 7)}</span>`;
+  return `<span data-revision="${release.revision}">${label} <time datetime="${datetime}">${date}</time> · ${release.revision.slice(0, 7)}</span>`;
 }
 
 export function buildWebsite({ sourceRoot = root, destination = path.join(root, 'dist'),

@@ -22,8 +22,8 @@ test('HTML and the complete runtime graph share a content version', t => {
   const release = {
     revision: 'a123456789bcde0f123456789bcde0f123456789', timestamp: new Date('2026-11-23T21:01:05Z'), pushed: true,
   };
-  const build = (revision = release.revision) => buildWebsite({
-    sourceRoot, wasmSource, destination, release: { ...release, revision },
+  const build = (revision = release.revision, timestamp = release.timestamp) => buildWebsite({
+    sourceRoot, wasmSource, destination, release: { ...release, revision, timestamp },
   });
   const first = build();
   for (const html of ['index.html', 'relay.html']) {
@@ -65,8 +65,10 @@ test('HTML and the complete runtime graph share a content version', t => {
     assert.equal(fs.readFileSync(path.join(destination, first.assetPrefix, page), 'utf8'), html);
   }
   const relay = fs.readFileSync(path.join(destination, 'relay.html'), 'utf8');
-  assert.match(relay, /<p id="app-build"[^>]*><span data-revision="a123456789bcde0f123456789bcde0f123456789">Pushed <time datetime="2026-11-23T21:01:05.000Z">23 Nov 2026, 21:01 UTC<\/time> · a123456/);
+  assert.match(relay, /<p id="app-build"[^>]*><span data-revision="a123456789bcde0f123456789bcde0f123456789">Pushed <time datetime="2026-11-23T21:01:05.000Z">24 Nov 2026, 08:01 AEDT<\/time> · a123456/);
   assert.notEqual(build('b' + release.revision.slice(1)).version, first.version, 'A new revision invalidates offline HTML even when source files are identical');
+  build(release.revision, new Date('2026-05-23T21:01:05Z'));
+  assert.match(fs.readFileSync(path.join(destination, 'relay.html'), 'utf8'), /2026-05-23T21:01:05.000Z">24 May 2026, 07:01 AEST/);
   let previous = first.version;
   for (const file of ['relay/families.js', 'relay/sampling-worker.js', 'relay/evaluation-worker.js', 'relay/relay.css', 'relay-sw.js', 'relay.webmanifest']) {
     fs.appendFileSync(path.join(sourceRoot, file), '\n/* changed */\n');

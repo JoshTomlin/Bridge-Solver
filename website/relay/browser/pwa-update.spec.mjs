@@ -71,7 +71,7 @@ test('a manual update retries a failed download, keeps other tabs open, and rest
     const update = page.locator('#update-app');
     const status = page.locator('#update-status');
     const build = page.locator('#app-build');
-    await expect(build).toHaveText('Pushed 23 Nov 2026, 06:27 UTC · aaaaaaa');
+    await expect(build).toHaveText('Pushed 23 Nov 2026, 17:27 AEDT · aaaaaaa');
     await update.click();
     await expect(status).toHaveText('You have the latest published build.');
 
@@ -104,6 +104,7 @@ test('a manual update retries a failed download, keeps other tabs open, and rest
     await update.click();
     await expect.poll(() => installedVersion(page)).toBe(releases.newRelease.version);
     await expect(build.locator('time')).toHaveAttribute('datetime', newPush);
+    await expect(build).toHaveText('Pushed 24 Nov 2026, 08:01 AEDT · bbbbbbb');
     expect(await installedVersion(otherTab)).toBe(releases.oldRelease.version);
     await expect(page.locator('#new-deal')).toBeEnabled();
     expect(await saved(page)).toEqual(before);
