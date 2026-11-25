@@ -1,5 +1,5 @@
 import { revealPractice, handFeatures, SUITS, RANKS, getPracticeProfile, practiceNode } from './core.js';
-import { availablePracticeActions, practiceCalls, applyPracticeBid } from './practice.js';
+import { availablePracticeActions, practiceCalls, applyPracticeBid, practiceRoute, repeatsPracticeRoute } from './practice.js';
 import { tableView as practiceView, tableSeat, tableContract, tableCallDetails } from './seat-view.js';
 import { createEvaluationDeals, fillOpponentHands, defaultContracts } from './evaluation.js';
 import { loadPracticeProgress, savePracticeProgress } from './progress.js';
@@ -405,16 +405,28 @@ async function dealHand({ replay = false } = {}) {
     const completed = replay ? [] : handArchive.completedHands();
     const completedSeeds = new Set(completed.map(hand => hand.seed));
     const completedDeals = new Set(completed.map(hand => partnershipDealKey(hand.hands.North, hand.hands.South)));
+    const recentRoutes = mode === 'mixed' && !replay ? completed.filter(hand => !hand.competitive)
+      .slice(0, 6).map(hand => practiceRoute(hand.auction)) : [];
     let next;
     let selection;
+    let repeatedRoute;
+    let routeAttempts = 0;
     for (let attempt = 0; attempt < 12 && !next; attempt += 1) {
       const seed = replay ? byId('seed').value.trim() || session?.seed || randomSeed() : randomSeed();
       if (completedSeeds.has(seed)) continue;
       selection = dealSelection(mode, replay, seed);
-      const candidate = await sampler.request({ command: 'deal', payload: { ...selection, seed } });
+      let candidate;
+      try { candidate = await sampler.request({ command: 'deal', payload: { ...selection, seed } }); }
+      catch (error) { if (!repeatedRoute) throw error; break; }
       if (currentJob !== job) return;
-      if (!completedDeals.has(partnershipDealKey(candidate.playerHand, candidate.partnerHand))) next = candidate;
+      if (completedDeals.has(partnershipDealKey(candidate.playerHand, candidate.partnerHand))) continue;
+      if (repeatsPracticeRoute(candidate, recentRoutes)) {
+        repeatedRoute ??= candidate;
+        if (++routeAttempts === 3) next = repeatedRoute;
+      } else next = candidate;
     }
+    if (currentJob !== job) return;
+    next ??= repeatedRoute;
     if (!next) throw new Error('A new deal could not be found. Try New hand again.');
     currentHandId = randomSeed();
     session = next.finished ? revealPractice(next) : next;

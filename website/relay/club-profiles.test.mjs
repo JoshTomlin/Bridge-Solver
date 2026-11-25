@@ -39,7 +39,7 @@ for (let S = 0; S <= 9; S += 1) {
 }
 
 test('club definitions have unique source-labelled entries, correct seats and legal lead-ins', () => {
-  assert.equal(CLUB_PROFILES.length, 18);
+  assert.equal(CLUB_PROFILES.length, 20);
   assert.equal(profiles.size, CLUB_PROFILES.length);
   for (const profile of CLUB_PROFILES) {
     assert.match(profile.source, /Word P\d{4}/, profile.id);

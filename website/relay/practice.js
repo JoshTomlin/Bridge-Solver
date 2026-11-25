@@ -4,7 +4,7 @@
 import { createPractice, availableActions, applyBid, matchesConstraints, bidIndex, getPracticeProfile, practiceNode, handFeatures } from './core.js';
 import { declarerFor } from './profile-utils.js';
 import { isForcingOpeningCall, openingBoundary } from './opening-system.js';
-import { createOpeningPractice, openingChoices, selectOpening, applyOpeningCall, advanceOpeningPartner } from './opening-practice.js';
+import { createOpeningPractice, openingChoices, selectOpening, applyOpeningCall, advanceOpeningPartner, openingPartnerBid } from './opening-practice.js';
 import { slamAction } from './slam-policy.js';
 
 export function practiceView(session) {
@@ -20,6 +20,39 @@ export function practiceView(session) {
       responseLadder: session.pendingAsk.responseLadder,
     }] : session.auction,
   };
+}
+
+export function practiceRoute(auction) {
+  return auction.filter(call => ['North', 'South'].includes(call.seat) && call.bid !== 'Pass').slice(0, 5).map(call => call.bid);
+}
+
+// Preview the first partnership calls as if both seats followed the existing
+// partner policy. Keep the preview out of the dealt session and saved history.
+export function repeatsPracticeRoute(session, recentRoutes) {
+  if (!recentRoutes.length || session.wholeAuction?.competition) return false;
+  let preview = session;
+  try {
+    for (let turn = 0; turn < 5 && !preview.finished; turn += 1) {
+      const view = practiceView(preview);
+      if (practiceRoute(view.auction).length >= 5) break;
+      if (preview.opening) {
+        const bid = openingPartnerBid({ ...preview.opening, auction: preview.auction, hand: view.playerHand });
+        preview = applyPracticeBid(preview, bid);
+      } else if (preview.practiceRole === 'asker') {
+        const decision = advanceAsker(preview);
+        if (decision.finished) { preview = decision; break; }
+        if (!decision.pendingAsk) break;
+        preview = applyPracticeBid(preview, decision.pendingAsk.bid);
+      } else if (preview.pendingAsk) {
+        const answer = applyBid(preview, preview.pendingAsk.bid).auction.at(-1).bid;
+        preview = applyPracticeBid(preview, answer);
+      } else break;
+    }
+  } catch {
+    return false;
+  }
+  const route = practiceRoute(practiceView(preview).auction);
+  return recentRoutes.some(previous => previous.length >= 3 && previous.every((bid, index) => bid === route[index]));
 }
 
 /** Ask source questions using the asker's own cards and public facts. After
@@ -75,8 +108,10 @@ export function advanceAsker(session) {
     minorFit = actions.find(action => action.kind === 'relay' && (action.trump ?? action.state?.trump) === preferred);
   }
   const handover = actions.find(action => action.kind === 'handover');
+  const preferredShapeAsk = actions.find(action => action.coachConstraints
+    && matchesConstraints(session.playerHand, action.coachConstraints, action.trump ?? trump));
   const action = slam ?? hortonResponse ?? minorFit ?? (node?.preferHandover ? handover : undefined)
-    ?? actions.find(action => action.kind === 'relay' || action.kind === 'transfer-to-3nt') ?? handover
+    ?? preferredShapeAsk ?? actions.find(action => action.kind === 'relay' || action.kind === 'transfer-to-3nt') ?? handover
     ?? signoffs.find(action => action.bid !== 'Pass' || session.weakExitAllowed || usualContracts.has(last))
     ?? signoffs[0];
   if (!action) return Object.freeze({ ...session, pendingAsk: null, finished: true,

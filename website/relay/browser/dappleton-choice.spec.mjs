@@ -20,6 +20,28 @@ async function load(page,session,history=[]) {
   await page.goto('relay.html');await ready(page);
 }
 
+test('2D accepts the puppet on the reported opener without an invalid Baron reply', async ({ page }) => {
+  const base = createTrainingPractice({ auctionMode: true, openingFamily: 'C', humanSeat: 'North', seed: 'puppet-screenshot' });
+  const cards = {
+    playerHand: 'SJ S9 HA HT H7 DK D3 CK CQ CJ C7 C4 C3'.split(' '),
+    partnerHand: 'SA SK SQ S8 S6 HQ H6 DJ DT D9 CA CT C2'.split(' '),
+  };
+  const initial = ['1C', '1H', '1S', '2C'].reduce(applyOpeningCall, { ...base, ...cards });
+  await load(page, initial);
+  await clickBid(page, '2D');
+  await expect(page.locator('#bid-feedback')).toBeEmpty();
+  const resumed = (await saved(page)).session;
+  expect(resumed.auction.map(call => call.bid)).toEqual(['1C', '1H', '1S', '2C', '2D', '3NT']);
+  await page.reload();
+  await ready(page);
+  expect((await saved(page)).session).toEqual(resumed);
+  await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(initial);
+  await clickBid(page, '2D');
+  await clickBid(page, 'Pass');
+  expect((await saved(page)).session.contract).toMatchObject({ bid: '3NT', declarer: 'South' });
+});
+
 for(const options of [
   {major:'S',points:14,fit:3,route:'3NT',target:'4S',declarer:'North'},
   {major:'S',points:14,fit:2,route:'3S',target:'3NT',declarer:'North'},

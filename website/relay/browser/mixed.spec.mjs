@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { createTrainingPractice,practiceView } from '../practice.js';
+import { createTrainingPractice, applyPracticeBid, advanceAsker, practiceView, practiceRoute, repeatsPracticeRoute } from '../practice.js';
 import { applyBid } from '../core.js';
+import { createHandRecord, HAND_HISTORY_KEY } from '../hand-history.js';
 import { openingPartnerBid } from '../opening-practice.js';
 import { chooseOpeningFamily } from '../opening-system.js';
 import { settings,selectSetting,closeSheets,newHand,clickBid,fitsScreen } from './helpers.mjs';
@@ -36,6 +37,32 @@ async function expectMixed(page,family,seat) {
 }
 test.beforeEach(async({page})=>{
   await page.addInitScript(()=>{const original=crypto.randomUUID.bind(crypto);Object.defineProperty(crypto,'randomUUID',{value:()=>window.mixedSeeds?.shift()??original()})});
+});
+
+test('Just Bid prefers a new auction route even when the first random deal has different cards', async ({ page }) => {
+  const draw = seed => createTrainingPractice({ auctionMode: true, openingFamily: 'all', humanSeat: 'North', seed });
+  let completed = draw('relay-variation-24');
+  for (let i = 0; !completed.finished && i < 20; i += 1) {
+    const view = practiceView(completed);
+    const bid = completed.opening ? openingPartnerBid({ ...completed.opening, auction: completed.auction, hand: view.playerHand })
+      : completed.practiceRole === 'asker' ? advanceAsker(completed).pendingAsk?.bid ?? 'Pass'
+        : applyBid(completed, completed.pendingAsk.bid).auction.at(-1).bid;
+    completed = applyPracticeBid(completed, bid);
+  }
+  expect(completed.finished).toBe(true);
+  const record = createHandRecord(completed, [], { id: 'recent-auction-route' });
+  const routes = [practiceRoute(record.auction)];
+  expect(repeatsPracticeRoute(draw('relay-variation-37'), routes)).toBe(true);
+  expect(repeatsPracticeRoute(draw('relay-variation-9'), routes)).toBe(false);
+  await page.addInitScript(({ key, historyKey, record, session }) => {
+    if (!localStorage.getItem(historyKey)) localStorage.setItem(historyKey, JSON.stringify({ version: 1, records: [record] }));
+    if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ version: 1, session, history: [], preferences: { practiceMode: 'mixed' } }));
+  }, { key, historyKey: HAND_HISTORY_KEY, record, session: draw('relay-variation-14') });
+  await page.goto('relay.html');
+  await ready(page);
+  await page.evaluate(() => { window.mixedSeeds = ['variation-37', 'variation-9']; });
+  await newHand(page);
+  await expect.poll(async () => (await saved(page)).session.seed).toBe('relay-variation-9');
 });
 test('Just Bid accepts the reported spade opening on a deal drawn for diamonds', async ({ page }) => {
   const session = {

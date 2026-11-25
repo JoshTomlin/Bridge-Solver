@@ -76,6 +76,31 @@ test('opener makes the actual opening and rebid, with truthful partner automatio
   assert.equal(session.finished, true);
 });
 
+test('the reported opener can accept 2D opposite a game offer, an invite or a genuine Baron enquiry', () => {
+  const base = createTrainingPractice({ auctionMode: true, openingFamily: 'C', seed: 'puppet-screenshot', humanSeat: 'North' });
+  const playerHand = 'SJ S9 HA HT H7 DK D3 CK CQ CJ C7 C4 C3'.split(' ');
+  for (const { holding, reply, answer, contract } of [
+    { holding: 'SA SK SQ S8 S6 HQ H6 DJ DT D9 CA CT C2', reply: '3NT', answer: 'Pass', contract: '3NT' },
+    { holding: 'SA SQ S8 S6 S5 HJ H6 DJ DT D9 CT C8 C2', reply: '2H', answer: '2NT', contract: '2NT' },
+    { holding: 'SA SK SQ S8 S6 HQ D8 DJ DT D9 CA CT C2', reply: '2S' },
+  ]) {
+    const start = { ...base, playerHand, partnerHand: holding.split(' ') };
+    assert.equal(new Set([...playerHand, ...start.partnerHand]).size, 26);
+    const opened = applyPracticeBid(start, '1C');
+    const puppet = applyPracticeBid(opened, '1S');
+    assert.deepEqual(puppet.auction.map(call => call.bid), ['1C', '1H', '1S', '2C']);
+    const resumed = applyPracticeBid(puppet, '2D');
+    assert.deepEqual(resumed.auction.map(call => call.bid), ['1C', '1H', '1S', '2C', '2D', reply]);
+    assert.equal(resumed.undiscussedBid, undefined);
+    const storage = { setItem(key, value) { this.value = value; }, getItem() { return this.value; } };
+    savePracticeProgress({ session: resumed, history: [start, opened, puppet], preferences: { practiceMode: 'mixed' } }, storage);
+    const restored = loadPracticeProgress(storage);
+    assert.equal(restored.error, undefined);
+    assert.deepEqual(restored.progress.session, json(resumed));
+    if (answer) assert.equal(applyPracticeBid(resumed, answer).contract.bid, contract);
+  }
+});
+
 test('public bid choices never identify the right opening response using hidden cards', () => {
   const session = fixture();
   const hidden = { ...session, playerHand: ['hidden'], partnerHand: ['hidden'] };

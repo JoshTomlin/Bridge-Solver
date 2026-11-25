@@ -238,3 +238,17 @@ side suit natural, and 3M six-plus cards a fair reading? After
 `1M–2♣–3♣–3♦/3OM`, how do you distinguish the natural bid from a club
 cue, and what is the shortest holding that makes a natural bid? Practice
 accepts a natural three-card holding or a control with four-plus clubs.
+
+**Q21 — `1♣–2♣–2♦` with 14+ as responder.** P0438 says opener has 0–2
+diamonds and an unbalanced hand, and expects Pass with 10–13. What are the
+agreed stronger rebids? Practice uses 2♥/2♠ as forcing stoppers, 2NT and 3♦
+as natural 14–15 invites, and 3♣ as a forcing club fit. Confirm whether
+any call is a relay and which routes establish a game force.
+
+**Q22 — Mini Bourke shortage detail.** After `1♣–1♠–2♦–2♥`, P0588–P0590
+name the shortage enquiry after opener has already shown its suit. What is
+the reply order? Practice currently uses void first and singleton second.
+
+**Q23 — strong spade reverse 6/5 reply.** In `1♦–1NT–2♠–3♥`, P0771 and
+P0773 both print 3NT. The surrounding consecutive steps point to **4♦**
+for six-plus diamonds and five spades. Confirm that correction.

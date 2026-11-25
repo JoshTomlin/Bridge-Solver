@@ -134,6 +134,13 @@ support; a human opener can choose either game. A direct 3NT without the
 puppet is to play; direct 3S requests opener's 3NT. Declarer is always the
 first actual bidder of the strain, including artificial bids.
 
+After **1M** shows the lower balanced range, **2♣–2♦–2♥** is invitational
+with four or five spades, or with five or six hearts. In hearts, a minimum
+passes. In spades, a minimum bids 2♠ with three-card support or 2NT with
+two or three. A non-minimum shows three-card support at 3M or offers 3NT
+with two or three. The bot uses 8–10 for the invitation and treats 14/15
+as a minimum. [Main notes, P0492–P0501](../system-sources/main-notes.txt#L466)
+
 Other descriptions in the same menus are **3D three-suited with shortage in
 the other major**, and **direct 3H a solid six-plus major**. A non-solid six-plus
 slam try goes through the puppet. Their natural game choices are playable;
@@ -181,12 +188,33 @@ South answers no/high/low shortage in the two outside suits, then North
 continues KC/SKC. Baron and transfer descriptions therefore generate **12
 Dappleton exercises** in total: eight transfers plus four Baron entries.
 
+## Mini Bourke after 1♣–1♠–2♦
+
+Opener’s **2♦** shows 9–13, fewer than four diamonds and non-solid clubs.
+The usual opener has five-plus clubs, with an exception for 4414. Responder’s
+**2♥** starts the game-forcing shape relay. [Main notes](../system-sources/main-notes.txt#L557)
+
+| Reply to 2♥ | Meaning | Next enquiry |
+|---|---|---|
+| 2♠ | 12–13 unbalanced | 2NT asks for the same shape replies as below |
+| 2NT | (11)12–13, (322)6 or 2227 | 3NT to play or 4♦ club Kickback |
+| 3♣ | 6+ clubs, 9–11 | 3♦ asks shortage. 3♥ hearts, 3♠ spades, 3NT diamonds |
+| 3♦ | Five clubs and heart shortage, 9–11 | 3♥ asks about the shortage |
+| 3♥ | Five clubs and spade shortage, 9–11 | 3♠ asks about the shortage |
+| 3♠ | Five clubs and diamond shortage, 9–11 | 4♣ asks about the shortage |
+| **3NT** | **4414** (SHDC), 9–11 | **4♣ is ordinary club keycard** |
+
+The 3♣ through 3NT replies show 12–13 after 2♠–2NT. For the three asks
+about a known shortage, the trainer provisionally uses void first and
+singleton second. Q22 records the reply-order question. To work directly on
+the exception, choose **Club · 1C–1S → Mini Bourke · 4414** in Study branch.
+
 ## Source-only Dappleton branches
 
 | Branch | Status |
 |---|---|
 | Both-major 2D/2H routes and preference judgements | Source mapped; not selectable |
-| Lower balanced ranges and range/invitational continuations | Source mapped; practice currently uses the fixed 18/19 entry |
+| Heart range enquiry | Source mapped. The lower-range puppet invitation is playable in whole-auction practice. |
 | Three-suited and solid-major descriptions | Source mapped; no general generated exercise |
 | Six-card-minor Baron, long-club opener replies, quantitative declines | Outside the four fixed Baron entries |
 | Strong balanced 3NT followed by responder's 5332 continuation | Separate continuation not implemented |

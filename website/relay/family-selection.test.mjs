@@ -4,6 +4,8 @@ import { PRACTICE_PROFILES } from './profiles.js';
 import { AUCTION_FAMILIES, getAuctionFamily, auctionFamilyForProfile, selectFamilyProfile, selectMixedPractice } from './families.js';
 import { createTrainingPractice, practiceView } from './practice.js';
 
+const randomProfiles = PRACTICE_PROFILES.filter(profile => !profile.studyOnly);
+
 test('broad auction families cover every exercise exactly once with the intended entry boundaries', () => {
   const assigned = AUCTION_FAMILIES.flatMap(family => family.profileIds);
   assert.equal(new Set(assigned).size, assigned.length);
@@ -12,7 +14,7 @@ test('broad auction families cover every exercise exactly once with the intended
     assert.ok(family.profileIds.length);
     for (const id of family.profileIds) assert.equal(auctionFamilyForProfile(id).id, family.id);
   }
-  assert.deepEqual([...getAuctionFamily('diamond-notrump').profileIds].sort(), ['minor-d-nt-2c', 'minor-d-nt-2d']);
+  assert.deepEqual([...getAuctionFamily('diamond-notrump').profileIds].sort(), ['minor-d-nt-2c', 'minor-d-nt-2d', 'minor-d-nt-2h', 'minor-d-nt-2s']);
   assert.equal(getAuctionFamily('minor-three-bid').profileIds.some(id => id.startsWith('minor-d-nt-')), false);
   const reordered = getAuctionFamily('reordered-rebid').profileIds;
   assert.ok(reordered.some(id => id.startsWith('rebid-single-')));
@@ -30,7 +32,7 @@ test('seeded family selection can reach every branch and repeats without consult
       assert.ok(family.profileIds.includes(profile.id));
       reached.add(profile.id);
     }
-    assert.deepEqual([...reached].sort(), [...family.profileIds].sort(), family.id);
+    assert.deepEqual([...reached].sort(), randomProfiles.filter(profile => family.profileIds.includes(profile.id)).map(profile => profile.id).sort(), family.id);
   }
 });
 
@@ -74,7 +76,7 @@ test('Just bid reaches every branch in both roles with equal family weighting an
     roles[selected.role]++;
     reached.add(`${selected.profileId}:${selected.role}`);
   }
-  assert.deepEqual([...reached].sort(), PRACTICE_PROFILES.flatMap(profile => ['asker', 'teller'].map(role => `${profile.id}:${role}`)).sort());
+  assert.deepEqual([...reached].sort(), randomProfiles.flatMap(profile => ['asker', 'teller'].map(role => `${profile.id}:${role}`)).sort());
   // A fixed broad seed set detects accidental weighting by number of branches
   // and biased roles without making a statistical assertion about live hands.
   for (const count of families.values()) assert.ok(count > draws / families.size * 0.8 && count < draws / families.size * 1.2);

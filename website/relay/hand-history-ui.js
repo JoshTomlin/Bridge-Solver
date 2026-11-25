@@ -94,7 +94,11 @@ export function setupHandHistory({ getCurrentId, showCall }) {
   renderList();
   return {
     completedHands() {
-      return [...loadHandHistory().records, ...records].filter(record => record.finished);
+      const latest = new Map();
+      for (const record of [...loadHandHistory().records, ...records]) {
+        if (!latest.has(record.id) || record.updatedAt > latest.get(record.id).updatedAt) latest.set(record.id, record);
+      }
+      return [...latest.values()].filter(record => record.finished).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     },
     save(session, history, id) {
       // UI preferences also autosave; only record changes to bidding state.

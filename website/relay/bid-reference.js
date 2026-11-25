@@ -94,7 +94,9 @@ const clubAfterOneNT = [
 ];
 table('1C 1S 1NT', clubAfterOneNT);
 table('1C 1S 2C', [['2D', 'Request 3NT or the strong unbalanced description'], ...clubAfterOneNT.filter(([bid]) => !['2C','2D'].includes(bid))]);
-table('1D 1NT', [['2C', '12–15; diamond opening shapes'], ['2D', '9–11; diamond opening shapes']]);
+table('1C 1S 2D', [['2H', 'Mini Bourke, game-forcing shape relay']]);
+table('1D 1NT', [['2C', '12–15; diamond opening shapes'], ['2D', '9–11; diamond opening shapes'],
+  ['2H', 'Natural 16+, four-plus hearts'], ['2S', 'Natural 16+, four-plus spades']]);
 for (const rebid of ['2C','2D']) table(`1D 1NT ${rebid}`, [['2H', 'Diamond fit; shape enquiry'], ['2S', 'Six-plus solid clubs; shortage enquiry'], ['3NT', 'To play']]);
 for (const major of ['H','S']) {
   table(`1D 1${major} 1NT`, [['2C', 'Range enquiry; three-card major support already shown'], [`2${major}`, 'To play']]);

@@ -41,7 +41,8 @@ export function selectFamilyProfile({ familyId, profileId = '', seed }) {
     return getPracticeProfile(profileId);
   }
   const rng = makeRng(`relay-family:${familyId}:${seed}`);
-  return getPracticeProfile(selected.profileIds[Math.floor(rng() * selected.profileIds.length)]);
+  const randomProfiles = selected.profileIds.map(getPracticeProfile).filter(profile => !profile.studyOnly);
+  return randomProfiles[Math.floor(rng() * randomProfiles.length)];
 }
 
 /** Choose the family uniformly before its branch, so larger families do not

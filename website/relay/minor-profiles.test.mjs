@@ -59,15 +59,16 @@ function advanceAbstract(session, action, response, bid) {
   return next;
 }
 
-test('all eight revised entries plus the two confirmed base range prefixes are present', () => {
-  assert.equal(MINOR_PROFILES.length, 10);
-  assert.equal(new Set(MINOR_PROFILES.map(item => item.id)).size, 10);
+test('the revised entries, base ranges and two strong diamond reverses are present', () => {
+  assert.equal(MINOR_PROFILES.length, 12);
+  assert.equal(new Set(MINOR_PROFILES.map(item => item.id)).size, 12);
   const expected = [
     ['minor-d-nt-2d', '1D 1NT 2D', '2H'], ['minor-d-nt-2c', '1D 1NT 2C', '2H'],
     ['minor-d-h-c', '1D 1H 2C', '2S'], ['minor-d-s-c', '1D 1S 2C', '2H'],
     ['minor-d-h-d', '1D 1H 2D', '2S'], ['minor-d-s-d', '1D 1S 2D', '2H'],
     ['minor-d-h-s', '1D 1H 1S', '2C'], ['minor-c-h-s', '1C 1D 1S', '2D'],
     ['minor-c-h-c', '1C 1D 2C', '2D'], ['minor-c-s-c', '1C 1H 2C', '2D'],
+    ['minor-d-nt-2h', '1D 1NT 2H', '2S'], ['minor-d-nt-2s', '1D 1NT 2S', '2NT'],
   ];
   for (const [id, prefix, ask] of expected) {
     const item = profile(id);
@@ -186,13 +187,14 @@ test('every admitted shape/HCP pair has exactly one answer at every shape relay 
   let actionsChecked = 0;
   const visited = new Map();
   for (const item of MINOR_PROFILES) {
+    const reverse = /^minor-d-nt-2[hs]$/.test(item.id);
     const walk = (session, shape, points, depth = 0) => {
       assert.ok(depth < 5, 'The bounded shape relay must terminate');
       if (session.phase !== 'family') {
         assert.equal(session.phase, 'keycard');
         assert.equal(abstractMatch(shape, points, session.constraints), true);
         if (session.shortageSuit) assert.ok(Number(shape[SUITS.indexOf(session.shortageSuit)]) <= 1);
-        else assert.equal([...shape].every(n => Number(n) >= 2), true);
+        else if (!reverse) assert.equal([...shape].every(n => Number(n) >= 2), true);
         return;
       }
       const node = resolve(item, session);
@@ -200,7 +202,8 @@ test('every admitted shape/HCP pair has exactly one answer at every shape relay 
       for (const action of node.actions) {
         actionsChecked++;
         assert.ok(bidIndex(action.bid) > bidIndex(lastBid(session)));
-        assert.notEqual(action.bid, '3NT', 'Responder 3NT is to play');
+        if (!reverse || !['H', 'S'].includes(session.trump)) assert.notEqual(action.bid, '3NT', 'Responder 3NT is to play');
+        if (action.kind === 'keycard') continue;
         const answers = action.responses.map((response, index) => ({ response, index }))
           .filter(({ response }) => abstractMatch(shape, points, response.constraints));
         assert.equal(answers.length, 1, `${item.id}/${session.nodeId}/${action.bid}, ${shape}, ${points} HCP`);
@@ -251,8 +254,9 @@ test('fixed hands survive generated auctions; public choices never inspect eithe
         assert.deepEqual(practiceNode({ ...session, partnerHand: [], playerHand: [] }), practiceNode(session));
       } else assert.deepEqual(availableActions(poisoned), actions);
       assert.equal(new Set(actions.map(action => action.bid)).size, actions.length);
-      if (bidIndex(lastBid(session)) < bidIndex('3NT')) assert.equal(actions.find(action => action.bid === '3NT')?.kind, 'signoff');
-      const relays = actions.filter(action => action.kind !== 'signoff');
+      if (bidIndex(lastBid(session)) < bidIndex('3NT') && !['H', 'S'].includes(session.trump)) assert.equal(actions.find(action => action.bid === '3NT')?.kind, 'signoff');
+      const relays = actions.filter(action => action.kind !== 'signoff' && (!action.playerConstraints
+        || matchesConstraints(player, action.playerConstraints, action.trump ?? session.trump)));
       const action = relays[(seed % 2) && relays.length > 1 ? 1 : 0]
         ?? actions.find(action => action.bid !== 'Pass') ?? actions[0];
       if (!action) break;

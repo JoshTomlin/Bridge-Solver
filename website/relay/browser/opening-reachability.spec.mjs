@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createTrainingPractice, practiceView } from '../practice.js';
+import { advanceOpeningPartner } from '../opening-practice.js';
 import { clickBid, closeSheets } from './helpers.mjs';
 
 const key = 'bridge-lab.relay-progress.v1';
@@ -76,6 +77,64 @@ test('the diamond-positive shortage ask shows the source boundary and Undo resto
   await page.reload();
   await page.click('#undo-bid');
   expect((await saved(page)).session.auction.map(call=>call.bid)).toEqual(['1C','2C']);
+});
+
+test('the reported diamond hand gets live continuations after opener’s 2D', async ({ page }) => {
+  const initial = createTrainingPractice({ auctionMode: true, openingFamily: 'C', humanSeat: 'North', seed: 'strong-diamond-browser' });
+  const session = advanceOpeningPartner({ ...initial,
+    playerHand: 'SA SK S4 HK H8 H2 D5 CJ CT C9 C7 C6 C2'.split(' '),
+    partnerHand: 'SQ SJ S9 HA DA DQ DT D9 D8 D6 CK CQ C8'.split(' '),
+    practiceRole: 'teller', wholeAuction: { ...initial.wholeAuction, humanSeat: 'South' },
+  });
+  await page.addInitScript(({ key, session }) => {
+    if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ version: 1, session, history: [],
+      preferences: { practiceMode: 'mixed' } }));
+  }, { key, session });
+  await page.goto('relay.html');
+  await clickBid(page, '2C');
+  for (const bid of ['2H', '2S', '2NT']) {
+    await expect(page.locator(`[data-bid="${bid}"]`)).toHaveAttribute('data-discussed', 'true');
+  }
+  await page.click('#auction [data-call-index="2"]');
+  await expect(page.locator('#bid-alternatives')).toContainText('Heart stopper, 14+');
+  await closeSheets(page);
+  await clickBid(page, '2H');
+  const before = (await saved(page)).session;
+  expect(before.auction.map(call => call.bid)).toEqual(['1C', '2C', '2D', '2H', '2S']);
+  await page.reload();
+  await clickBid(page, '3NT');
+  expect((await saved(page)).session.contract).toMatchObject({ bid: '3NT', declarer: 'South' });
+  await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(before);
+});
+
+test('Mini Bourke 4414 uses 3NT for shape and 4C for club keycard', async ({ page }) => {
+  await start(page, 'C', 'North', 'route-coverage-46');
+  await clickBid(page, '1C');
+  await page.locator('[data-level="2"]').click();
+  await expect(page.locator('[data-bid="2D"]')).toHaveAttribute('data-discussed', 'true');
+  await clickBid(page, '2D');
+  const waiting = (await saved(page)).session;
+  expect(waiting.pendingAsk.bid).toBe('2H');
+  await clickBid(page, '3NT');
+  expect((await saved(page)).session.pendingAsk).toMatchObject({ bid: '4C', label: 'Keycards in clubs' });
+  await page.reload();
+  await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(waiting);
+});
+
+test('1D–1NT–2H lets responder choose the default relay into a spade shortage', async ({ page }) => {
+  await start(page, 'D', 'South', 'route-coverage-414');
+  await clickBid(page, '1NT');
+  const reverse = (await saved(page)).session;
+  expect(reverse.auction.map(call => call.bid)).toEqual(['1D', '1NT', '2H']);
+  await clickBid(page, '2S');
+  expect((await saved(page)).session.auction.at(-1)).toMatchObject({ bid: '2NT', meaning: 'Spades shortage, four hearts' });
+  await clickBid(page, '3C');
+  expect((await saved(page)).session.auction.at(-2)).toMatchObject({ bid: '3C', meaning: 'Shortage Keycard in Diamonds' });
+  await page.click('#undo-bid');
+  await page.click('#undo-bid');
+  expect((await saved(page)).session).toEqual(reverse);
 });
 
 test('responder can correct the weak-jump invitation or choose game after Undo', async ({page})=>{

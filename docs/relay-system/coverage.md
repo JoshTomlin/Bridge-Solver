@@ -28,13 +28,15 @@ the playable calls and the transition into the next decision.
 | Auction | What changed |
 |---|---|
 | 1C–1S | Previously every generated responder had a four/five-card major. Now one third of club draws target the artificial response, normally (7)8+ without a four-card major. Opener can rebid 1NT or 2C balanced, or 3D (9–13) or 2NT (14–16) with both minors. The latter two reuse the focused shortage and keycard exercises with the actual cards. Known major-shortage hands use the 2H/2S rebids described below. The bot agrees its longer minor and prefers clubs with equal lengths. The opener therefore gets to answer either shortage ask. |
-| 1C–2C | A single-suited positive diamond hand meets all five opener rebids. Responder can pass the 2D preference with 10–13. After the 3D raise, 3H asks opener for shortage. The shortage asks pause at the missing reply table. |
+| 1C–2C | A single-suited positive diamond hand meets all five opener rebids. After the 2D preference, responder can pass with 10–13 or use provisional natural stopper bids, invitations and game choices. After the 3D raise, 3H asks opener for shortage. The shortage asks pause at the missing reply table. |
 | 1C–1NT and direct weak jumps | Weak 1NT and natural jumps at two and three are dealt. After a two-level jump, only 2NT invites. The 1NT response has provisional natural rebids because its opener table is missing. |
 | 1C–1D/1H | The existing Bourke/fourth-suit, split-range, reordered and mini–mega exercises can be reached through the transfer and opener’s actual rebid. |
 | 1C–1S–1NT/2C | The two Baron exercises and the strong 2C–2D description can be reached from the opening, including the known diamond-short and strong unbalanced opener hands. |
 | 1D–2C/3D/2NT | Weak long clubs, invitational diamond support, and a five-plus-diamond game force respectively. The 2NT route uses Jacoby shortage and range replies. Weak-club and invitational rebids are provisional natural practice. |
 | 1M–1NT and 1M–3m | The nonforcing 1NT response and six-plus-card minor invitations are dealt. The 1NT rebids are provisional natural practice. |
 | 1C–1S–2H/2S | The direct major-shortage rebids are dealt. After 3D, two diamonds give 3NT to play. With three diamonds the SKC steps skip 3NT. Direct and strong routes share the same reply table. |
+| 1C–1S–2D | Mini Bourke is dealt from both sides, including 4414, the upper-range shape enquiry, long clubs and each shortage. The Club study menu has an explicit 4414 drill. |
+| 1D–1NT–2H/2S | The natural 16+ reverses are dealt from both sides with dedicated sampling for the default, solid clubs, diamond fit and major fit asks. Shape can reach a two-suiter, a three-suiter, or the 6/5 shortage enquiry before keycard. |
 | 1C–1S–1NT vs 1C–1S–2C | Over 1NT responder can pass, sign off in 2C/2D or bid 3NT. Over 2C, 2D requests 3NT or an unbalanced description. The whole-auction 2C branch currently deals balanced openers and lets opener declare 3NT. The reference also lists the other source continuations. |
 | 1H–1S | Jump-rebid exercises supplied this entry. Ordinary 12–17 balanced 1NT and natural clubs/strong balanced 2C now have a deal-generation route into the existing continuations. |
 | 1M–2C–3D–3M | Responder can show the three-card raise or a balanced game force with a doubleton (P1520). Both fit types reach the game choice in either seat. |
@@ -56,7 +58,8 @@ jump and 2NT invitation. Seed 2 gives 1C–1S–2S–3D–3NT with two diamonds.
 | Agreement | Current boundary |
 |---|---|
 | Positive diamonds after 1C–2C | The notes give the shortage asks after 2H/2S or 3D–3H without their answer order. The trainer pauses with the original cards and Undo available. See Q17. |
-| Other artificial 1S rebids (P0383, P0387, P0389–P0390) | The remaining direct long-club and two-suiter branches still need complete early and later continuations. |
+| Other artificial 1S rebids (P0387, P0389–P0390) | Solid 3C is playable to a contract. The remaining direct long-club and two-suiter branches need deeper continuations. |
+| 1D–1NT, other immediate 16+ rebids | The 2NT and 3♣/3♦/3♥/3♠ entries are separate from the 16+ major reverses. The 2♠ solid-club enquiry after opener's 2m is also a separate branch. |
 | Horton Last Train and slam after a forcing jump | Range/shape, invitations, direct keycards and forcing-jump cues to game are playable. Last Train replies and later slam continuations remain open. |
 | Weak 1NT and 2NT | Weak-1NT competitive methods and further slam continuations remain incomplete. Exclusion replies after 2NT are unconfirmed (Q13). |
 | Passed hand | Third/fourth-seat uncontested openings are dealt. P1780, some subsequent rebids, and competitive continuations remain incomplete. |

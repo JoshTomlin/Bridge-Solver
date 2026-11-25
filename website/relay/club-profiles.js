@@ -1,7 +1,7 @@
 // First/second-seat, unopposed training subsets from the original Word notes.
 // Source map and unresolved branches: docs/relay-club-source.md.
 // No function here reads either actual hand: node actions use public state only.
-import { SUITS, SUIT_NAMES, length, hcp, shapes, anyOf, nextBid } from './profile-utils.js';
+import { SUITS, SUIT_NAMES, length, hcp, shapes, anyOf, nextBid, relayStep } from './profile-utils.js';
 import { diamondSupportAsk, diamondDoubletonNode } from './source-utils.js';
 
 const balanced = value => ({ type: 'balanced', value });
@@ -232,10 +232,79 @@ function dappletonBaron(major, minor) {
   };
 }
 
+export const MINI_BOURKE = 'club-1s-2d-bourke';
+export const MINI_BOURKE_4414 = 'club-1s-2d-bourke-4414';
+export const BOURKE_LONG_CLUBS = ['3226', '2326', '2236', '2227'];
+const bourkeShortages = [
+  { suit: 'H', bid: '3D', ask: '3H', source: 'P0588' },
+  { suit: 'S', bid: '3H', ask: '3S', source: 'P0589' },
+  { suit: 'D', bid: '3S', ask: '4C', source: 'P0590' },
+];
+
+function bourkeShortageFacts(index) {
+  return [length(bourkeShortages[index].suit, 0, 1), ...bourkeShortages.slice(0, index).map(({ suit }) => length(suit, 2, 13))];
+}
+
+function bourkeShapeReplies(min, max) {
+  const range = `${min}–${max}`;
+  return [
+    { bid: '3C', label: `6+ clubs, ${range}`, constraints: [hcp(min, max), balanced(false), length('C', 6, 13)], nextNode: 'long-club-shortage', source: 'P0587' },
+    ...bourkeShortages.map(({ suit, bid, source }, index) => ({ bid, label: `${SUIT_NAMES[suit]} shortage, five clubs, ${range}`,
+      constraints: [hcp(min, max), length('C', 5), ...bourkeShortageFacts(index)],
+      nextNode: 'known-shortage', state: fitState('C'), source })),
+    { bid: '3NT', label: `4414, ${range}`, constraints: [hcp(min, max), shapes('4414')], nextNode: '4414', source: 'P0591' },
+  ];
+}
+
+function miniBourke(focus4414 = false) {
+  const rebid = '9–13, 0–3 diamonds, clubs not solid';
+  return {
+    id: focus4414 ? MINI_BOURKE_4414 : MINI_BOURKE, family: 'Club relays',
+    name: focus4414 ? 'Mini Bourke · 4414' : '1♣–1♠–2♦ · Mini Bourke',
+    source: 'Word P0383, P0537, P0583–P0591', defaultTrump: 'C', playerSeat: 'South', partnerSeat: 'North',
+    initialAuction: [N('1C', 'Club opening'), S('1S', '(7)8+, usually no four-card major'), N('2D', rebid)],
+    partnerConstraints: [hcp(9, 13), length('D', 0, 3), anyOf([shapes('4414')],
+      [length('C', 5, 13), balanced(false)], [hcp(11, 13), shapes(BOURKE_LONG_CLUBS)])],
+    ...(focus4414 ? { studyOnly: true, dealPartnerConstraints: [hcp(9, 11), shapes('4414')] } : {}),
+    playerConstraints: [hcp(14, 20), length('C', 3, 7), length('S', 0, 3), length('H', 0, 3), length('D', 0, 5)],
+    startNode: 'entry',
+    nodes: {
+      entry: { label: 'Mini Bourke', help: '2♥ asks opener to separate strength and shape.', actions: [{
+        bid: '2H', label: 'Mini Bourke, game-forcing shape relay', kind: 'relay', source: 'P0537/P0583', responses: [
+          { bid: '2S', label: '12–13 unbalanced', constraints: [hcp(12, 13), balanced(false)], nextNode: 'upper-shape', source: 'P0584' },
+          { bid: '2NT', label: '(11)12–13, (322)6 or 2227', constraints: [hcp(11, 13), shapes(BOURKE_LONG_CLUBS)], nextNode: 'long-club-balanced', source: 'P0383/P0586' },
+          ...bourkeShapeReplies(9, 11),
+        ],
+      }] },
+      'upper-shape': { label: '12–13 unbalanced', actions: [{ bid: '2NT', label: 'Ask shape', kind: 'relay', source: 'P0585', responses: bourkeShapeReplies(12, 13) }] },
+      'long-club-balanced': { label: 'Long clubs, no shortage', actions: [{ bid: '4D', label: 'Kickback in clubs', kind: 'keycard', trump: 'C', keycardMode: 'normal', source: 'General minor Kickback' }] },
+      'long-club-shortage': { label: 'Find the shortage', actions: [{ bid: '3D', label: 'Shortage in hearts, spades or diamonds', kind: 'relay', source: 'P0587',
+        responses: bourkeShortages.map(({ suit }, index) => ({ label: `${SUIT_NAMES[suit]} shortage`, constraints: bourkeShortageFacts(index),
+          phase: 'keycard', state: { ...fitState('C'), shortageSuit: suit, balanced: false } })),
+      }] },
+      'known-shortage': session => {
+        const { suit, ask, source } = bourkeShortages.find(({ bid }) => bid === session.auction.at(-1).bid);
+        return { label: `Detail the ${SUIT_NAMES[suit].toLowerCase()} shortage`, actions: [{ bid: ask,
+          label: `Shortage enquiry, ${SUIT_NAMES[suit].toLowerCase()} void or singleton (provisional)`, kind: 'relay', source,
+          responses: [0, 1].map(count => ({ label: count === 0 ? 'Void' : 'Singleton', constraints: [length(suit, count)],
+            nextNode: 'known-shortage-keycard', state: { ...fitState('C'), shortageSuit: suit, balanced: false } })),
+        }] };
+      },
+      'known-shortage-keycard': session => ({ label: 'Club keycard', actions: [{
+        bid: relayStep(session.auction.at(-1).bid), label: 'Keycards in clubs', kind: 'keycard', trump: 'C', keycardMode: 'normal',
+      }] }),
+      '4414': { label: '4414', actions: [{ bid: '4C', label: 'Keycards in clubs', kind: 'keycard', trump: 'C', keycardMode: 'normal', source: 'P0591' }] },
+    },
+    assumptions: ['The (11)12–13 exception can use the no-shortage 2NT reply. The 2S–2NT relay keeps the same shape table at 12–13.'],
+    limitations: ['With two shortages the trainer shows the first in heart, spade, diamond order. Where the notes name an enquiry after a shortage has already been shown, void then singleton is provisional.'],
+  };
+}
+
 export const CLUB_PROFILES = [
   clubBaron(false), clubBaron(true),
   clubKnownShortage('S'), clubKnownShortage('H'),
   clubTwoMinors(false), clubTwoMinors(true),
+  miniBourke(), miniBourke(true),
   ...['H', 'S'].flatMap(major => ['C', 'D'].flatMap(minor => [dappletonTransfer(major, minor, false), dappletonTransfer(major, minor, true)])),
   ...['H', 'S'].flatMap(major => ['C', 'D'].map(minor => dappletonBaron(major, minor))),
 ];

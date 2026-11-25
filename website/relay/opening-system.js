@@ -5,7 +5,7 @@
 import { DECK, PRACTICE_PROFILES, createPractice, createFamilyPractice, getPracticeProfile, practiceStartState, availableActions, applyBid,
   handFeatures, makeRng, matchesConstraints, bidIndex } from './core.js';
 import { NT_SHAPES, usesOpeningRelay, ntOpeningActions, applyNtOpeningCall, ntOpeningPartnerBid, validateNtOpening, startOpeningKeycards } from './nt-opening.js';
-import { declarerFor } from './profile-utils.js';
+import { declarerFor, length, hcp, shapes as exactShapes } from './profile-utils.js';
 import { entryContinuations } from './bid-reference.js';
 import { DIAMOND_RAISE } from './diamond-raise.js';
 import { naturalOpeningNode, naturalOpeningActions, naturalOpeningPartnerBid } from './natural-opening.js';
@@ -177,7 +177,8 @@ function diamondOpeningEligible(f) {
   return f.lengths.D >= 5 || f.shape.join('') === '4441';
 }
 
-const diamondProfiles = PRACTICE_PROFILES.filter(profile => profile.initialAuction?.[0].bid === '1D');
+const diamondReverseProfiles = ['minor-d-nt-2h', 'minor-d-nt-2s'].map(getPracticeProfile);
+const diamondProfiles = PRACTICE_PROFILES.filter(profile => profile.initialAuction?.[0].bid === '1D' && !diamondReverseProfiles.includes(profile));
 const diamondReorders = diamondProfiles.filter(profile => profile.id.startsWith('rebid-'));
 
 function diamondRebid(auction, hand, f = features(hand)) {
@@ -272,14 +273,34 @@ export function systemOpeningPartnerBid(context) {
   throw new Error('No automated continuation for this opening node.');
 }
 
-function drawJoint(rng, accepts) {
+function drawJoint(rng, accepts, fixedResponder = []) {
+  const available = fixedResponder.length ? DECK.filter(card => !fixedResponder.includes(card)) : DECK;
+  const drawn = 26 - fixedResponder.length;
   for (let attempt = 0; attempt < 500000; attempt++) {
-    const cards = [...DECK];
-    for (let i = 0; i < 26; i++) { const j = i + Math.floor(rng() * (52-i)); [cards[i],cards[j]] = [cards[j],cards[i]]; }
-    const north = cards.slice(0,13), south = cards.slice(13,26);
+    const cards = [...available];
+    for (let i = 0; i < drawn; i++) { const j = i + Math.floor(rng() * (cards.length-i)); [cards[i],cards[j]] = [cards[j],cards[i]]; }
+    const north = cards.slice(0,13), south = [...cards.slice(13,drawn), ...fixedResponder];
     if (accepts(features(north),features(south),north,south)) return { North: north, South: south };
   }
   throw new Error('No deal found for this opening subset. Try another seed.');
+}
+
+function drawDiamondReverse(seed) {
+  const rng = makeRng(`diamond-reverse-branch:${seed}`);
+  const profile = pick(diamondReverseProfiles, rng);
+  const major = profile.initialAuction[2].bid[1];
+  const entry = profile.nodes.entry.actions;
+  const route = pick([0, 1, 2, 3], rng);
+  if (route === 1) {
+    const solidClubs = [...'AKQJT9'].map(rank => `C${rank}`);
+    return drawJoint(rng, (n, s, north, south) => n.lengths.C <= 1 && diamondResponse(s) === '1NT'
+      && matchesConstraints(south, profile.playerConstraints, 'D') && matchesConstraints(north, profile.partnerConstraints, 'D'), solidClubs);
+  }
+  const reply = pick(entry[route].responses, rng);
+  const responderFacts = route === 0 ? [length('D', 3), length(major, 0, 3)]
+    : route === 2 ? [length('D', 4)] : [...entry[route].playerConstraints, length('D', 0, 3), hcp(14)];
+  const hands = createFamilyPractice({ ...profile, dealPartnerConstraints: [exactShapes(reply.constraints[0].values)] }, seed, responderFacts);
+  return { North: hands.partnerHand, South: hands.playerHand };
 }
 
 function systemOpeningDraw(openingBid, seed) {
@@ -327,6 +348,9 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
     if (n.hcp < 20 || n.hcp > 22 || !['4333','4432','5332'].includes(shape) || s.hcp < 6 || s.hcp > 16) return false;
     return true;
   });
+  else if (openingBid === '1D' && makeRng(`strong-diamond-reverse:${seed}`)() < 0.125) {
+    hands = drawDiamondReverse(seed);
+  }
   else if (openingBid === '1D' && makeRng(`direct-diamond:${seed}`)() < 0.3) {
     const route = ['2C','3D','2NT'][Math.floor(rng()*3)];
     hands = drawJoint(rng, (n,s,north) => matchesConstraints(north,DIAMOND_RAISE.partnerConstraints,'D')
@@ -405,7 +429,8 @@ export function createSystemOpeningPractice({ seed, humanSeat, openingBid }) {
   const m=openingBid.slice(1);
   const southRestriction=openingBid==='2NT'?{type:'hcp',min:6,max:16,label:'Responder: 6–16 in this practice subset'}
     : {type:'anyOf',label:openingBid==='1D'?'Responder: weak raise or clear game force in this practice subset':'Responder: weak raise or 10–19 in this practice subset',options:openingBid==='1D'
-      ?[[hcp(5,8),length('D',4,13),length('H',0,3),length('S',0,3)],[hcp(5,9),length('C',5,13)],[hcp(9,12),length('D',4,13)],[hcp(10,13),length('S',4,13)],[hcp(14,19)]]
+      ?[[hcp(5,8),length('D',4,13),length('H',0,3),length('S',0,3)],[hcp(5,9),length('C',5,13)],[hcp(9,12),length('D',4,13)],[hcp(10,13),length('S',4,13)],
+        [hcp(10,13),length('H',0,3),length('S',0,3)],[hcp(14,19)]]
       :[[hcp(5,8),length(m,3,3),length(other(m),0,3)],[hcp(5,9),length(m,0,2)],[hcp(14,19),length(m,4,13)],[hcp(10,19)],
         ...(m==='H'?[[hcp(5,7),length('S',6,8)],[hcp(14,19),length('S',4,13),length('H',0,2),{type:'balanced',value:false}]]:[])]};
   const initialSouth = extra || horton ? [] : [southRestriction];

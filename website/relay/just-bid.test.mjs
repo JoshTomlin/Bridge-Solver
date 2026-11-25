@@ -14,6 +14,7 @@ const relaySeeds = [
   515, 536, 541, 599, 648, 660, 665, 754, 757, 781, 1053,
   1082, 1097, 1196, 1214, 1340, 1533, 1661, 1677, 1720, 1732, 1901, 2028, 2047,
   2432, 3120, 4592, 5083,
+  40, 183, 565, 1024, 1855, 3450,
 ];
 
 function bidOnPolicy(session) {
@@ -51,7 +52,7 @@ test('Just Bid can reach every implemented study entry from the opening in eithe
     }
     assert.deepEqual(actual.North,actual.South,seed);
   }
-  const expected = [...PRACTICE_PROFILES.map(profile => profile.id),'diamond-2nt-raise'].sort();
+  const expected = [...PRACTICE_PROFILES.filter(profile => !profile.studyOnly).map(profile => profile.id),'diamond-2nt-raise'].sort();
   for (const set of Object.values(reached)) assert.deepEqual([...set].sort(),expected);
 });
 

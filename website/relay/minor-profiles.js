@@ -285,4 +285,79 @@ function baseProfile(low, high, rebid) {
   };
 }
 
-export const MINOR_PROFILES = [baseProfile(9, 11, '2D'), baseProfile(12, 15, '2C'), ...makeExpanded()];
+function strongDiamondMajor(major) {
+  const high = major === 'H' ? 'S' : 'H';
+  const ordinary = two('D', major);
+  const rows = [
+    { label: `${SUIT_NAMES[high]} shortage, four ${SUIT_NAMES[major].toLowerCase()}`, suit: high, values: ordinary.filter(shape => size(shape, high) <= 1) },
+    { label: `Club shortage, four ${SUIT_NAMES[major].toLowerCase()}`, suit: 'C', values: ordinary.filter(shape => size(shape, 'C') <= 1) },
+    { label: major === 'H' ? '1444 or 0454, spade shortage' : '4144 or 4054, heart shortage', suit: high,
+      values: major === 'H' ? ['1444', '0454'] : ['4144', '4054'] },
+    ...(major === 'H' ? [{ label: '4441 or 4450, club shortage', suit: 'C', values: ['4441', '4450'] }] : []),
+    { label: `Six-plus diamonds, five ${SUIT_NAMES[major].toLowerCase()}`, long: true, values: select(n => n('D') >= 6 && n(major) === 5) },
+  ];
+  const rebid = `2${major}`;
+  const source = major === 'H' ? 'P0724–P0750' : 'P0752–P0774';
+  const majorGame = `4${major}`;
+  const agreements = [
+    { trump: 'D', label: 'Default shape relay, usually three diamonds' },
+    { trump: 'C', label: 'Six-plus solid clubs, agree clubs and ask shape', facts: [length('C', 6, 13)],
+      coachConstraints: [...'AKQJT9'].map(rank => ({ type: 'card', suit: 'C', rank })) },
+    { trump: 'D', label: 'Four-plus diamonds, agree diamonds and ask shape', facts: [length('D', 4, 13)], coachConstraints: [] },
+    { trump: major, label: `Four ${SUIT_NAMES[major].toLowerCase()}, agree the major and ask shape`, facts: [length(major, 4)], coachConstraints: [] },
+  ];
+  const settle = (trump, shortageSuit) => ({ trump, major: trump, shortageSuit, balanced: false, agreementOptions: [],
+    relayPolicy: { skip3NT: trump !== major, skipMajorGame: trump === major } });
+  const nextAgreements = (session, row) => {
+    const route = agreements.findIndex((_, index) => relayStep(rebid, index + 1, { skip3NT: false }) === session.auction[3].bid);
+    if (route === 0) {
+      if (row.long) return ['D', major];
+      return ['D', ...(row.suit === high ? ['C'] : row.values.includes('4441') ? ['S'] : [])];
+    }
+    if (route === 1) {
+      const allowMajor = row.long && major === 'S' || row.values.includes('4441');
+      return ['C', ...(allowMajor ? [major === 'H' ? 'S' : major] : [])];
+    }
+    return [session.trump];
+  };
+  const followup = (session, row) => ({
+    label: row.long ? 'Locate the remaining shortage' : 'Shape known, choose a contract or ask keycards',
+    trumpContractsOnly: session.trump === major,
+    ...(row.long ? { signoffs: [majorGame] } : {}),
+    actions: nextAgreements(session, row).map((trump, index) => {
+      const bid = relayStep(lastBid(session), index + 1, { skip3NT: session.trump !== major, skip: row.long ? [majorGame] : [] });
+      if (!row.long) return { bid, kind: 'keycard', trump, shortageSuit: row.suit, keycardMode: 'shortage', source };
+      const outside = [high, 'C'];
+      return { bid, kind: 'relay', trump, label: `Shortage enquiry in ${SUIT_NAMES[trump].toLowerCase()}`, source,
+        responses: [...outside, null].map(suit => ({ label: suit ? `${SUIT_NAMES[suit]} shortage` : 'Even outside suits',
+          constraints: [shapeFact(row.values.filter(shape => suit
+            ? size(shape, suit) < size(shape, outside.find(side => side !== suit))
+            : size(shape, high) === size(shape, 'C')))], phase: 'keycard', state: settle(trump, suit) })),
+      };
+    }),
+  });
+  return {
+    id: `minor-d-nt-${rebid.toLowerCase()}`, family: 'Revised minor relays', name: `1♦–1NT–${major === 'H' ? '2♥' : '2♠'} · 16+ reverse`,
+    source: `Word P0670, P0708–P0712, ${source}`, defaultTrump: 'D', playerSeat: 'South', partnerSeat: 'North',
+    initialAuction: describeEntryAuction([{ seat: 'North', bid: '1D' }, { seat: 'South', bid: '1NT' }, { seat: 'North', bid: rebid }]),
+    partnerConstraints: [hcp(16, 19), shapeFact(rows.flatMap(row => row.values), `Diamonds and four-plus ${SUIT_NAMES[major].toLowerCase()}`)],
+    playerConstraints: [hcp(10, 19), length('S', 0, 4), length('H', 0, 4)],
+    startNode: 'entry', nodes: {
+      entry: { label: 'Choose how to ask shape after the reverse', actions: agreements.map((agreement, index) => {
+        const bid = relayStep(rebid, index + 1, { skip3NT: false });
+        return { bid, label: agreement.label, kind: 'relay', trump: agreement.trump, source,
+          playerConstraints: agreement.facts, coachConstraints: agreement.coachConstraints, state: settle(agreement.trump, null),
+          responses: rows.map((row, answer) => ({ bid: nextBid(bid, answer + 1), label: row.label, constraints: [shapeFact(row.values, row.label)],
+            nextNode: `reverse-shape-${answer}` })),
+        };
+      }) },
+      ...Object.fromEntries(rows.map((row, index) => [`reverse-shape-${index}`, session => followup(session, row)])),
+    },
+    assumptions: ['The shape replies count consecutive bids, including 3NT. The reverse is dealt with 16–19 HCP for practice.'],
+    limitations: [major === 'S' ? 'P0773 repeats a reply already assigned at P0771. Practice uses the next step, 4D, for 6/5.'
+      : 'Unlisted 5/5 and double-shortage two-suiters are outside the documented reply table.'],
+  };
+}
+
+export const MINOR_PROFILES = [baseProfile(9, 11, '2D'), baseProfile(12, 15, '2C'), ...makeExpanded(),
+  strongDiamondMajor('H'), strongDiamondMajor('S')];
