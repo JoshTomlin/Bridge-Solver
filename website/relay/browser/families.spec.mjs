@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { settings, selectSetting, closeSheets, newHand, clickBid, fitsScreen } from './helpers.mjs';
 import { AUCTION_FAMILIES, auctionFamilyForProfile } from '../families.js';
-import { applyBid, RANKS, SUITS } from '../core.js';
+import { applyBid, PRACTICE_PROFILES, RANKS, SUITS } from '../core.js';
 import { availablePracticeActions, practiceCalls } from '../practice.js';
 import { tableView as practiceView } from '../seat-view.js';
 
@@ -138,7 +138,8 @@ test('every study branch is selectable in both roles', async ({ page }) => {
   await settings(page);
   await page.locator('#study-menu > summary').click();
   let count = 0;
-  for (const role of ['asker', 'teller']) {
+  const roles = ['asker', 'teller'];
+  for (const role of roles) {
     if (role === 'teller') {
       const previous = (await saved(page)).session.seed;
       await selectSetting(page, '#practice-role', role);
@@ -162,7 +163,7 @@ test('every study branch is selectable in both roles', async ({ page }) => {
       }
     }
   }
-  expect(count).toBe(126);
+  expect(count).toBe(PRACTICE_PROFILES.length * roles.length);
 });
 
 test('study pin, replay, clear and legacy save preserve the right scope', async ({ page }) => {
